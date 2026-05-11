@@ -1,6 +1,6 @@
-# 👁️ EYEON! - Safe Driving Assistant
+# 👁️ EYE-ON! - Safe Driving Assistant
 
-**EYEON!** is a Flutter-based mobile application designed to enhance rider safety through real-time microsleep detection, accident monitoring, and automatic emergency response.
+**EYE-ON!** is a Flutter-based mobile application designed to enhance rider safety through real-time microsleep detection, accident monitoring, and automatic emergency response.
 
 ---
 
