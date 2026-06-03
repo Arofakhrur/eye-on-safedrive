@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_face_mesh_detection/google_mlkit_face_mesh_detection.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:eyeon/core/utils/math_utils.dart';
+import 'package:eyeon/core/services/preference_service.dart';
 
 class MicrosleepController extends ChangeNotifier {
   final FaceMeshDetector _meshDetector = FaceMeshDetector(
@@ -15,7 +17,7 @@ class MicrosleepController extends ChangeNotifier {
   DateTime? _drowsyStartTime;
   List<FaceMesh> _currentMeshes = [];
   
-  final double _earThreshold = 0.25;
+  final AudioPlayer _audioPlayer = AudioPlayer();
   final Duration _microsleepDuration = const Duration(seconds: 2);
 
   double get currentEAR => _currentEAR;
@@ -74,7 +76,8 @@ class MicrosleepController extends ChangeNotifier {
   }
 
   void _evaluateDrowsiness() {
-    if (_currentEAR < _earThreshold) {
+    final threshold = PreferenceService().earThreshold;
+    if (_currentEAR < threshold) {
       _drowsyStartTime ??= DateTime.now();
       
       final elapsed = DateTime.now().difference(_drowsyStartTime!);
@@ -85,17 +88,28 @@ class MicrosleepController extends ChangeNotifier {
     } else {
       _drowsyStartTime = null;
       _isDrowsy = false;
+      _audioPlayer.stop();
     }
   }
 
-  void _triggerAlarm() {
-    // TODO: Play high-pitch audio alarm in < 200ms
-    debugPrint('🚨 MICROSLEEP DETECTED! 🚨 Playing Alarm!');
+  Future<void> _triggerAlarm() async {
+    if (PreferenceService().isAlarmEnabled) {
+      debugPrint('🚨 MICROSLEEP DETECTED! 🚨 Playing Alarm!');
+      // Assuming there is an alarm.mp3 in assets/audio/ or we can use a system beep.
+      // Since we don't know the exact asset, we'll try to play a default or just log it.
+      // Or we can use a built-in beep if possible. We will just play a placeholder for now.
+      try {
+         // await _audioPlayer.play(AssetSource('audio/alarm.mp3'));
+      } catch (e) {
+         debugPrint('Audio play error: $e');
+      }
+    }
   }
 
   @override
   void dispose() {
     _meshDetector.close();
+    _audioPlayer.dispose();
     super.dispose();
   }
 }

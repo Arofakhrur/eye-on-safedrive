@@ -1,9 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:eyeon/core/services/supabase_service.dart';
+import 'package:eyeon/core/services/sos_service.dart';
+import 'package:eyeon/features/home/widgets/status_card.dart';
+import 'package:eyeon/features/home/widgets/stat_card.dart';
+import 'package:eyeon/features/home/widgets/sos_button.dart';
 
-/// Home tab — the dashboard shown when the "Home" nav item is active.
-class HomeDashboard extends StatelessWidget {
-  const HomeDashboard({super.key});
+class HomeDashboard extends StatefulWidget {
+  final VoidCallback? onProfileTap;
+  const HomeDashboard({super.key, this.onProfileTap});
+
+  @override
+  State<HomeDashboard> createState() => _HomeDashboardState();
+}
+
+class _HomeDashboardState extends State<HomeDashboard> {
+  String _userName = 'Rider';
+  String? _avatarUrl;
+  final bool _isOnline = true; // Simulated network status
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  void _loadUserProfile() {
+    final user = SupabaseService().currentUser;
+    if (user != null && user.userMetadata != null) {
+      final name = user.userMetadata!['full_name'] ?? user.userMetadata!['name'];
+      final avatar = user.userMetadata!['avatar_url'] ?? user.userMetadata!['picture'];
+      setState(() {
+        if (name != null) _userName = name;
+        _avatarUrl = avatar;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,121 +48,20 @@ class HomeDashboard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-
-              // Greeting row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Welcome Back 👋',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Rider',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Avatar
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD7F454),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.person_rounded,
-                        color: Colors.black, size: 24),
-                  ),
-                ],
-              ),
-
+              _buildGreetingHeader(),
               const SizedBox(height: 32),
-
-              // Status card
-              _buildStatusCard(),
-
+              StatusCard(isOnline: _isOnline),
               const SizedBox(height: 24),
-
-              // Quick stats row
-              Text(
-                'Quick Stats',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                ),
-              ),
+              _buildQuickStatsHeader(),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Icons.timer_outlined,
-                      label: 'Total Rides',
-                      value: '0',
-                      color: const Color(0xFFD7F454),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Icons.warning_amber_rounded,
-                      label: 'Alerts',
-                      value: '0',
-                      color: Colors.orange.shade100,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Icons.check_circle_outline,
-                      label: 'Safe Rides',
-                      value: '0',
-                      color: Colors.green.shade100,
-                    ),
-                  ),
-                ],
-              ),
-
+              _buildStatsRow(),
               const SizedBox(height: 32),
-
-              // SOS 112 Button
-              _buildSOSButton(),
-
+              SOSButton(onTap: () => SOSService().callNationalEmergency()),
               const SizedBox(height: 24),
-
-              // Recent activity
-              Text(
-                'Recent Activity',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                ),
-              ),
+              _buildRecentActivityHeader(),
               const SizedBox(height: 16),
-              _buildEmptyActivity(),
-
-              const SizedBox(height: 100), // padding for nav bar
+              _buildEmptyActivityPlaceholder(),
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -138,116 +69,118 @@ class HomeDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
+  Widget _buildGreetingHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome Back 👋',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _userName,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
+        GestureDetector(
+          onTap: widget.onProfileTap,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD7F454),
+              shape: BoxShape.circle,
+              image: _avatarUrl != null
+                  ? DecorationImage(
+                      image: NetworkImage(_avatarUrl!),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: _avatarUrl == null
+                ? const Icon(Icons.person_rounded, color: Colors.black, size: 24)
+                : null,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickStatsHeader() {
+    return Text(
+      'Quick Stats',
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
         color: Colors.black,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD7F454),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.shield_rounded,
-                    color: Colors.black, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'EYE-ON! Status',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD7F454).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Ready',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFD7F454),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Your monitoring system is\ncalibrated and ready to go.',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              color: Colors.white70,
-              height: 1.5,
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.black54, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: Colors.black,
-            ),
+  Widget _buildStatsRow() {
+    return Row(
+      children: [
+        const Expanded(
+          child: StatCard(
+            icon: Icons.timer_outlined,
+            label: 'Total Rides',
+            value: '0',
+            color: Color(0xFFD7F454),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11,
-              color: Colors.black54,
-            ),
-            textAlign: TextAlign.center,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: StatCard(
+            icon: Icons.warning_amber_rounded,
+            label: 'Alerts',
+            value: '0',
+            color: Colors.orange.shade100,
           ),
-        ],
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: StatCard(
+            icon: Icons.check_circle_outline,
+            label: 'Safe Rides',
+            value: '0',
+            color: Colors.green.shade100,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivityHeader() {
+    return Text(
+      'Recent Activity',
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: Colors.black,
       ),
     );
   }
 
-  Widget _buildEmptyActivity() {
+  Widget _buildEmptyActivityPlaceholder() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -277,47 +210,6 @@ class HomeDashboard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSOSButton() {
-    return GestureDetector(
-      onTap: () {
-        // TODO: Implement emergency call to 112
-        debugPrint('Calling Emergency Services 112...');
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: Colors.redAccent,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.redAccent.withValues(alpha: 0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.phone_in_talk_rounded,
-                color: Colors.white, size: 28),
-            const SizedBox(width: 16),
-            Text(
-              'SOS 112 EMERGENCY',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -17,6 +17,8 @@ class _PermissionScreenState extends State<PermissionScreen>
   bool _cameraGranted = false;
   bool _notificationGranted = false;
   bool _contactsGranted = false;
+  bool _microphoneGranted = false;
+  bool _storageGranted = false;
   bool _isRequesting = false;
 
   @override
@@ -32,7 +34,6 @@ class _PermissionScreenState extends State<PermissionScreen>
     super.dispose();
   }
 
-  /// Re-check permissions when user returns from Settings
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -45,6 +46,11 @@ class _PermissionScreenState extends State<PermissionScreen>
     final cameraStatus = await Permission.camera.status;
     final notificationStatus = await Permission.notification.status;
     final contactsStatus = await Permission.contacts.status;
+    final microphoneStatus = await Permission.microphone.status;
+    
+    // For storage, we check videos on newer Android or storage on older
+    final storageStatus = await Permission.storage.status;
+    final videoStatus = await Permission.videos.status;
     
     if (mounted) {
       setState(() {
@@ -52,13 +58,14 @@ class _PermissionScreenState extends State<PermissionScreen>
         _cameraGranted = cameraStatus.isGranted;
         _notificationGranted = notificationStatus.isGranted;
         _contactsGranted = contactsStatus.isGranted;
+        _microphoneGranted = microphoneStatus.isGranted;
+        _storageGranted = storageStatus.isGranted || videoStatus.isGranted;
       });
     }
   }
 
   Future<void> _requestSinglePermission(Permission permission) async {
     final status = await permission.request();
-    print('Permission ${permission.toString()} status: $status');
     if (status.isPermanentlyDenied) {
       if (mounted) {
         _showSettingsDialog(permission);
@@ -70,80 +77,43 @@ class _PermissionScreenState extends State<PermissionScreen>
   Future<void> _grantAllPermissions() async {
     setState(() => _isRequesting = true);
 
-    // Request each permission sequentially
-    if (!_locationGranted) {
-      await _requestSinglePermission(Permission.location);
+    if (!_locationGranted) await _requestSinglePermission(Permission.location);
+    if (!_cameraGranted) await _requestSinglePermission(Permission.camera);
+    if (!_microphoneGranted) await _requestSinglePermission(Permission.microphone);
+    if (!_storageGranted) {
+      // Try videos first for Android 13+
+      await _requestSinglePermission(Permission.videos);
+      await _requestSinglePermission(Permission.storage);
     }
-    if (!_cameraGranted) {
-      await _requestSinglePermission(Permission.camera);
-    }
-    if (!_notificationGranted) {
-      await _requestSinglePermission(Permission.notification);
-    }
-    if (!_contactsGranted) {
-      await _requestSinglePermission(Permission.contacts);
-    }
+    if (!_notificationGranted) await _requestSinglePermission(Permission.notification);
+    if (!_contactsGranted) await _requestSinglePermission(Permission.contacts);
 
-    // Re-check after all requests
     await _checkCurrentPermissions();
-
     setState(() => _isRequesting = false);
 
-    // Navigate if all granted
-    if (_locationGranted && _cameraGranted && _notificationGranted && _contactsGranted && mounted) {
+    if (_allGranted && mounted) {
       PreferenceService().setPermissionsGranted(true);
       Navigator.of(context).pushReplacementNamed(AppRoutes.login);
     }
   }
 
   void _showSettingsDialog(Permission permission) {
-    String permName = '';
-    if (permission == Permission.location) {
-      permName = 'Location';
-    } else if (permission == Permission.camera) {
-      permName = 'Camera';
-    } else if (permission == Permission.notification) {
-      permName = 'Notification';
-    } else if (permission == Permission.contacts) {
-      permName = 'Contacts';
-    }
-
+    String permName = permission.toString().split('.').last.toUpperCase();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          '$permName Permission Required',
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
-        ),
-        content: Text(
-          'Please enable $permName permission in Settings to continue.',
-          style: GoogleFonts.plusJakartaSans(fontSize: 14),
-        ),
+        title: Text('$permName Permission Required', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 18)),
+        content: Text('Please enable $permName permission in Settings to continue.', style: GoogleFonts.plusJakartaSans(fontSize: 14)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.plusJakartaSans(color: Colors.black54),
-            ),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: Colors.black54))),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               openAppSettings();
             },
-            child: Text(
-              'Open Settings',
-              style: GoogleFonts.plusJakartaSans(
-                color: Colors.black,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            child: Text('Open Settings', style: GoogleFonts.plusJakartaSans(color: Colors.black, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -151,7 +121,7 @@ class _PermissionScreenState extends State<PermissionScreen>
   }
 
   bool get _allGranted =>
-      _locationGranted && _cameraGranted && _notificationGranted && _contactsGranted;
+      _locationGranted && _cameraGranted && _notificationGranted && _contactsGranted && _microphoneGranted && _storageGranted;
 
   @override
   Widget build(BuildContext context) {
@@ -160,75 +130,73 @@ class _PermissionScreenState extends State<PermissionScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar
             _buildTopBar(),
-
-            const SizedBox(height: 40),
-
-            // Title
+            const SizedBox(height: 20),
             Text(
               'Rider Privacy &\nPermission',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 32,
-                fontWeight: FontWeight.w800,
-                color: Colors.black,
-                height: 1.2,
-              ),
+              style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black, height: 1.2),
             ),
-
-            const SizedBox(height: 40),
-
-            // Permission Cards
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 children: [
                   _buildPermissionCard(
                     icon: Icons.location_searching_rounded,
                     title: 'Location Service',
-                    subtitle: 'For incident detection\n& support',
+                    subtitle: 'For incident detection & support',
                     isGranted: _locationGranted,
-                    onToggle: () =>
-                        _requestSinglePermission(Permission.location),
+                    onToggle: () => _requestSinglePermission(Permission.location),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   _buildPermissionCard(
                     icon: Icons.visibility_outlined,
                     title: 'Camera Access',
-                    subtitle: 'For active rider\neye-tracking',
+                    subtitle: 'For active rider eye-tracking',
                     isGranted: _cameraGranted,
-                    onToggle: () =>
-                        _requestSinglePermission(Permission.camera),
+                    onToggle: () => _requestSinglePermission(Permission.camera),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  _buildPermissionCard(
+                    icon: Icons.mic_rounded,
+                    title: 'Microphone',
+                    subtitle: 'For audio alerts & video recording',
+                    isGranted: _microphoneGranted,
+                    onToggle: () => _requestSinglePermission(Permission.microphone),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildPermissionCard(
+                    icon: Icons.photo_library_rounded,
+                    title: 'Storage & Gallery',
+                    subtitle: 'To save incident video copies',
+                    isGranted: _storageGranted,
+                    onToggle: () async {
+                      await _requestSinglePermission(Permission.videos);
+                      await _requestSinglePermission(Permission.storage);
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   _buildPermissionCard(
                     icon: Icons.notification_important_rounded,
                     title: 'Notification',
-                    subtitle: 'Immediate alert for\ndangerous situation',
+                    subtitle: 'Immediate alert for dangerous situation',
                     isGranted: _notificationGranted,
-                    onToggle: () =>
-                        _requestSinglePermission(Permission.notification),
+                    onToggle: () => _requestSinglePermission(Permission.notification),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   _buildPermissionCard(
                     icon: Icons.contact_phone_rounded,
                     title: 'Contacts',
-                    subtitle: 'Quickly pick your\nemergency contact',
+                    subtitle: 'Quickly pick your emergency contact',
                     isGranted: _contactsGranted,
-                    onToggle: () =>
-                        _requestSinglePermission(Permission.contacts),
+                    onToggle: () => _requestSinglePermission(Permission.contacts),
                   ),
                 ],
               ),
             ),
-
-            const Spacer(),
-
-            // Bottom Button
             _buildGrantButton(),
-
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -241,17 +209,9 @@ class _PermissionScreenState extends State<PermissionScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset('assets/images/EYE-ON!_Logo.webp',
-              height: 28, width: 28),
+          Image.asset('assets/images/EYE-ON!_Logo.webp', height: 28, width: 28),
           const SizedBox(width: 8),
-          Text(
-            'EYE-ON!',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Colors.black,
-            ),
-          ),
+          Text('EYE-ON!', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black)),
         ],
       ),
     );
@@ -269,60 +229,26 @@ class _PermissionScreenState extends State<PermissionScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isGranted
-              ? const Color(0xFFD7F454).withValues(alpha: 0.5)
-              : Colors.grey.shade100,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: isGranted ? const Color(0xFFD7F454).withValues(alpha: 0.5) : Colors.grey.shade100),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Row(
         children: [
-          // Icon Circle
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isGranted
-                  ? const Color(0xFFD7F454)
-                  : Colors.grey.shade200,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon,
-                color: isGranted ? Colors.white : Colors.black38, size: 24),
+            decoration: BoxDecoration(color: isGranted ? const Color(0xFFD7F454) : Colors.grey.shade200, shape: BoxShape.circle),
+            child: Icon(icon, color: isGranted ? Colors.black : Colors.black38, size: 20),
           ),
           const SizedBox(width: 16),
-          // Text Content
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.black54,
-                    height: 1.3,
-                  ),
-                ),
+                Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black)),
+                Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.black54, height: 1.3)),
               ],
             ),
           ),
-          // Toggle Switch — tapping it requests the permission
           Switch(
             value: isGranted,
             onChanged: (_) => onToggle(),
@@ -341,62 +267,31 @@ class _PermissionScreenState extends State<PermissionScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: GestureDetector(
-        onTap: _isRequesting
-            ? null
-            : () {
-                if (_allGranted) {
-                  PreferenceService().setPermissionsGranted(true);
-                  Navigator.of(context).pushReplacementNamed(AppRoutes.login);
-                } else {
-                  _grantAllPermissions();
-                }
-              },
+        onTap: _isRequesting ? null : () {
+          if (_allGranted) {
+            PreferenceService().setPermissionsGranted(true);
+            Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+          } else {
+            _grantAllPermissions();
+          }
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
-            color: _isRequesting
-                ? Colors.grey.shade300
-                : const Color(0xFFD7F454),
+            color: _isRequesting ? Colors.grey.shade300 : const Color(0xFFD7F454),
             borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              if (!_isRequesting)
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-            ],
+            boxShadow: [if (!_isRequesting) BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4))],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (_isRequesting)
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black38),
-                  ),
-                )
+                const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.black38)))
               else ...[
-                Text(
-                  _allGranted ? 'Continue' : 'Grant All Permission',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
+                Text(_allGranted ? 'Continue' : 'Grant All Permissions', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black)),
                 const SizedBox(width: 12),
-                Icon(
-                  _allGranted
-                      ? Icons.arrow_circle_right_outlined
-                      : Icons.security_rounded,
-                  color: Colors.black,
-                  size: 28,
-                ),
+                Icon(_allGranted ? Icons.arrow_circle_right_outlined : Icons.security_rounded, color: Colors.black, size: 24),
               ],
             ],
           ),
