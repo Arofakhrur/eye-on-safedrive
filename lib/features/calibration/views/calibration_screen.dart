@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
+import 'dart:io';
+import 'dart:math';
 import 'package:camera/camera.dart';
+import 'package:google_mlkit_face_mesh_detection/google_mlkit_face_mesh_detection.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
+import 'package:eyeon/core/utils/math_utils.dart';
+import 'package:eyeon/core/utils/camera_utils.dart';
 
 /// ------------------------------------------------------------------
 /// CalibrationScreen
 /// ------------------------------------------------------------------
-/// This screen captures the front-camera feed, runs a simulated
-/// calibration pass, and is structured so that a TFLite / TensorFlow
-/// Lite model can be plugged in later.
-///
-/// HOW TO INTEGRATE YOUR MODEL:
-///   1. Add `tflite_flutter: ^0.11.0` (or latest) to pubspec.yaml.
-///   2. Place your `.tflite` model file in `assets/models/`.
-///   3. Register the asset path in pubspec.yaml under `flutter.assets`.
-///   4. Uncomment the `_loadModel()` and `_runInference()` stubs below
-///      and replace the placeholder logic with your own pipeline
-///      (e.g. EAR calculation, face-mesh landmark extraction, etc.).
+/// Captures the front-camera feed, detects face mesh landmarks,
+/// and computes the user's personal EAR (Eye Aspect Ratio) baseline.
+/// The calibrated threshold is saved to PreferenceService for use
+/// during microsleep detection.
 /// ------------------------------------------------------------------
 
 class CalibrationScreen extends StatefulWidget {
@@ -35,16 +33,24 @@ class _CalibrationScreenState extends State<CalibrationScreen>
   bool _isCalibrationDone = false;
   double _progress = 0.0;
   String _statusText = 'Position your face inside the circle';
-  Timer? _calibrationTimer;
 
   // ── Camera ────────────────────────────────────────────────────────
   CameraController? _cameraController;
   bool _isCameraReady = false;
 
-  // ── TFLite Model (placeholder) ────────────────────────────────────
-  // Interpreter? _interpreter;          // from tflite_flutter
-  // List<double>? _baselineEAR;         // baseline Eye Aspect Ratio
-  bool _isModelLoaded = false;
+  // ── Face Mesh Detection ───────────────────────────────────────────
+  final FaceMeshDetector _meshDetector = FaceMeshDetector(
+    option: FaceMeshDetectorOptions.faceMesh,
+  );
+  bool _isProcessingFrame = false;
+
+  // ── EAR Calibration Data ──────────────────────────────────────────
+  final List<double> _earSamples = [];
+  static const int _targetSamples = 100; // ~5 seconds of data at ~20fps
+  double _currentEAR = 0.0;
+  double _calibratedThreshold = 0.0;
+  int _noFaceFrames = 0;
+  static const int _noFaceTimeout = 60; // ~3 seconds without face = warning
 
   // ── Animation ─────────────────────────────────────────────────────
   late AnimationController _pulseController;
@@ -61,7 +67,6 @@ class _CalibrationScreenState extends State<CalibrationScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     _initCamera();
-    _loadModel();
   }
 
   // ── Camera initialisation ─────────────────────────────────────────
@@ -79,7 +84,9 @@ class _CalibrationScreenState extends State<CalibrationScreen>
         frontCamera,
         ResolutionPreset.medium,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.yuv420,
+        imageFormatGroup: Platform.isAndroid
+            ? ImageFormatGroup.nv21
+            : ImageFormatGroup.bgra8888,
       );
 
       await _cameraController!.initialize();
@@ -88,30 +95,6 @@ class _CalibrationScreenState extends State<CalibrationScreen>
       debugPrint('Camera init error: $e');
     }
   }
-
-  // ── Model loading stub ────────────────────────────────────────────
-  Future<void> _loadModel() async {
-    // ┌──────────────────────────────────────────────────────────┐
-    // │  REPLACE THIS with your real TFLite model loading code  │
-    // │                                                         │
-    // │  Example:                                               │
-    // │    _interpreter = await Interpreter.fromAsset(           │
-    // │      'assets/models/microsleep_model.tflite',           │
-    // │    );                                                   │
-    // │    _interpreter!.allocateTensors();                     │
-    // │    setState(() => _isModelLoaded = true);               │
-    // └──────────────────────────────────────────────────────────┘
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (mounted) setState(() => _isModelLoaded = true);
-  }
-
-  // ── Inference stub ────────────────────────────────────────────────
-  // Future<Map<String, dynamic>> _runInference(CameraImage image) async {
-  //   // 1. Convert CameraImage → input tensor
-  //   // 2. Run _interpreter!.run(input, output)
-  //   // 3. Parse output → EAR, blink count, yawn ratio, etc.
-  //   return {'ear': 0.0, 'blink': false};
-  // }
 
   // ── Calibration logic ─────────────────────────────────────────────
   void _startCalibration() {
@@ -132,54 +115,180 @@ class _CalibrationScreenState extends State<CalibrationScreen>
     setState(() {
       _isCalibrating = true;
       _progress = 0.0;
-      _statusText = 'Scanning face…';
+      _earSamples.clear();
+      _noFaceFrames = 0;
+      _statusText = 'Keep your eyes open and look straight ahead…';
     });
 
-    // ┌──────────────────────────────────────────────────────────────┐
-    // │  During calibration you can start the image stream and run  │
-    // │  inference on each frame to collect baseline EAR values.    │
-    // │                                                             │
-    // │  Example:                                                   │
-    // │    _cameraController!.startImageStream((image) {            │
-    // │      final result = await _runInference(image);             │
-    // │      _baselineEAR!.add(result['ear']);                      │
-    // │    });                                                      │
-    // └──────────────────────────────────────────────────────────────┘
+    // Start processing camera frames for EAR measurement
+    _cameraController!.startImageStream((CameraImage image) {
+      _processCalibrationFrame(image);
+    });
+  }
 
-    _calibrationTimer =
-        Timer.periodic(const Duration(milliseconds: 50), (timer) {
+  /// Process a single camera frame during calibration.
+  Future<void> _processCalibrationFrame(CameraImage image) async {
+    if (_isProcessingFrame || _isCalibrationDone) return;
+    _isProcessingFrame = true;
+
+    try {
+      final inputImage = CameraUtils.inputImageFromCameraImage(
+        image,
+        _cameraController,
+      );
+      if (inputImage == null) {
+        _isProcessingFrame = false;
+        return;
+      }
+
+      final meshes = await _meshDetector.processImage(inputImage);
+
+      if (meshes.isNotEmpty) {
+        _noFaceFrames = 0;
+        final faceMesh = meshes.first;
+
+        // Calculate EAR using the same logic as MicrosleepController
+        final rightEAR = _calculateEyeEAR(
+          faceMesh.points,
+          [33, 160, 158, 133, 153, 144],
+        );
+        final leftEAR = _calculateEyeEAR(
+          faceMesh.points,
+          [362, 385, 387, 263, 373, 380],
+        );
+
+        final avgEAR = (rightEAR + leftEAR) / 2.0;
+
+        // Only accept reasonable EAR values (filter noise)
+        if (avgEAR > 0.05 && avgEAR < 0.6) {
+          _earSamples.add(avgEAR);
+          _currentEAR = avgEAR;
+        }
+
+        if (mounted) {
+          setState(() {
+            _progress = (_earSamples.length / _targetSamples).clamp(0.0, 1.0);
+
+            if (_progress < 0.3) {
+              _statusText = 'Scanning eye position…';
+            } else if (_progress < 0.6) {
+              _statusText = 'Collecting baseline data…';
+            } else if (_progress < 0.9) {
+              _statusText = 'Almost done…';
+            }
+          });
+        }
+
+        // Check if we have enough samples
+        if (_earSamples.length >= _targetSamples) {
+          _finishCalibration();
+        }
+      } else {
+        _noFaceFrames++;
+        if (_noFaceFrames > _noFaceTimeout && mounted) {
+          setState(() {
+            _statusText = '⚠️ No face detected — look at the camera';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Calibration frame error: $e');
+    } finally {
+      _isProcessingFrame = false;
+    }
+  }
+
+  /// Calculate EAR for one eye given face mesh points and landmark indices.
+  double _calculateEyeEAR(List<FaceMeshPoint> allPoints, List<int> indices) {
+    if (allPoints.length < 468) return 0.0;
+
+    final p1 = Point<int>(
+      allPoints[indices[0]].x.toInt(),
+      allPoints[indices[0]].y.toInt(),
+    );
+    final p2 = Point<int>(
+      allPoints[indices[1]].x.toInt(),
+      allPoints[indices[1]].y.toInt(),
+    );
+    final p3 = Point<int>(
+      allPoints[indices[2]].x.toInt(),
+      allPoints[indices[2]].y.toInt(),
+    );
+    final p4 = Point<int>(
+      allPoints[indices[3]].x.toInt(),
+      allPoints[indices[3]].y.toInt(),
+    );
+    final p5 = Point<int>(
+      allPoints[indices[4]].x.toInt(),
+      allPoints[indices[4]].y.toInt(),
+    );
+    final p6 = Point<int>(
+      allPoints[indices[5]].x.toInt(),
+      allPoints[indices[5]].y.toInt(),
+    );
+
+    return MathUtils.calculateEAR(
+      p1: p1, p2: p2, p3: p3, p4: p4, p5: p5, p6: p6,
+    );
+  }
+
+  /// Compute the personal EAR threshold and save it.
+  void _finishCalibration() {
+    // Stop the camera stream
+    try {
+      _cameraController?.stopImageStream();
+    } catch (_) {}
+
+    // Calculate average EAR from collected samples
+    final averageEAR =
+        _earSamples.reduce((a, b) => a + b) / _earSamples.length;
+
+    // Remove outliers (values beyond 1.5 IQR) for more robust average
+    final sorted = List<double>.from(_earSamples)..sort();
+    final q1 = sorted[(sorted.length * 0.25).floor()];
+    final q3 = sorted[(sorted.length * 0.75).floor()];
+    final iqr = q3 - q1;
+    final lower = q1 - 1.5 * iqr;
+    final upper = q3 + 1.5 * iqr;
+    final filtered = sorted.where((v) => v >= lower && v <= upper).toList();
+
+    final robustAverage = filtered.isNotEmpty
+        ? filtered.reduce((a, b) => a + b) / filtered.length
+        : averageEAR;
+
+    // Personal threshold = 75% of robust baseline average
+    _calibratedThreshold = robustAverage * 0.75;
+
+    // Clamp to reasonable range
+    _calibratedThreshold = _calibratedThreshold.clamp(0.12, 0.35);
+
+    debugPrint(
+      '✅ Calibration complete: '
+      'avgEAR=${robustAverage.toStringAsFixed(3)}, '
+      'threshold=${_calibratedThreshold.toStringAsFixed(3)}',
+    );
+
+    // Save to preferences
+    PreferenceService().setEarThreshold(_calibratedThreshold);
+
+    if (mounted) {
       setState(() {
-        _progress += 0.01;
-
-        // Update status text at milestones
-        if (_progress > 0.25 && _progress < 0.5) {
-          _statusText = 'Analyzing eye position…';
-        } else if (_progress >= 0.5 && _progress < 0.75) {
-          _statusText = 'Collecting baseline data…';
-        } else if (_progress >= 0.75) {
-          _statusText = 'Almost done…';
-        }
-
-        if (_progress >= 1.0) {
-          _progress = 1.0;
-          _isCalibrating = false;
-          _isCalibrationDone = true;
-          _statusText = 'Calibration complete ✓';
-          _calibrationTimer?.cancel();
-
-          // Stop image stream if it was started
-          // _cameraController?.stopImageStream();
-        }
+        _progress = 1.0;
+        _isCalibrating = false;
+        _isCalibrationDone = true;
+        _statusText = 'Calibration complete ✓';
       });
-    });
+    }
   }
 
   @override
   void dispose() {
-    _calibrationTimer?.cancel();
+    try {
+      _cameraController?.stopImageStream();
+    } catch (_) {}
     _pulseController.dispose();
     _cameraController?.dispose();
-    // _interpreter?.close();
+    _meshDetector.close();
     super.dispose();
   }
 
@@ -302,13 +411,26 @@ class _CalibrationScreenState extends State<CalibrationScreen>
                     color: Colors.black.withValues(alpha: 0.55),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(
-                    '${(_progress * 100).toInt()}%',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${(_progress * 100).toInt()}%',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (_currentEAR > 0)
+                        Text(
+                          'EAR: ${_currentEAR.toStringAsFixed(3)}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: Colors.white70,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
 
@@ -400,23 +522,45 @@ class _CalibrationScreenState extends State<CalibrationScreen>
               height: 1.5,
             ),
           ),
-          if (_isModelLoaded)
+          if (_isCalibrationDone)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check_circle_rounded,
-                      color: const Color(0xFFD7F454), size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Detection model ready',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      color: Colors.black45,
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD7F454).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.check_circle_rounded,
+                            color: Color(0xFF4CAF50), size: 16),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Personal threshold set',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'Baseline EAR: ${(_earSamples.isNotEmpty ? _earSamples.reduce((a, b) => a + b) / _earSamples.length : 0.0).toStringAsFixed(3)}  •  '
+                      'Threshold: ${_calibratedThreshold.toStringAsFixed(3)}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],

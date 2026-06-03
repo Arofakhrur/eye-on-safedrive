@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
+import 'package:eyeon/core/widgets/video_player_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -34,7 +35,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
-          'Riwayat Insiden',
+          'Riwayat Perjalanan',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w800,
             color: Colors.black,
@@ -165,6 +166,27 @@ class HistoryCard extends StatefulWidget {
 
 class _HistoryCardState extends State<HistoryCard> {
   bool _isExpanded = false;
+  List<Map<String, dynamic>>? _incidents;
+  bool _isLoadingIncidents = false;
+
+  /// Load incidents linked to this ride (Task 8).
+  Future<void> _loadIncidents() async {
+    final rideId = widget.log['id']?.toString();
+    if (rideId == null || _incidents != null) return;
+
+    setState(() => _isLoadingIncidents = true);
+    try {
+      final incidents = await SupabaseService().getIncidentsForRide(rideId);
+      if (mounted) {
+        setState(() {
+          _incidents = incidents;
+          _isLoadingIncidents = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingIncidents = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -200,12 +222,22 @@ class _HistoryCardState extends State<HistoryCard> {
                 decoration: BoxDecoration(
                   color: isAccident
                       ? Colors.red.shade50
-                      : Colors.orange.shade50,
+                      : isMicrosleep
+                          ? Colors.orange.shade50
+                          : Colors.green.shade50,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  isAccident ? Icons.warning_rounded : Icons.visibility_rounded,
-                  color: isAccident ? Colors.red : Colors.orange,
+                  isAccident
+                      ? Icons.warning_rounded
+                      : isMicrosleep
+                          ? Icons.visibility_rounded
+                          : Icons.check_circle_rounded,
+                  color: isAccident
+                      ? Colors.red
+                      : isMicrosleep
+                          ? Colors.orange
+                          : Colors.green,
                   size: 20,
                 ),
               ),
@@ -217,7 +249,9 @@ class _HistoryCardState extends State<HistoryCard> {
                     Text(
                       isAccident
                           ? 'Kecelakaan Terdeteksi'
-                          : 'Sesi Berkendara Aman',
+                          : isMicrosleep
+                              ? 'Peringatan Microsleep'
+                              : 'Sesi Berkendara Aman',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w800,
                         fontSize: 15,
@@ -264,6 +298,84 @@ class _HistoryCardState extends State<HistoryCard> {
                 const Divider(height: 1),
                 const SizedBox(height: 16),
                 _buildDetailGrid(log),
+
+                // Incident drill-down (Task 8)
+                if (_isLoadingIncidents)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFFD7F454),
+                        ),
+                      ),
+                    ),
+                  )
+                else if (_incidents != null && _incidents!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Insiden dalam Perjalanan Ini',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...List.generate(_incidents!.length, (i) {
+                    final incident = _incidents![i];
+                    final time = DateTime.tryParse(
+                        incident['timestamp']?.toString() ?? '');
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.location_on_rounded,
+                              size: 16, color: Colors.red.shade400),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  time != null
+                                      ? DateFormat('HH:mm:ss').format(time)
+                                      : 'N/A',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  'G-Force: ${(incident['magnitude'] ?? 0.0).toStringAsFixed(1)} rad/s',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10,
+                                    color: Colors.black45,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _openMap(
+                              incident['latitude'] ?? 0.0,
+                              incident['longitude'] ?? 0.0,
+                            ),
+                            child: const Icon(Icons.map_rounded,
+                                size: 18, color: Colors.black45),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+
                 if (isAccident) ...[
                   const SizedBox(height: 24),
                   Text(
@@ -275,21 +387,14 @@ class _HistoryCardState extends State<HistoryCard> {
                   ),
                   const SizedBox(height: 12),
                   GestureDetector(
-                    onTap: log['video_url'] != null 
-                        ? () => _playVideo(log['video_url'])
+                    onTap: log['video_url'] != null
+                        ? () => _playVideo(context, log['video_url'])
                         : null,
                     child: Container(
                       height: 160,
                       decoration: BoxDecoration(
                         color: Colors.black,
                         borderRadius: BorderRadius.circular(16),
-                        image: log['video_url'] != null
-                            ? DecorationImage(
-                                image: NetworkImage(log['video_url']),
-                                fit: BoxFit.cover,
-                                opacity: 0.7,
-                              )
-                            : null,
                       ),
                       child: log['video_url'] != null
                           ? const Center(
@@ -328,7 +433,9 @@ class _HistoryCardState extends State<HistoryCard> {
                         child: _buildActionButton(
                           icon: Icons.play_arrow_rounded,
                           label: 'Video',
-                          onTap: () {},
+                          onTap: log['video_url'] != null
+                              ? () => _playVideo(context, log['video_url'])
+                              : () {},
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -357,7 +464,10 @@ class _HistoryCardState extends State<HistoryCard> {
           SizedBox(
             width: double.infinity,
             child: TextButton(
-              onPressed: () => setState(() => _isExpanded = !_isExpanded),
+              onPressed: () {
+                setState(() => _isExpanded = !_isExpanded);
+                if (_isExpanded) _loadIncidents();
+              },
               style: TextButton.styleFrom(
                 backgroundColor: _isExpanded
                     ? Colors.black
@@ -507,11 +617,9 @@ class _HistoryCardState extends State<HistoryCard> {
     );
   }
 
-  Future<void> _playVideo(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+  /// Play video in-app using VideoPlayerDialog (Task 12)
+  void _playVideo(BuildContext context, String url) {
+    VideoPlayerDialog.show(context, url);
   }
 
   Future<void> _openMap(double lat, double lng) async {

@@ -1,6 +1,8 @@
 import 'package:eyeon/core/services/location_service.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/video_buffer_service.dart';
+import 'package:eyeon/core/services/telegram_service.dart';
+import 'package:eyeon/core/services/preference_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gal/gal.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,11 +14,15 @@ class SOSService {
 
   SOSService._internal();
 
-  /// Trigger the full SOS flow: Returns status of cloud upload and local save
-  Future<Map<String, dynamic>> triggerEmergencySOS(double magnitude) async {
-    String? finalVideoUrl;
+  /// Trigger the full SOS flow:
+  /// 1. Get GPS location
+  /// 2. Save video to gallery
+  /// 3. Send SOS via Telegram (text + location + video)
+  /// 4. Log incident to Supabase (without uploading video to storage)
+  Future<Map<String, dynamic>> triggerEmergencySOS(double magnitude, {String? rideId}) async {
     bool gallerySaved = false;
     String? galleryError;
+    String? videoPath;
 
     try {
       // 1. Get Location
@@ -26,13 +32,13 @@ class SOSService {
       final lat = position.latitude;
       final lng = position.longitude;
 
-      // 2. Extract Video Buffer (10s)
+      // 2. Extract Video Buffer (evidence)
       try {
-        final videoPath = await VideoBufferService().saveBufferToVideo();
+        videoPath = await VideoBufferService().saveBufferToVideo();
         debugPrint('📹 Video Path: $videoPath');
 
         if (videoPath != null) {
-          // 1. SAVE TO GALLERY (Primary Action)
+          // Save to gallery (primary local action)
           try {
             final hasAccess = await Gal.hasAccess();
             if (!hasAccess) await Gal.requestAccess();
@@ -43,33 +49,44 @@ class SOSService {
             galleryError = galError.toString();
             debugPrint('❌ Gagal: Video gagal tersimpan, Error: $galError');
           }
-
-          // 2. UPLOAD TO SUPABASE (Backup Action)
-          try {
-            debugPrint('☁️ Uploading backup to Supabase Storage...');
-            finalVideoUrl = await SupabaseService().uploadIncidentVideo(
-              videoPath,
-            );
-          } catch (uploadError) {
-            debugPrint('☁️ Backup Upload Failed: $uploadError');
-          }
         }
       } catch (e) {
         debugPrint('Failed to process video buffer: $e');
       }
 
-      // 4. Log to Supabase (This triggers the Edge Function for WhatsApp SOS)
+      // 3. Send SOS via Telegram Bot API (free, no storage cost)
+      Map<String, dynamic> telegramResult = {'success': false};
+      try {
+        final chatIds = PreferenceService().telegramChatIds;
+        if (chatIds.isNotEmpty && TelegramService().isConfigured) {
+          telegramResult = await TelegramService().sendSOSAlert(
+            chatIds: chatIds,
+            lat: lat,
+            lng: lng,
+            magnitude: magnitude,
+            videoPath: videoPath,
+          );
+          debugPrint('📱 Telegram SOS result: $telegramResult');
+        } else {
+          debugPrint('⚠️ Telegram not configured or no chat IDs');
+        }
+      } catch (e) {
+        debugPrint('Telegram SOS error: $e');
+      }
+
+      // 4. Log to Supabase (metadata only, no video upload to storage)
       await SupabaseService().logIncident(
         lat: lat,
         lng: lng,
         magnitude: magnitude,
-        videoUrl: finalVideoUrl,
+        rideId: rideId,
       );
 
       return {
-        'videoUrl': finalVideoUrl,
         'gallerySaved': gallerySaved,
         'galleryError': galleryError,
+        'telegramSent': telegramResult['success'] ?? false,
+        'telegramDetails': telegramResult,
       };
     } catch (e) {
       debugPrint('SOS Service Error: $e');
@@ -78,7 +95,7 @@ class SOSService {
       if (await canLaunchUrl(dialerUrl)) {
         await launchUrl(dialerUrl);
       }
-      return {'videoUrl': null, 'gallerySaved': false, 'error': e.toString()};
+      return {'gallerySaved': false, 'telegramSent': false, 'error': e.toString()};
     }
   }
 

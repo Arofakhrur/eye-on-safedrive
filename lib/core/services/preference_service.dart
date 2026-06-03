@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PreferenceService {
@@ -15,6 +16,9 @@ class PreferenceService {
   static const String _keyIsAlarmEnabled = 'is_alarm_enabled';
   static const String _keyAlarmSound = 'alarm_sound';
   static const String _keySaveToGallery = 'save_to_gallery';
+
+  // Telegram integration
+  static const String _keyTelegramChatIds = 'telegram_chat_ids';
 
   late SharedPreferences _prefs;
 
@@ -55,6 +59,34 @@ class PreferenceService {
   // Data Storage
   bool get saveToGallery => _prefs.getBool(_keySaveToGallery) ?? false;
   Future<void> setSaveToGallery(bool value) => _prefs.setBool(_keySaveToGallery, value);
+
+  // Telegram Chat IDs — stored as JSON array string
+  List<String> get telegramChatIds {
+    final raw = _prefs.getString(_keyTelegramChatIds);
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      return List<String>.from(jsonDecode(raw));
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> setTelegramChatIds(List<String> ids) =>
+      _prefs.setString(_keyTelegramChatIds, jsonEncode(ids));
+
+  Future<void> addTelegramChatId(String id) async {
+    final ids = telegramChatIds;
+    if (!ids.contains(id)) {
+      ids.add(id);
+      await setTelegramChatIds(ids);
+    }
+  }
+
+  Future<void> removeTelegramChatId(String id) async {
+    final ids = telegramChatIds;
+    ids.remove(id);
+    await setTelegramChatIds(ids);
+  }
 
   // Reset all (for logout or testing)
   Future<void> clearAll() async {

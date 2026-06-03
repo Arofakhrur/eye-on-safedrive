@@ -10,6 +10,7 @@ import 'package:google_mlkit_face_mesh_detection/google_mlkit_face_mesh_detectio
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/sos_service.dart';
 import 'package:eyeon/core/services/video_buffer_service.dart';
+import 'package:eyeon/features/monitoring/widgets/live_map_widget.dart';
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:eyeon/features/monitoring/widgets/monitoring_stats_bar.dart';
@@ -36,14 +37,20 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   int _accidentAlertsCount = 0;
   final DateTime _rideStartTime = DateTime.now();
 
+  // Ride ID for incident linking (Task 8)
+  String? _currentRideId;
+
   // Ride Metrics
   Timer? _timer;
   Duration _rideDuration = Duration.zero;
   double _totalDistance = 0.0;
   double _currentSpeed = 0.0;
   Position? _lastPosition;
+
+  // GPS stream for live map (Task 11)
+  final StreamController<Position> _positionStreamController =
+      StreamController<Position>.broadcast();
   StreamSubscription<Position>? _positionSubscription;
-  String? _lastIncidentVideoUrl;
 
   @override
   void initState() {
@@ -94,6 +101,9 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
         });
       }
       _lastPosition = position;
+
+      // Feed the live map stream (Task 11)
+      _positionStreamController.add(position);
     });
   }
 
@@ -106,7 +116,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
 
       if (_accidentController.isAccidentDetected && !_wasAccident) {
         _accidentAlertsCount++;
-        // Immediately trigger SOS flow with video evidence and store the URL
+        // Trigger SOS flow with ride ID for incident linking
         _triggerSOS();
       }
       _wasAccident = _accidentController.isAccidentDetected;
@@ -116,13 +126,12 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   }
 
   Future<void> _triggerSOS() async {
-    final result = await SOSService().triggerEmergencySOS(_accidentController.currentMagnitude);
+    final result = await SOSService().triggerEmergencySOS(
+      _accidentController.currentMagnitude,
+      rideId: _currentRideId,
+    );
     
     if (mounted) {
-      setState(() {
-        _lastIncidentVideoUrl = result['videoUrl'];
-      });
-
       if (result['gallerySaved'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -137,17 +146,19 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-      } else {
+      }
+
+      if (result['telegramSent'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.white),
+                const Icon(Icons.telegram_rounded, color: Colors.white),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Gagal simpan ke Galeri: ${result['galleryError'] ?? "Unknown"}')),
+                const Expanded(child: Text('SOS terkirim via Telegram!')),
               ],
             ),
-            backgroundColor: Colors.red.shade800,
+            backgroundColor: const Color(0xFF0088CC),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -193,6 +204,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   void dispose() {
     _timer?.cancel();
     _positionSubscription?.cancel();
+    _positionStreamController.close();
     _cameraController?.stopImageStream();
     _cameraController?.dispose();
     _accidentController.dispose();
@@ -201,14 +213,13 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   }
 
   Future<void> _onStopRide() async {
-    // Show a small loading indicator if needed, but for now just await
-    await SupabaseService().logRide(
+    // Log ride and get the ride UUID for incident linking
+    _currentRideId = await SupabaseService().logRide(
       startTime: _rideStartTime,
       endTime: DateTime.now(),
       totalMicrosleepAlerts: _microsleepAlertsCount,
       totalAccidentAlerts: _accidentAlertsCount,
       distance: _totalDistance,
-      videoUrl: _lastIncidentVideoUrl,
     );
     if (mounted) {
       Navigator.pop(context);
@@ -222,11 +233,46 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          if (_isCameraInitialized && _cameraController != null)
-            CameraPreview(_cameraController!, child: _buildFaceMeshOverlay())
-          else
-            const Center(child: CircularProgressIndicator(color: Color(0xFFD7F454))),
+          // Split view: camera (top 60%) + map (bottom 40%)
+          Column(
+            children: [
+              // Camera preview — top portion
+              Expanded(
+                flex: 6,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (_isCameraInitialized && _cameraController != null)
+                      CameraPreview(_cameraController!, child: _buildFaceMeshOverlay())
+                    else
+                      const Center(child: CircularProgressIndicator(color: Color(0xFFD7F454))),
+                  ],
+                ),
+              ),
 
+              // Live map — bottom portion (Task 11)
+              if (_isRideStarted)
+                Expanded(
+                  flex: 4,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: const Color(0xFFD7F454).withValues(alpha: 0.3),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    child: LiveMapWidget(
+                      positionStream: _positionStreamController.stream,
+                      initialPosition: _lastPosition,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          // Stats bar overlay
           if (_isRideStarted)
             Positioned(
               top: MediaQuery.of(context).padding.top + 16,
@@ -244,6 +290,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
               ),
             ),
 
+          // Bottom controls
           Positioned(
             bottom: 40,
             left: 0,
@@ -258,6 +305,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
             ),
           ),
 
+          // Alert overlay
           if (_isRideStarted && (_microsleepController.isDrowsy || _accidentController.isAccidentDetected))
             IgnorePointer(child: Container(color: Colors.red.withValues(alpha: 0.3))),
         ],
@@ -360,7 +408,7 @@ class _InteractiveSwipeButtonState extends State<_InteractiveSwipeButton> {
           },
           child: Container(
             width: 80,
-            height: 200, // Increased height
+            height: 200,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(40),

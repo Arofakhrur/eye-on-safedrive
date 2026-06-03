@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/sos_service.dart';
-import 'package:eyeon/features/home/widgets/status_card.dart';
+import 'package:eyeon/features/home/widgets/safety_score_card.dart';
 import 'package:eyeon/features/home/widgets/stat_card.dart';
 import 'package:eyeon/features/home/widgets/sos_button.dart';
 
@@ -17,12 +17,17 @@ class HomeDashboard extends StatefulWidget {
 class _HomeDashboardState extends State<HomeDashboard> {
   String _userName = 'Rider';
   String? _avatarUrl;
-  final bool _isOnline = true; // Simulated network status
+
+  // Dynamic stats
+  int _totalRides = 0;
+  int _totalAlerts = 0;
+  int _safeRides = 0;
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
+    _loadStats();
   }
 
   void _loadUserProfile() {
@@ -37,6 +42,27 @@ class _HomeDashboardState extends State<HomeDashboard> {
     }
   }
 
+  Future<void> _loadStats() async {
+    try {
+      final rides = await SupabaseService().getRideHistory();
+      int alerts = 0;
+      int safe = 0;
+      for (final ride in rides) {
+        final micro = (ride['microsleep_alerts'] ?? 0) as int;
+        final accident = (ride['accident_alerts'] ?? 0) as int;
+        alerts += micro + accident;
+        if (micro == 0 && accident == 0) safe++;
+      }
+      if (mounted) {
+        setState(() {
+          _totalRides = rides.length;
+          _totalAlerts = alerts;
+          _safeRides = safe;
+        });
+      }
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,8 +75,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
             children: [
               const SizedBox(height: 24),
               _buildGreetingHeader(),
-              const SizedBox(height: 32),
-              StatusCard(isOnline: _isOnline),
+              const SizedBox(height: 28),
+              const SafetyScoreCard(),
               const SizedBox(height: 24),
               _buildQuickStatsHeader(),
               const SizedBox(height: 16),
@@ -60,7 +86,9 @@ class _HomeDashboardState extends State<HomeDashboard> {
               const SizedBox(height: 24),
               _buildRecentActivityHeader(),
               const SizedBox(height: 16),
-              _buildEmptyActivityPlaceholder(),
+              _totalRides == 0
+                  ? _buildEmptyActivityPlaceholder()
+                  : _buildRecentRidesSummary(),
               const SizedBox(height: 100),
             ],
           ),
@@ -139,12 +167,12 @@ class _HomeDashboardState extends State<HomeDashboard> {
   Widget _buildStatsRow() {
     return Row(
       children: [
-        const Expanded(
+        Expanded(
           child: StatCard(
             icon: Icons.timer_outlined,
             label: 'Total Rides',
-            value: '0',
-            color: Color(0xFFD7F454),
+            value: '$_totalRides',
+            color: const Color(0xFFD7F454),
           ),
         ),
         const SizedBox(width: 12),
@@ -152,7 +180,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
           child: StatCard(
             icon: Icons.warning_amber_rounded,
             label: 'Alerts',
-            value: '0',
+            value: '$_totalAlerts',
             color: Colors.orange.shade100,
           ),
         ),
@@ -161,7 +189,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
           child: StatCard(
             icon: Icons.check_circle_outline,
             label: 'Safe Rides',
-            value: '0',
+            value: '$_safeRides',
             color: Colors.green.shade100,
           ),
         ),
@@ -209,6 +237,54 @@ class _HomeDashboardState extends State<HomeDashboard> {
               color: Colors.black26,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentRidesSummary() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD7F454).withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.route_rounded, color: Colors.black87, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$_totalRides perjalanan tercatat',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                ),
+                Text(
+                  '$_safeRides aman • $_totalAlerts peringatan',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: Colors.black45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: Colors.black26),
         ],
       ),
     );

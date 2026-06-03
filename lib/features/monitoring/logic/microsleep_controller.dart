@@ -19,10 +19,19 @@ class MicrosleepController extends ChangeNotifier {
   
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Duration _microsleepDuration = const Duration(seconds: 2);
+  bool _isAlarmPlaying = false;
 
   double get currentEAR => _currentEAR;
   bool get isDrowsy => _isDrowsy;
   List<FaceMesh> get currentMeshes => _currentMeshes;
+
+  /// Map alarm sound preference name to the actual asset file path.
+  static const Map<String, String> _alarmSoundFiles = {
+    'Sound 1': 'sounds/sound 1.mp3',
+    'Sound 2': 'sounds/sound 2.mp3',
+    'Sound 3': 'sounds/sound 3.mp3',
+    'Sound 4': 'sounds/sound 4.mp3',
+  };
 
   Future<void> processImage(InputImage inputImage) async {
     if (_isProcessing) return;
@@ -87,28 +96,54 @@ class MicrosleepController extends ChangeNotifier {
       }
     } else {
       _drowsyStartTime = null;
-      _isDrowsy = false;
-      _audioPlayer.stop();
+      if (_isDrowsy) {
+        _isDrowsy = false;
+        _stopAlarm();
+      }
     }
   }
 
   Future<void> _triggerAlarm() async {
-    if (PreferenceService().isAlarmEnabled) {
-      debugPrint('🚨 MICROSLEEP DETECTED! 🚨 Playing Alarm!');
-      // Assuming there is an alarm.mp3 in assets/audio/ or we can use a system beep.
-      // Since we don't know the exact asset, we'll try to play a default or just log it.
-      // Or we can use a built-in beep if possible. We will just play a placeholder for now.
-      try {
-         // await _audioPlayer.play(AssetSource('audio/alarm.mp3'));
-      } catch (e) {
-         debugPrint('Audio play error: $e');
+    if (!PreferenceService().isAlarmEnabled) return;
+
+    debugPrint('🚨 MICROSLEEP DETECTED! 🚨 Playing Alarm!');
+    try {
+      if (!_isAlarmPlaying) {
+        _isAlarmPlaying = true;
+
+        // Set volume to maximum
+        await _audioPlayer.setVolume(1.0);
+
+        // Loop the alarm until eyes open
+        await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+
+        // Resolve the correct sound file from user preference
+        final preferredSound = PreferenceService().alarmSound;
+        final soundFile = _alarmSoundFiles[preferredSound] ?? _alarmSoundFiles['Sound 1']!;
+
+        await _audioPlayer.play(AssetSource(soundFile));
       }
+    } catch (e) {
+      debugPrint('Audio play error: $e');
+      _isAlarmPlaying = false;
+    }
+  }
+
+  Future<void> _stopAlarm() async {
+    if (_isAlarmPlaying) {
+      try {
+        await _audioPlayer.stop();
+      } catch (e) {
+        debugPrint('Audio stop error: $e');
+      }
+      _isAlarmPlaying = false;
     }
   }
 
   @override
   void dispose() {
     _meshDetector.close();
+    _audioPlayer.stop();
     _audioPlayer.dispose();
     super.dispose();
   }
