@@ -17,11 +17,11 @@ class SOSButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: Colors.redAccent,
+          color: const Color(0xFFFF6B6B), // Coral Muda
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.redAccent.withValues(alpha: 0.3),
+              color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -30,16 +30,14 @@ class SOSButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.phone_in_talk_rounded,
-                color: Colors.white, size: 28),
-            const SizedBox(width: 16),
+            const Icon(Icons.phone_in_talk_rounded, color: Colors.black87, size: 24),
+            const SizedBox(width: 12),
             Text(
-              'SOS 112 EMERGENCY',
+              'Emergency Call',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: 1.2,
+                color: Colors.black87,
               ),
             ),
           ],

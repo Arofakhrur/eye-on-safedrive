@@ -3,214 +3,181 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/services/safety_score_service.dart';
 
-/// A premium circular progress card displaying the user's Safety Score.
-///
-/// Features:
-/// - Animated gradient arc (red→yellow→green based on score)
-/// - Count-up animation on first load
-/// - Score breakdown labels
-class SafetyScoreCard extends StatefulWidget {
+class SafetyScoreCard extends StatelessWidget {
   const SafetyScoreCard({super.key});
 
-  @override
-  State<SafetyScoreCard> createState() => _SafetyScoreCardState();
-}
-
-class _SafetyScoreCardState extends State<SafetyScoreCard>
-    with SingleTickerProviderStateMixin {
-  int _score = 0;
-  String _label = '';
-  Map<String, dynamic> _breakdown = {};
-  bool _isLoading = true;
-
-  late AnimationController _animController;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
-    );
-    _loadScore();
-  }
-
-  Future<void> _loadScore() async {
-    try {
-      final breakdown = await SafetyScoreService().getScoreBreakdown();
-      if (mounted) {
-        setState(() {
-          _breakdown = breakdown;
-          _score = breakdown['score'] as int;
-          _label = SafetyScoreService.getScoreLabel(_score);
-          _isLoading = false;
-        });
-        _animController.forward();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _score = 100;
-          _label = 'Sangat Aman';
-          _isLoading = false;
-        });
-        _animController.forward();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
-
   Color _getScoreColor(int score) {
-    if (score >= 80) return const Color(0xFF4CAF50);
-    if (score >= 60) return const Color(0xFFD7F454);
-    if (score >= 40) return const Color(0xFFFFB74D);
-    if (score >= 20) return const Color(0xFFFF7043);
-    return const Color(0xFFEF5350);
+    if (score == 0) return Colors.grey.shade400;
+    if (score >= 80) return const Color(0xFF00FF00); // Bright Green
+    return const Color(0xFFFF4040); // Red/Orange for 1-79
+  }
+
+  String _getScoreLabel(int score) {
+    if (score == 0) return '-';
+    if (score >= 80) return 'SANGAT AMAN';
+    return 'AMAN';
   }
 
   @override
   Widget build(BuildContext context) {
-    final scoreColor = _getScoreColor(_score);
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: SafetyScoreService().streamScoreBreakdown(),
+      builder: (context, snapshot) {
+        final isLoading = !snapshot.hasData;
+        final breakdown = snapshot.data ?? {};
+        final int score = (breakdown['score'] ?? 0) as int;
+        
+        final scoreColor = _getScoreColor(score);
+        final labelText = _getScoreLabel(score);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: scoreColor.withValues(alpha: 0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: _isLoading
-          ? const SizedBox(
-              height: 200,
-              child: Center(
-                child: CircularProgressIndicator(color: Color(0xFFD7F454)),
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
               ),
-            )
-          : Column(
-              children: [
-                // Score circle
-                AnimatedBuilder(
-                  animation: _animation,
-                  builder: (context, child) {
-                    final animatedScore = (_score * _animation.value).toInt();
-                    return SizedBox(
-                      width: 160,
-                      height: 160,
-                      child: CustomPaint(
-                        painter: _ScoreArcPainter(
-                          progress: _animation.value * (_score / 100.0),
-                          color: scoreColor,
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '$animatedScore',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  height: 1.0,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'SAFETY',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white38,
-                                  letterSpacing: 2.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Label
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: scoreColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
+            ],
+          ),
+          child: isLoading
+              ? const SizedBox(
+                  height: 200,
+                  child: Center(
+                    child: CircularProgressIndicator(color: Color(0xFFD7F454)),
                   ),
-                  child: Text(
-                    _label,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: scoreColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Breakdown
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                )
+              : Column(
                   children: [
-                    _buildMiniStat(
-                      '${_breakdown['totalRides'] ?? 0}',
-                      'Perjalanan',
-                      Icons.route_rounded,
+                    // Score circle with overlapping label
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: score.toDouble()),
+                      duration: const Duration(milliseconds: 1500),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, value, child) {
+                        final animatedScore = value.toInt();
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            SizedBox(
+                              width: 200,
+                              height: 200,
+                              child: CustomPaint(
+                                painter: _ScoreArcPainter(
+                                  progress: value / 100.0,
+                                  color: scoreColor,
+                                ),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        score == 0 ? '-' : '$animatedScore',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 64,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.black,
+                                          height: 1.0,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'SAFETY',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.black38,
+                                          letterSpacing: 2.0,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Overlapping pill label
+                            Positioned(
+                              bottom: -12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: scoreColor,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  labelText,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
-                    _buildMiniStat(
-                      '${_breakdown['cleanRides'] ?? 0}',
-                      'Aman',
-                      Icons.check_circle_outline_rounded,
-                    ),
-                    _buildMiniStat(
-                      '${_breakdown['totalMicrosleepAlerts'] ?? 0}',
-                      'Peringatan',
-                      Icons.warning_amber_rounded,
+                    const SizedBox(height: 40),
+
+                    // Breakdown
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildMiniStat(
+                          '${breakdown['totalRides'] ?? 0}',
+                          'Perjalanan',
+                          Icons.sync_rounded,
+                          Colors.orange,
+                        ),
+                        Container(width: 1, height: 40, color: Colors.grey.shade200),
+                        _buildMiniStat(
+                          '${breakdown['cleanRides'] ?? 0}',
+                          'Aman',
+                          Icons.check_circle_outline_rounded,
+                          Colors.grey.shade400,
+                        ),
+                        Container(width: 1, height: 40, color: Colors.grey.shade200),
+                        _buildMiniStat(
+                          '${breakdown['totalMicrosleepAlerts'] ?? 0}',
+                          'Peringatan',
+                          Icons.warning_amber_rounded,
+                          Colors.orange,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+        );
+      },
     );
   }
 
-  Widget _buildMiniStat(String value, String label, IconData icon) {
+  Widget _buildMiniStat(String value, String label, IconData icon, Color iconColor) {
     return Column(
       children: [
-        Icon(icon, color: Colors.white24, size: 16),
-        const SizedBox(height: 4),
+        Icon(icon, color: iconColor, size: 20),
+        const SizedBox(height: 8),
         Text(
           value,
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 18,
+            fontSize: 24,
             fontWeight: FontWeight.w800,
-            color: Colors.white,
+            color: Colors.black,
           ),
         ),
         Text(
           label,
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 10,
-            color: Colors.white38,
+            fontSize: 11,
+            color: Colors.black38,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -228,13 +195,13 @@ class _ScoreArcPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 10;
+    final radius = size.width / 2 - 12;
 
-    // Background track
+    // Background track (Grey)
     final trackPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
+      ..color = Colors.grey.shade300
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 8
+      ..strokeWidth = 16
       ..strokeCap = StrokeCap.round;
 
     canvas.drawArc(
@@ -248,16 +215,9 @@ class _ScoreArcPainter extends CustomPainter {
     // Score arc
     if (progress > 0) {
       final scorePaint = Paint()
-        ..shader = SweepGradient(
-          startAngle: -pi / 2 - pi * 0.75,
-          endAngle: -pi / 2 + pi * 0.75,
-          colors: [
-            color.withValues(alpha: 0.4),
-            color,
-          ],
-        ).createShader(Rect.fromCircle(center: center, radius: radius))
+        ..color = color
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 8
+        ..strokeWidth = 16
         ..strokeCap = StrokeCap.round;
 
       canvas.drawArc(
@@ -267,23 +227,6 @@ class _ScoreArcPainter extends CustomPainter {
         false,
         scorePaint,
       );
-
-      // Glow dot at end
-      final angle = -pi / 2 - pi * 0.75 + pi * 1.5 * progress;
-      final dotCenter = Offset(
-        center.dx + radius * cos(angle),
-        center.dy + radius * sin(angle),
-      );
-      canvas.drawCircle(
-        dotCenter,
-        5,
-        Paint()..color = color,
-      );
-      canvas.drawCircle(
-        dotCenter,
-        10,
-        Paint()..color = color.withValues(alpha: 0.2),
-      );
     }
   }
 
@@ -291,3 +234,4 @@ class _ScoreArcPainter extends CustomPainter {
   bool shouldRepaint(_ScoreArcPainter old) =>
       old.progress != progress || old.color != color;
 }
+

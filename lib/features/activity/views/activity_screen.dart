@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
+import 'package:eyeon/core/widgets/eyeon_header.dart';
 
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});
@@ -14,9 +15,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
   String _selectedPeriod = 'Hari Ini';
   final List<String> _periods = ['Hari Ini', 'Minggu Ini', 'Bulan Ini'];
 
-  List<Map<String, dynamic>> _allLogs = [];
-  bool _isLoading = true;
-
   // Processed Data
   double _totalDurationHours = 0.0;
   double _totalDistance = 0.0;
@@ -24,26 +22,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
   int _totalIncidents = 0;
   List<FlSpot> _chartSpots = [];
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchAndProcessData();
-  }
-
-  Future<void> _fetchAndProcessData() async {
-    setState(() => _isLoading = true);
-    final logs = await SupabaseService().getRideHistory();
-    _allLogs = logs;
-    _processData();
-    if (mounted) setState(() => _isLoading = false);
-  }
-
-  void _processData() {
+  void _processData(List<Map<String, dynamic>> allLogs) {
     final now = DateTime.now();
     List<Map<String, dynamic>> filteredLogs = [];
 
     if (_selectedPeriod == 'Hari Ini') {
-      filteredLogs = _allLogs.where((log) {
+      filteredLogs = allLogs.where((log) {
         final date = DateTime.parse(log['start_time']);
         return date.year == now.year &&
             date.month == now.month &&
@@ -51,13 +35,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
       }).toList();
     } else if (_selectedPeriod == 'Minggu Ini') {
       final weekAgo = now.subtract(const Duration(days: 7));
-      filteredLogs = _allLogs.where((log) {
+      filteredLogs = allLogs.where((log) {
         final date = DateTime.parse(log['start_time']);
         return date.isAfter(weekAgo);
       }).toList();
     } else {
       final monthAgo = now.subtract(const Duration(days: 30));
-      filteredLogs = _allLogs.where((log) {
+      filteredLogs = allLogs.where((log) {
         final date = DateTime.parse(log['start_time']);
         return date.isAfter(monthAgo);
       }).toList();
@@ -116,42 +100,50 @@ class _ActivityScreenState extends State<ActivityScreen> {
         elevation: 0,
         centerTitle: false,
       ),
-      body: _isLoading
-          ? const Center(
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: SupabaseService().streamRideHistory(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(
               child: CircularProgressIndicator(color: Color(0xFFD7F454)),
-            )
-          : RefreshIndicator(
-              onRefresh: _fetchAndProcessData,
-              color: const Color(0xFFD7F454),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-                    _buildCustomPillFilter(),
-                    const SizedBox(height: 24),
-                    _buildCompactHighlightGrid(),
-                    const SizedBox(height: 32),
-                    _buildSectionHeader(
-                      'Trend Kerawanan Microsleep',
-                      'Data riwayat jam berkendara',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSmoothTrendChart(),
-                    const SizedBox(height: 32),
-                    _buildSectionHeader(
-                      'Pencapaian Rider',
-                      'Progress keamanan ${_selectedPeriod.toLowerCase()}',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildModernAchievementCard(),
-                    const SizedBox(height: 100),
-                  ],
+            );
+          }
+
+          final logs = snapshot.data!;
+          _processData(logs);
+
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
+                const EyeOnHeader(),
+                const SizedBox(height: 8),
+                _buildCustomPillFilter(),
+                const SizedBox(height: 24),
+                _buildCompactHighlightGrid(),
+                const SizedBox(height: 32),
+                _buildSectionHeader(
+                  'Trend Kerawanan Microsleep',
+                  'Data riwayat jam berkendara',
                 ),
-              ),
+                const SizedBox(height: 16),
+                _buildSmoothTrendChart(),
+                const SizedBox(height: 32),
+                _buildSectionHeader(
+                  'Pencapaian Rider',
+                  'Progress keamanan ${_selectedPeriod.toLowerCase()}',
+                ),
+                const SizedBox(height: 16),
+                _buildModernAchievementCard(),
+                const SizedBox(height: 100),
+              ],
             ),
+          );
+        },
+      ),
     );
   }
 
@@ -195,7 +187,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
               onTap: () {
                 setState(() {
                   _selectedPeriod = period;
-                  _processData();
                 });
               },
               child: AnimatedContainer(

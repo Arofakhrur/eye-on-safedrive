@@ -8,6 +8,7 @@ import 'package:eyeon/core/services/telegram_service.dart';
 import 'package:eyeon/features/profile/widgets/user_profile_card.dart';
 import 'package:eyeon/features/profile/widgets/personal_info_card.dart';
 import 'package:eyeon/features/profile/widgets/detection_settings_card.dart';
+import 'package:eyeon/core/widgets/eyeon_header.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -48,8 +49,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _email = user.email ?? 'rider@eyeon.app';
         if (user.userMetadata != null) {
-          _userName = user.userMetadata!['full_name'] ?? user.userMetadata!['name'] ?? 'Rider';
-          _avatarUrl = user.userMetadata!['avatar_url'] ?? user.userMetadata!['picture'];
+          _userName =
+              user.userMetadata!['full_name'] ??
+              user.userMetadata!['name'] ??
+              'Rider';
+          _avatarUrl =
+              user.userMetadata!['avatar_url'] ?? user.userMetadata!['picture'];
         }
       });
 
@@ -69,12 +74,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── Edit Personal Info Dialog ──────────────────────────────────────
   Future<void> _showEditPersonalInfoDialog() async {
-    final addressController = TextEditingController(text: _address == 'Not set' ? '' : _address);
+    final addressController = TextEditingController(
+      text: _address == 'Not set' ? '' : _address,
+    );
     String selectedBloodType = _bloodType == 'Not set' ? 'A' : _bloodType;
-    final originController = TextEditingController(text: _origin == 'Not set' ? '' : _origin);
+    final originController = TextEditingController(
+      text: _origin == 'Not set' ? '' : _origin,
+    );
     final medicalNotesController = TextEditingController(text: _medicalNotes);
 
-    final List<String> bloodTypes = ['A', 'B', 'AB', 'O', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    final List<String> bloodTypes = [
+      'A',
+      'B',
+      'AB',
+      'O',
+      'A+',
+      'A-',
+      'B+',
+      'B-',
+      'AB+',
+      'AB-',
+      'O+',
+      'O-',
+    ];
 
     await showModalBottomSheet(
       context: context,
@@ -83,7 +105,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       useSafeArea: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           child: Container(
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -118,14 +142,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'Perbarui detail profil pribadi Anda.',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black45),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      color: Colors.black45,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // Address with Autocomplete
                   _buildSectionLabel('Alamat Lengkap'),
                   Autocomplete<String>(
-                    initialValue: TextEditingValue(text: addressController.text),
+                    initialValue: TextEditingValue(
+                      text: addressController.text,
+                    ),
                     optionsBuilder: (TextEditingValue textEditingValue) {
                       if (textEditingValue.text.isEmpty) {
                         return const Iterable<String>.empty();
@@ -149,14 +178,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onSelected: (String selection) {
                       addressController.text = selection;
                     },
-                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600),
-                        decoration: _buildInputDecoration(Icons.location_on_rounded, 'Cari alamat...'),
-                      );
-                    },
+                    fieldViewBuilder:
+                        (context, controller, focusNode, onFieldSubmitted) {
+                          return TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            decoration: _buildInputDecoration(
+                              Icons.location_on_rounded,
+                              'Cari alamat...',
+                            ),
+                          );
+                        },
                   ),
 
                   const SizedBox(height: 16),
@@ -164,15 +200,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // Blood Type with Dropdown
                   _buildSectionLabel('Golongan Darah'),
                   DropdownButtonFormField<String>(
-                    value: bloodTypes.contains(selectedBloodType) ? selectedBloodType : 'A',
-                    items: bloodTypes.map((type) => DropdownMenuItem(
-                      value: type,
-                      child: Text(type, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
-                    )).toList(),
+                    value: bloodTypes.contains(selectedBloodType)
+                        ? selectedBloodType
+                        : 'A',
+                    items: bloodTypes
+                        .map(
+                          (type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(
+                              type,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
                     onChanged: (val) {
-                      if (val != null) setModalState(() => selectedBloodType = val);
+                      if (val != null)
+                        setModalState(() => selectedBloodType = val);
                     },
-                    decoration: _buildInputDecoration(Icons.bloodtype_rounded, 'Pilih golongan darah'),
+                    decoration: _buildInputDecoration(
+                      Icons.bloodtype_rounded,
+                      'Pilih golongan darah',
+                    ),
                   ),
 
                   const SizedBox(height: 16),
@@ -181,8 +233,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildSectionLabel('Asal Daerah'),
                   TextField(
                     controller: originController,
-                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600),
-                    decoration: _buildInputDecoration(Icons.public_rounded, 'Masukkan asal daerah...'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: _buildInputDecoration(
+                      Icons.public_rounded,
+                      'Masukkan asal daerah...',
+                    ),
                   ),
 
                   const SizedBox(height: 16),
@@ -192,8 +250,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   TextField(
                     controller: medicalNotesController,
                     maxLines: 3,
-                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600),
-                    decoration: _buildInputDecoration(Icons.medical_information_rounded, 'Alergi, kondisi khusus, dll...'),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: _buildInputDecoration(
+                      Icons.medical_information_rounded,
+                      'Alergi, kondisi khusus, dll...',
+                    ),
                   ),
 
                   const SizedBox(height: 24),
@@ -204,7 +268,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Expanded(
                         child: TextButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: Text('Batal', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: Colors.black45)),
+                          child: Text(
+                            'Batal',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black45,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -218,7 +288,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               'address': addressController.text,
                               'blood_type': selectedBloodType,
                               'origin': originController.text,
-                              'emergency_medical_notes': medicalNotesController.text,
+                              'emergency_medical_notes':
+                                  medicalNotesController.text,
                             });
 
                             // Also update auth metadata
@@ -236,11 +307,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             foregroundColor: Colors.black,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                           child: Text(
                             'Simpan Perubahan',
-                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
@@ -267,7 +342,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       useSafeArea: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           child: Container(
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -281,7 +358,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Center(
                     child: Container(
-                      width: 40, height: 4,
+                      width: 40,
+                      height: 4,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(2),
@@ -291,12 +369,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 24),
                   Text(
                     'Integrasi Telegram',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w800),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Hubungkan bot EYE-ON! untuk mengirim SOS ke Telegram.',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black45),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      color: Colors.black45,
+                    ),
                   ),
                   const SizedBox(height: 20),
 
@@ -304,26 +388,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildStepCard(
                     step: '1',
                     title: 'Buka Bot Telegram',
-                    subtitle: 'Ketuk tombol di bawah untuk membuka bot dan tekan /start.',
+                    subtitle:
+                        'Ketuk tombol di bawah untuk membuka bot dan tekan /start.',
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         // Try tg:// protocol first for direct Telegram app launch
-                        final tgUrl = Uri.parse('tg://resolve?domain=EyeOnSafeDriveBot');
-                        final httpsUrl = Uri.parse('https://t.me/EyeOnSafeDriveBot');
+                        final tgUrl = Uri.parse(
+                          'tg://resolve?domain=EyeonEmergency_bot&start=start',
+                        );
+                        final httpsUrl = Uri.parse(
+                          'https://t.me/EyeonEmergency_bot',
+                        );
 
                         if (await canLaunchUrl(tgUrl)) {
                           await launchUrl(tgUrl);
                         } else if (await canLaunchUrl(httpsUrl)) {
-                          await launchUrl(httpsUrl, mode: LaunchMode.externalApplication);
+                          await launchUrl(
+                            httpsUrl,
+                            mode: LaunchMode.externalApplication,
+                          );
                         }
                       },
                       icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                      label: Text('Buka Bot', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+                      label: Text(
+                        'Buka Bot',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0088CC),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -333,15 +432,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildStepCard(
                     step: '2',
                     title: 'Masukkan Chat ID',
-                    subtitle: 'Kontak darurat Anda mengirim /start ke bot, lalu bot memberi Chat ID.',
+                    subtitle:
+                        'Kontak darurat Anda mengirim /start ke bot, lalu bot memberi Chat ID.',
                     child: Row(
                       children: [
                         Expanded(
                           child: TextField(
                             controller: chatIdController,
                             keyboardType: TextInputType.number,
-                            style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600),
-                            decoration: _buildInputDecoration(Icons.tag_rounded, 'Chat ID'),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            decoration: _buildInputDecoration(
+                              Icons.tag_rounded,
+                              'Chat ID',
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -351,10 +457,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             if (id.isNotEmpty) {
                               await PreferenceService().addTelegramChatId(id);
                               setModalState(() {
-                                _telegramChatIds = PreferenceService().telegramChatIds;
+                                _telegramChatIds =
+                                    PreferenceService().telegramChatIds;
                               });
                               setState(() {
-                                _telegramChatIds = PreferenceService().telegramChatIds;
+                                _telegramChatIds =
+                                    PreferenceService().telegramChatIds;
                               });
                               chatIdController.clear();
                             }
@@ -363,8 +471,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             backgroundColor: const Color(0xFFD7F454),
                             foregroundColor: Colors.black,
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: const Icon(Icons.add_rounded),
                         ),
@@ -377,13 +490,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   if (_telegramChatIds.isNotEmpty) ...[
                     Text(
                       'Chat ID Terdaftar',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.black87),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     ...List.generate(_telegramChatIds.length, (i) {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(12),
@@ -391,25 +511,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.telegram_rounded, color: Color(0xFF0088CC), size: 20),
+                            const Icon(
+                              Icons.telegram_rounded,
+                              color: Color(0xFF0088CC),
+                              size: 20,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 _telegramChatIds[i],
-                                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                             GestureDetector(
                               onTap: () async {
-                                await PreferenceService().removeTelegramChatId(_telegramChatIds[i]);
+                                await PreferenceService().removeTelegramChatId(
+                                  _telegramChatIds[i],
+                                );
                                 setModalState(() {
-                                  _telegramChatIds = PreferenceService().telegramChatIds;
+                                  _telegramChatIds =
+                                      PreferenceService().telegramChatIds;
                                 });
                                 setState(() {
-                                  _telegramChatIds = PreferenceService().telegramChatIds;
+                                  _telegramChatIds =
+                                      PreferenceService().telegramChatIds;
                                 });
                               },
-                              child: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 20),
+                              child: const Icon(
+                                Icons.remove_circle_outline,
+                                color: Colors.redAccent,
+                                size: 20,
+                              ),
                             ),
                           ],
                         ),
@@ -430,9 +565,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Row(
                       children: [
                         Icon(
-                          TelegramService().isConfigured ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+                          TelegramService().isConfigured
+                              ? Icons.check_circle_rounded
+                              : Icons.warning_amber_rounded,
                           size: 16,
-                          color: TelegramService().isConfigured ? Colors.green : Colors.orange,
+                          color: TelegramService().isConfigured
+                              ? Colors.green
+                              : Colors.orange,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -440,7 +579,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             TelegramService().isConfigured
                                 ? 'Bot terhubung • ${_telegramChatIds.length} chat ID terdaftar'
                                 : 'Bot token belum dikonfigurasi di .env',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.black54),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              color: Colors.black54,
+                            ),
                           ),
                         ),
                       ],
@@ -477,21 +619,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Row(
             children: [
               Container(
-                width: 24, height: 24,
+                width: 24,
+                height: 24,
                 decoration: const BoxDecoration(
                   color: Color(0xFFD7F454),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Text(step, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w800)),
+                  child: Text(
+                    step,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700)),
+              Text(
+                title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.black45)),
+          Text(
+            subtitle,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              color: Colors.black45,
+            ),
+          ),
           const SizedBox(height: 12),
           child,
         ],
@@ -517,7 +678,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return InputDecoration(
       prefixIcon: Icon(icon, size: 20, color: Colors.black45),
       hintText: hint,
-      hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black26),
+      hintStyle: GoogleFonts.plusJakartaSans(
+        fontSize: 14,
+        color: Colors.black26,
+      ),
       filled: true,
       fillColor: Colors.grey.shade50,
       border: OutlineInputBorder(
@@ -549,13 +713,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-              Text('Profil & Pengaturan', style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800)),
+              const EyeOnHeader(),
+              Text(
+                'Profil & Pengaturan',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 32),
-              UserProfileCard(userName: _userName, email: _email, avatarUrl: _avatarUrl),
+              UserProfileCard(
+                userName: _userName,
+                email: _email,
+                avatarUrl: _avatarUrl,
+              ),
               const SizedBox(height: 24),
 
-              _buildSectionHeader('INFORMASI PRIBADI', onEdit: _showEditPersonalInfoDialog),
-              PersonalInfoCard(address: _address, bloodType: _bloodType, origin: _origin),
+              _buildSectionHeader(
+                'INFORMASI PRIBADI',
+                onEdit: _showEditPersonalInfoDialog,
+              ),
+              PersonalInfoCard(
+                address: _address,
+                bloodType: _bloodType,
+                origin: _origin,
+              ),
 
               const SizedBox(height: 24),
               _buildSectionTitle('PENGATURAN KESELAMATAN'),
@@ -638,12 +820,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap: onEdit,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: const Color(0xFFD7F454), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD7F454),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Row(
               children: [
                 const Icon(Icons.edit_rounded, size: 12, color: Colors.black),
                 const SizedBox(width: 4),
-                Text('Edit', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black)),
+                Text(
+                  'Edit',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  ),
+                ),
               ],
             ),
           ),
@@ -657,7 +849,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         title,
-        style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black38, letterSpacing: 1.2),
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: Colors.black38,
+          letterSpacing: 1.2,
+        ),
       ),
     );
   }
@@ -675,20 +872,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDestructive ? Colors.red.withValues(alpha: 0.05) : Colors.grey.shade50,
+          color: isDestructive
+              ? Colors.red.withValues(alpha: 0.05)
+              : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isDestructive ? Colors.red.withValues(alpha: 0.1) : Colors.grey.shade100),
+          border: Border.all(
+            color: isDestructive
+                ? Colors.red.withValues(alpha: 0.1)
+                : Colors.grey.shade100,
+          ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: isDestructive ? Colors.redAccent : Colors.black87, size: 24),
+            Icon(
+              icon,
+              color: isDestructive ? Colors.redAccent : Colors.black87,
+              size: 24,
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: isDestructive ? Colors.redAccent : Colors.black87)),
-                  Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDestructive ? Colors.redAccent.withValues(alpha: 0.6) : Colors.black45)),
+                  Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: isDestructive ? Colors.redAccent : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: isDestructive
+                          ? Colors.redAccent.withValues(alpha: 0.6)
+                          : Colors.black45,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -722,8 +944,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black87)),
-                Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black45)),
+                Text(
+                  title,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: Colors.black45,
+                  ),
+                ),
               ],
             ),
           ),
@@ -741,7 +976,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await SupabaseService().signOut();
     await PreferenceService().clearAll();
     if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
     }
   }
 }

@@ -62,6 +62,44 @@ class SafetyScoreService {
     };
   }
 
+  /// Get a real-time detailed breakdown of the safety score components.
+  Stream<Map<String, dynamic>> streamScoreBreakdown() {
+    return SupabaseService().streamRideHistory().map((rides) {
+      int totalRides = rides.length;
+      int totalMicrosleepAlerts = 0;
+      int totalAccidentAlerts = 0;
+      int cleanRides = 0;
+
+      for (final ride in rides) {
+        final microsleep = (ride['microsleep_alerts'] ?? 0) as int;
+        final accidents = (ride['accident_alerts'] ?? 0) as int;
+        totalMicrosleepAlerts += microsleep;
+        totalAccidentAlerts += accidents;
+        if (microsleep == 0 && accidents == 0) {
+          cleanRides++;
+        }
+      }
+
+      final microsleepTotal = totalMicrosleepAlerts * _microsleepPenalty;
+      final accidentTotal = totalAccidentAlerts * _accidentPenalty;
+      final cleanTotal = cleanRides * _cleanRideBonus;
+
+      int rawScore = _baseSore + microsleepTotal + accidentTotal + cleanTotal;
+      int finalScore = rawScore.clamp(0, 100);
+
+      return {
+        'score': finalScore,
+        'totalRides': totalRides,
+        'totalMicrosleepAlerts': totalMicrosleepAlerts,
+        'totalAccidentAlerts': totalAccidentAlerts,
+        'cleanRides': cleanRides,
+        'microsleepPenalty': microsleepTotal,
+        'accidentPenalty': accidentTotal,
+        'cleanBonus': cleanTotal,
+      };
+    });
+  }
+
   /// Get a label for the score range.
   static String getScoreLabel(int score) {
     if (score >= 80) return 'Sangat Aman';

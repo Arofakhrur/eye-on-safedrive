@@ -5,6 +5,7 @@ import 'package:eyeon/core/services/sos_service.dart';
 import 'package:eyeon/features/home/widgets/safety_score_card.dart';
 import 'package:eyeon/features/home/widgets/stat_card.dart';
 import 'package:eyeon/features/home/widgets/sos_button.dart';
+import 'package:eyeon/core/widgets/eyeon_header.dart';
 
 class HomeDashboard extends StatefulWidget {
   final VoidCallback? onProfileTap;
@@ -18,16 +19,10 @@ class _HomeDashboardState extends State<HomeDashboard> {
   String _userName = 'Rider';
   String? _avatarUrl;
 
-  // Dynamic stats
-  int _totalRides = 0;
-  int _totalAlerts = 0;
-  int _safeRides = 0;
-
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
-    _loadStats();
   }
 
   void _loadUserProfile() {
@@ -42,26 +37,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
     }
   }
 
-  Future<void> _loadStats() async {
-    try {
-      final rides = await SupabaseService().getRideHistory();
-      int alerts = 0;
-      int safe = 0;
-      for (final ride in rides) {
-        final micro = (ride['microsleep_alerts'] ?? 0) as int;
-        final accident = (ride['accident_alerts'] ?? 0) as int;
-        alerts += micro + accident;
-        if (micro == 0 && accident == 0) safe++;
-      }
-      if (mounted) {
-        setState(() {
-          _totalRides = rides.length;
-          _totalAlerts = alerts;
-          _safeRides = safe;
-        });
-      }
-    } catch (_) {}
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -74,21 +50,20 @@ class _HomeDashboardState extends State<HomeDashboard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
+              const EyeOnHeader(),
               _buildGreetingHeader(),
               const SizedBox(height: 28),
               const SafetyScoreCard(),
               const SizedBox(height: 24),
-              _buildQuickStatsHeader(),
+              _buildSectionHeader('Quick Tiles'),
               const SizedBox(height: 16),
-              _buildStatsRow(),
-              const SizedBox(height: 32),
               SOSButton(onTap: () => SOSService().callNationalEmergency()),
               const SizedBox(height: 24),
-              _buildRecentActivityHeader(),
+              _buildSectionHeader('Emergency Contact'),
+              const SizedBox(height: 24),
+              _buildSectionHeader('Recent Activity'),
               const SizedBox(height: 16),
-              _totalRides == 0
-                  ? _buildEmptyActivityPlaceholder()
-                  : _buildRecentRidesSummary(),
+              _buildDynamicRecentActivityCard(),
               const SizedBox(height: 100),
             ],
           ),
@@ -153,140 +128,108 @@ class _HomeDashboardState extends State<HomeDashboard> {
     );
   }
 
-  Widget _buildQuickStatsHeader() {
+  Widget _buildSectionHeader(String title) {
     return Text(
-      'Quick Stats',
+      title,
       style: GoogleFonts.plusJakartaSans(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: Colors.black,
+        fontSize: 16,
+        fontWeight: FontWeight.w800,
+        color: Colors.black54,
       ),
     );
   }
 
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: StatCard(
-            icon: Icons.timer_outlined,
-            label: 'Total Rides',
-            value: '$_totalRides',
-            color: const Color(0xFFD7F454),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: StatCard(
-            icon: Icons.warning_amber_rounded,
-            label: 'Alerts',
-            value: '$_totalAlerts',
-            color: Colors.orange.shade100,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: StatCard(
-            icon: Icons.check_circle_outline,
-            label: 'Safe Rides',
-            value: '$_safeRides',
-            color: Colors.green.shade100,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecentActivityHeader() {
-    return Text(
-      'Recent Activity',
-      style: GoogleFonts.plusJakartaSans(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: Colors.black,
-      ),
-    );
-  }
-
-  Widget _buildEmptyActivityPlaceholder() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.inbox_rounded, size: 48, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text(
-            'No recent activity',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black38,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Start a ride to see logs here',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              color: Colors.black26,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentRidesSummary() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
+  Widget _buildDynamicRecentActivityCard() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: SupabaseService().streamRideHistory(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 32),
             decoration: BoxDecoration(
-              color: const Color(0xFFD7F454).withValues(alpha: 0.2),
-              shape: BoxShape.circle,
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.grey.shade200, width: 2),
             ),
-            child: const Icon(Icons.route_rounded, color: Colors.black87, size: 20),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$_totalRides perjalanan tercatat',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                  ),
-                ),
-                Text(
-                  '$_safeRides aman • $_totalAlerts peringatan',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    color: Colors.black45,
-                  ),
+            child: const Center(
+              child: Icon(Icons.check_box_outline_blank_rounded, color: Colors.black26, size: 36),
+            ),
+          );
+        }
+
+        final rides = snapshot.data!;
+        int totalRides = rides.length;
+        int totalAlerts = 0;
+        int safeRides = 0;
+
+        for (final ride in rides) {
+          final micro = (ride['microsleep_alerts'] ?? 0) as int;
+          final accident = (ride['accident_alerts'] ?? 0) as int;
+          totalAlerts += micro + accident;
+          if (micro == 0 && accident == 0) safeRides++;
+        }
+
+        return GestureDetector(
+          onTap: () {
+            // Navigate to history if tapped
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.grey.shade100),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFD7F454), // Neon green badge
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.route_rounded, color: Colors.black, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$totalRides Perjalanan Tercatat',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$safeRides aman • $totalAlerts Peringatan',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Colors.black26),
+              ],
+            ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: Colors.black26),
-        ],
-      ),
+        );
+      },
     );
   }
 }

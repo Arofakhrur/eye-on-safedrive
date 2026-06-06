@@ -261,6 +261,25 @@ class SupabaseService {
     }
   }
 
+  /// Real-time stream of ride history
+  Stream<List<Map<String, dynamic>>> streamRideHistory() {
+    if (currentUser == null) return const Stream.empty();
+    
+    // We try to stream from ride_logs. 
+    // Supabase will automatically listen to updates on this table if Realtime is enabled.
+    return client
+        .from('ride_logs')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', currentUser!.id)
+        .order('start_time', ascending: false)
+        .map((response) {
+      return List<Map<String, dynamic>>.from(response);
+    }).handleError((error) {
+      debugPrint('Stream error (ride_logs might not exist or Realtime disabled): $error');
+      return <Map<String, dynamic>>[];
+    });
+  }
+
   // ================================================================
   // Profiles Table — Isolated Medical Info (Task 9)
   // ================================================================

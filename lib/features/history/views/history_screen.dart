@@ -4,6 +4,7 @@ import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/widgets/video_player_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:eyeon/core/widgets/eyeon_header.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -15,19 +16,6 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   String _selectedCategory = 'Semua';
   final List<String> _categories = ['Semua', 'Microsleep', 'Kecelakaan'];
-  late Future<List<dynamic>> _historyFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _historyFuture = SupabaseService().getRideHistory();
-  }
-
-  Future<void> _refreshHistory() async {
-    setState(() {
-      _historyFuture = SupabaseService().getRideHistory();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,18 +35,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
       body: Column(
         children: [
+          const SizedBox(height: 24),
+          const EyeOnHeader(),
           _buildCategoryFilter(),
           Expanded(
-            child: FutureBuilder<List<dynamic>>(
-              future: _historyFuture,
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: SupabaseService().streamRideHistory(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (!snapshot.hasData) {
                   return const Center(
                     child: CircularProgressIndicator(color: Color(0xFFD7F454)),
                   );
                 }
 
-                final logs = snapshot.data ?? [];
+                final logs = snapshot.data!;
                 final filteredLogs = logs.where((log) {
                   if (_selectedCategory == 'Semua') return true;
                   if (_selectedCategory == 'Microsleep') {
@@ -71,30 +61,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 }).toList();
 
                 if (filteredLogs.isEmpty) {
-                  return RefreshIndicator(
-                    onRefresh: _refreshHistory,
-                    color: const Color(0xFFD7F454),
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: Container(
-                        height: MediaQuery.of(context).size.height * 0.7,
-                        alignment: Alignment.center,
-                        child: _buildEmptyState(),
-                      ),
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height * 0.7,
+                      alignment: Alignment.center,
+                      child: _buildEmptyState(),
                     ),
                   );
                 }
 
-                return RefreshIndicator(
-                  onRefresh: _refreshHistory,
-                  color: const Color(0xFFD7F454),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(24),
-                    itemCount: filteredLogs.length,
-                    itemBuilder: (context, index) {
-                      return HistoryCard(log: filteredLogs[index]);
-                    },
-                  ),
+                return ListView.builder(
+                  padding: const EdgeInsets.all(24),
+                  itemCount: filteredLogs.length,
+                  itemBuilder: (context, index) {
+                    return HistoryCard(log: filteredLogs[index]);
+                  },
                 );
               },
             ),

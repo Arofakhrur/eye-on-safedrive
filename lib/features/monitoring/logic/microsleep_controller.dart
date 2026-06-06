@@ -17,6 +17,10 @@ class MicrosleepController extends ChangeNotifier {
   DateTime? _drowsyStartTime;
   List<FaceMesh> _currentMeshes = [];
   
+  // Task 14: State Management
+  int _drowsyCount = 0;
+  bool _isPaused = false;
+  
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Duration _microsleepDuration = const Duration(seconds: 2);
   bool _isAlarmPlaying = false;
@@ -24,6 +28,21 @@ class MicrosleepController extends ChangeNotifier {
   double get currentEAR => _currentEAR;
   bool get isDrowsy => _isDrowsy;
   List<FaceMesh> get currentMeshes => _currentMeshes;
+  int get drowsyCount => _drowsyCount;
+  bool get isPaused => _isPaused;
+
+  void resumeMonitoring() {
+    _isPaused = false;
+    _isDrowsy = false;
+    _drowsyStartTime = null;
+    _stopAlarm();
+    notifyListeners();
+  }
+
+  void resetDrowsyCount() {
+    _drowsyCount = 0;
+    notifyListeners();
+  }
 
   /// Map alarm sound preference name to the actual asset file path.
   static const Map<String, String> _alarmSoundFiles = {
@@ -85,6 +104,8 @@ class MicrosleepController extends ChangeNotifier {
   }
 
   void _evaluateDrowsiness() {
+    if (_isPaused) return;
+
     final threshold = PreferenceService().earThreshold;
     if (_currentEAR < threshold) {
       _drowsyStartTime ??= DateTime.now();
@@ -92,13 +113,14 @@ class MicrosleepController extends ChangeNotifier {
       final elapsed = DateTime.now().difference(_drowsyStartTime!);
       if (elapsed >= _microsleepDuration && !_isDrowsy) {
         _isDrowsy = true;
+        _drowsyCount++;
+        _isPaused = true;
         _triggerAlarm();
       }
     } else {
       _drowsyStartTime = null;
       if (_isDrowsy) {
-        _isDrowsy = false;
-        _stopAlarm();
+        // Do not auto-reset here because the user must manually dismiss the alert via resumeMonitoring()
       }
     }
   }
@@ -111,8 +133,9 @@ class MicrosleepController extends ChangeNotifier {
       if (!_isAlarmPlaying) {
         _isAlarmPlaying = true;
 
-        // Set volume to maximum
-        await _audioPlayer.setVolume(1.0);
+        // Set volume based on drowsyCount (Level 1: 0.7, Level 2+: 1.0)
+        double volume = _drowsyCount > 1 ? 1.0 : 0.7;
+        await _audioPlayer.setVolume(volume);
 
         // Loop the alarm until eyes open
         await _audioPlayer.setReleaseMode(ReleaseMode.loop);
