@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -59,22 +60,32 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _navigateAfterAuth() async {
+    if (!mounted) return;
+    
+    // Check if user already has data in DB to skip setup/calibration
     try {
       final prefs = PreferenceService();
       final contacts = await SupabaseService().getEmergencyContacts();
-
       if (contacts.isNotEmpty) {
+        // If they already have contacts saved, it means they are an existing user
+        // We can safely assume they've completed setup and calibration
         await prefs.setContactSetup(true);
-        if (prefs.isCalibrated) {
-          if (mounted) Navigator.of(context).pushReplacementNamed(AppRoutes.home);
-          return;
-        }
-        if (mounted) Navigator.of(context).pushReplacementNamed(AppRoutes.calibration);
-        return;
+        await prefs.setCalibrated(true);
       }
-      if (mounted) Navigator.of(context).pushReplacementNamed(AppRoutes.setup);
+      
+      if (!mounted) return;
+
+      if (!prefs.isPermissionsGranted) {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.permission);
+      } else if (!prefs.isContactSetup) {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.setupWizard);
+      } else if (!prefs.isCalibrated) {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.calibration);
+      } else {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      }
     } catch (e) {
-      if (mounted) Navigator.of(context).pushReplacementNamed(AppRoutes.setup);
+      if (mounted) Navigator.of(context).pushReplacementNamed(AppRoutes.setupWizard);
     } finally {
       if (mounted) setState(() => _isLoadingGoogle = false);
     }
@@ -84,10 +95,168 @@ class _LoginScreenState extends State<LoginScreen>
     Navigator.of(context).pushNamed(AppRoutes.register);
   }
 
+  // ── Task 4: Forgot Password Dialog ────────────────────────────────
+  Future<void> _showForgotPasswordDialog() async {
+    final resetEmailController = TextEditingController();
+    bool isSending = false;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.authSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Text(
+            'Reset Password',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Masukkan email Anda untuk menerima tautan reset password.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  color: Colors.white54,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: resetEmailController,
+                keyboardType: TextInputType.emailAddress,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'email@example.com',
+                  hintStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    color: Colors.white24,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.email_outlined,
+                    color: Colors.white38,
+                    size: 20,
+                  ),
+                  filled: true,
+                  fillColor: AppColors.authBackground,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(
+                      color: AppColors.authBorder,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'Batal',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white54,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: isSending
+                  ? null
+                  : () async {
+                      final email = resetEmailController.text.trim();
+                      if (email.isEmpty) return;
+                      setDialogState(() => isSending = true);
+                      try {
+                        await SupabaseService.client.auth
+                            .resetPasswordForEmail(email);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Tautan reset password telah dikirim ke $email',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              backgroundColor: Colors.black87,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Gagal mengirim: $e'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (ctx.mounted) {
+                          setDialogState(() => isSending = false);
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: isSending
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black,
+                      ),
+                    )
+                  : Text(
+                      'Kirim',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: AppColors.authBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -157,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen>
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: const Color(0xFFD7F454),
+            color: AppColors.primary,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Image.asset(
@@ -315,7 +484,7 @@ class _LoginScreenState extends State<LoginScreen>
                   )
                 : null,
             filled: true,
-            fillColor: const Color(0xFF1A1A1A),
+            fillColor: AppColors.authSurface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,
@@ -327,14 +496,14 @@ class _LoginScreenState extends State<LoginScreen>
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(
-                color: Color(0xFF2A2A2A),
+                color: AppColors.authBorder,
                 width: 1,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(
-                color: Color(0xFFD7F454),
+                color: AppColors.primary,
                 width: 1.5,
               ),
             ),
@@ -381,13 +550,13 @@ class _LoginScreenState extends State<LoginScreen>
                 height: 20,
                 decoration: BoxDecoration(
                   color: _rememberMe
-                      ? const Color(0xFFD7F454)
+                      ? AppColors.primary
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: _rememberMe
-                        ? const Color(0xFFD7F454)
-                        : const Color(0xFF3A3A3A),
+                        ? AppColors.primary
+                        : AppColors.authBorderFocus,
                     width: 1.5,
                   ),
                 ),
@@ -410,15 +579,13 @@ class _LoginScreenState extends State<LoginScreen>
 
         // Forgot password
         GestureDetector(
-          onTap: () {
-            // TODO: Implement forgot password
-          },
+          onTap: _showForgotPasswordDialog,
           child: Text(
             'Forgot Password?',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFFD7F454),
+              color: AppColors.primary,
             ),
           ),
         ),
@@ -433,7 +600,7 @@ class _LoginScreenState extends State<LoginScreen>
       child: ElevatedButton(
         onPressed: _handleLogin,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFD7F454),
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.black,
           elevation: 4,
           shadowColor: Colors.black.withValues(alpha: 0.5),
@@ -458,7 +625,7 @@ class _LoginScreenState extends State<LoginScreen>
         Expanded(
           child: Container(
             height: 1,
-            color: const Color(0xFF2A2A2A),
+            color: AppColors.authBorder,
           ),
         ),
         Padding(
@@ -475,7 +642,7 @@ class _LoginScreenState extends State<LoginScreen>
         Expanded(
           child: Container(
             height: 1,
-            color: const Color(0xFF2A2A2A),
+            color: AppColors.authBorder,
           ),
         ),
       ],
@@ -486,7 +653,7 @@ class _LoginScreenState extends State<LoginScreen>
     return _isLoadingGoogle
         ? const Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD7F454)),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
           )
         : _buildSocialButton(
@@ -528,10 +695,10 @@ class _LoginScreenState extends State<LoginScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
+          color: AppColors.authSurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: const Color(0xFF2A2A2A),
+            color: AppColors.authBorder,
             width: 1,
           ),
         ),
@@ -572,7 +739,7 @@ class _LoginScreenState extends State<LoginScreen>
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFFD7F454),
+                  color: AppColors.primary,
                 ),
               ),
             ],

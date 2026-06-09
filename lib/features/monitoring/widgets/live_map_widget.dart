@@ -3,17 +3,21 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
+import 'package:eyeon/core/constants/app_constants.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 /// A widget that displays a live map using flutter_map and OpenStreetMap.
 /// It tracks the user's current location from a Position stream.
 class LiveMapWidget extends StatefulWidget {
   final Stream<Position> positionStream;
   final Position? initialPosition;
+  final LatLng? destination;
 
   const LiveMapWidget({
     super.key,
     required this.positionStream,
     this.initialPosition,
+    this.destination,
   });
 
   @override
@@ -63,7 +67,7 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(color: Color(0xFFD7F454)),
+              CircularProgressIndicator(color: AppColors.primary),
               SizedBox(height: 12),
               Text(
                 'Mencari sinyal GPS...',
@@ -90,7 +94,7 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          urlTemplate: AppUrls.osmTileUrl,
           userAgentPackageName: 'com.eyeon.safedrive',
           maxZoom: 19,
         ),
@@ -107,7 +111,7 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
                     width: 30,
                     height: 30,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD7F454).withValues(alpha: 0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -115,7 +119,7 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
                     width: 16,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD7F454),
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.black87, width: 2),
                       boxShadow: [
@@ -130,8 +134,25 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
                 ],
               ),
             ),
+            if (widget.destination != null)
+              Marker(
+                point: widget.destination!,
+                width: 40,
+                height: 40,
+                child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+              ),
           ],
         ),
+        if (widget.destination != null && _currentLatLng != null)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: [_currentLatLng!, widget.destination!],
+                color: Colors.blue.withOpacity(0.7),
+                strokeWidth: 4.0,
+              ),
+            ],
+          ),
       ],
     );
   }

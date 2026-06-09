@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/features/calibration/views/calibration_screen.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class StatusCard extends StatelessWidget {
   final bool isOnline;
@@ -37,7 +38,7 @@ class StatusCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFD7F454),
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.shield_rounded,
@@ -90,7 +91,7 @@ class StatusCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD7F454).withValues(alpha: 0.15),
+                      color: AppColors.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -98,7 +99,7 @@ class StatusCard extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFFD7F454),
+                        color: AppColors.primary,
                       ),
                     ),
                   ),

@@ -1,4 +1,5 @@
 import 'package:eyeon/core/services/location_service.dart';
+import 'package:flutter/material.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/video_buffer_service.dart';
 import 'package:eyeon/core/services/telegram_service.dart';
@@ -19,7 +20,10 @@ class SOSService {
   /// 2. Save video to gallery
   /// 3. Send SOS via Telegram (text + location + video)
   /// 4. Log incident to Supabase (without uploading video to storage)
-  Future<Map<String, dynamic>> triggerEmergencySOS(double magnitude, {String? rideId}) async {
+  Future<Map<String, dynamic>> triggerEmergencySOS(
+    double magnitude, {
+    String? rideId,
+  }) async {
     bool gallerySaved = false;
     String? galleryError;
     String? videoPath;
@@ -90,20 +94,130 @@ class SOSService {
       };
     } catch (e) {
       debugPrint('SOS Service Error: $e');
-      // Final fallback: Call 112 directly
-      final dialerUrl = Uri.parse("tel:112");
-      if (await canLaunchUrl(dialerUrl)) {
-        await launchUrl(dialerUrl);
-      }
-      return {'gallerySaved': false, 'telegramSent': false, 'error': e.toString()};
+      // Final fallback: Call emergency contact
+      await callEmergencyContact();
+      return {
+        'gallerySaved': false,
+        'telegramSent': false,
+        'error': e.toString(),
+      };
     }
   }
 
-  /// Manual dial 112
-  Future<void> callNationalEmergency() async {
+  /// Auto dial emergency contact or 112
+  Future<void> callEmergencyContact() async {
+    try {
+      final contacts = await SupabaseService().getEmergencyContacts();
+      if (contacts.isNotEmpty) {
+        final phone = contacts.first.phone;
+        final url = Uri.parse("tel:$phone");
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url);
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to get emergency contacts: $e');
+    }
+
     final url = Uri.parse("tel:112");
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
+    }
+  }
+
+  /// Show emergency contacts bottom sheet for manual selection
+  Future<void> showEmergencyContactSheet(BuildContext context) async {
+    try {
+      final contacts = await SupabaseService().getEmergencyContacts();
+      if (contacts.isEmpty) {
+        callEmergencyContact(); // fallback to 112
+        return;
+      }
+
+      if (!context.mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Hubungi Kontak Darurat',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...contacts.map(
+                (c) => ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.redAccent,
+                    child: Icon(Icons.person, color: Colors.white),
+                  ),
+                  title: Text(
+                    c.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(c.phone),
+                  trailing: const Icon(Icons.call, color: Colors.green),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final url = Uri.parse("tel:${c.phone}");
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Colors.black87,
+                  child: Icon(Icons.local_hospital, color: Colors.white),
+                ),
+                title: const Text(
+                  'Layanan Darurat Nasional',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: const Text('112'),
+                trailing: const Icon(Icons.call, color: Colors.green),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final url = Uri.parse("tel:112");
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error showing emergency sheet: $e');
+      callEmergencyContact();
     }
   }
 }

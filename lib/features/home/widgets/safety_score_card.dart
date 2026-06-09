@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/services/safety_score_service.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class SafetyScoreCard extends StatelessWidget {
   const SafetyScoreCard({super.key});
@@ -48,7 +49,7 @@ class SafetyScoreCard extends StatelessWidget {
               ? const SizedBox(
                   height: 200,
                   child: Center(
-                    child: CircularProgressIndicator(color: Color(0xFFD7F454)),
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   ),
                 )
               : Column(

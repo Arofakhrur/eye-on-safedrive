@@ -5,12 +5,14 @@ class PersonalInfoCard extends StatelessWidget {
   final String address;
   final String bloodType;
   final String origin;
+  final String medicalNotes;
 
   const PersonalInfoCard({
     super.key,
     required this.address,
     required this.bloodType,
     required this.origin,
+    required this.medicalNotes,
   });
 
   @override
@@ -29,6 +31,10 @@ class PersonalInfoCard extends StatelessWidget {
           _buildInfoRow(Icons.bloodtype_rounded, 'Blood Type', bloodType),
           const Divider(height: 24),
           _buildInfoRow(Icons.home_work_rounded, 'Origin', origin),
+          if (medicalNotes.isNotEmpty) ...[
+            const Divider(height: 24),
+            _buildInfoRow(Icons.medical_information_rounded, 'Medical Notes', medicalNotes),
+          ],
         ],
       ),
     );

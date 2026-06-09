@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
+import 'package:eyeon/core/constants/app_data.dart';
 import 'package:eyeon/core/widgets/eyeon_header.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});
@@ -13,7 +15,7 @@ class ActivityScreen extends StatefulWidget {
 
 class _ActivityScreenState extends State<ActivityScreen> {
   String _selectedPeriod = 'Hari Ini';
-  final List<String> _periods = ['Hari Ini', 'Minggu Ini', 'Bulan Ini'];
+  final List<String> _periods = AppData.activityPeriods;
 
   // Processed Data
   double _totalDurationHours = 0.0;
@@ -52,8 +54,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
     double dist = 0;
     int microsleep = 0;
     int incidents = 0;
-    Map<int, int> hourlyMicrosleep = {};
-
     for (var log in filteredLogs) {
       final start = DateTime.parse(log['start_time']);
       final end = DateTime.parse(log['end_time']);
@@ -62,11 +62,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
       dist += (log['distance'] ?? 0.0);
       microsleep += (log['microsleep_alerts'] ?? 0) as int;
       incidents += (log['accident_alerts'] ?? 0) as int;
-
-      // For chart: map to hour
-      int hour = start.hour;
-      hourlyMicrosleep[hour] =
-          (hourlyMicrosleep[hour] ?? 0) + (log['microsleep_alerts'] as int);
     }
 
     _totalDurationHours = durationSecs / 3600.0;
@@ -74,11 +69,27 @@ class _ActivityScreenState extends State<ActivityScreen> {
     _totalMicrosleep = microsleep;
     _totalIncidents = incidents;
 
-    // Build Chart Spots (0-23 hours)
+    // Build Chart Spots for "Senin - Minggu" (Waktu Berkendara)
+    Map<int, double> dailyDuration = {};
+    final monday = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+    final nextMonday = monday.add(const Duration(days: 7));
+    
+    final currentWeekLogs = allLogs.where((log) {
+      final date = DateTime.parse(log['start_time']);
+      return date.isAfter(monday.subtract(const Duration(seconds: 1))) && date.isBefore(nextMonday);
+    });
+
+    for (var log in currentWeekLogs) {
+      final start = DateTime.parse(log['start_time']);
+      final end = DateTime.parse(log['end_time']);
+      final durationHours = end.difference(start).inSeconds / 3600.0;
+      dailyDuration[start.weekday] = (dailyDuration[start.weekday] ?? 0) + durationHours;
+    }
+
     _chartSpots = [];
-    for (int i = 0; i < 24; i++) {
+    for (int i = 1; i <= 7; i++) {
       _chartSpots.add(
-        FlSpot(i.toDouble(), (hourlyMicrosleep[i] ?? 0).toDouble()),
+        FlSpot(i.toDouble(), dailyDuration[i] ?? 0.0),
       );
     }
   }
@@ -105,7 +116,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFFD7F454)),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
 
@@ -126,8 +137,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 _buildCompactHighlightGrid(),
                 const SizedBox(height: 32),
                 _buildSectionHeader(
-                  'Trend Kerawanan Microsleep',
-                  'Data riwayat jam berkendara',
+                  'Waktu Berkendara',
+                  'Total jam berkendara minggu ini',
                 ),
                 const SizedBox(height: 16),
                 _buildSmoothTrendChart(),
@@ -239,7 +250,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 'Durasi',
                 durationText,
                 Icons.timer_rounded,
-                const Color(0xFFD7F454),
+                AppColors.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -371,17 +382,21 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     fontWeight: FontWeight.bold,
                     fontSize: 10,
                   );
-                  int hour = value.toInt();
-                  if (hour % 6 == 0) {
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        '${hour.toString().padLeft(2, '0')}:00',
-                        style: style,
-                      ),
-                    );
+                  int day = value.toInt();
+                  String text = '';
+                  switch (day) {
+                    case 1: text = 'Sen'; break;
+                    case 2: text = 'Sel'; break;
+                    case 3: text = 'Rab'; break;
+                    case 4: text = 'Kam'; break;
+                    case 5: text = 'Jum'; break;
+                    case 6: text = 'Sab'; break;
+                    case 7: text = 'Min'; break;
                   }
-                  return const SizedBox();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(text, style: style),
+                  );
                 },
                 interval: 1,
               ),
@@ -393,7 +408,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               spots: _chartSpots.isEmpty ? [const FlSpot(0, 0)] : _chartSpots,
               isCurved: true,
               gradient: const LinearGradient(
-                colors: [Color(0xFFD7F454), Color(0xFF81C784)],
+                colors: [AppColors.primary, Color(0xFF81C784)],
               ),
               barWidth: 2,
               isStrokeCapRound: true,
@@ -402,8 +417,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 show: true,
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFFD7F454).withValues(alpha: 0.2),
-                    const Color(0xFFD7F454).withValues(alpha: 0.0),
+                    AppColors.primary.withValues(alpha: 0.2),
+                    AppColors.primary.withValues(alpha: 0.0),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -411,8 +426,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
               ),
             ),
           ],
-          minX: 0,
-          maxX: 23,
+          minX: 1,
+          maxX: 7,
           minY: 0,
         ),
       ),
@@ -444,7 +459,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   value: progress,
                   strokeWidth: 6,
                   backgroundColor: Colors.grey.shade200,
-                  color: const Color(0xFFD7F454),
+                  color: AppColors.primary,
                   strokeCap: StrokeCap.round,
                 ),
               ),
@@ -586,7 +601,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD7F454),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

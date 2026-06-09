@@ -15,7 +15,10 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:eyeon/features/monitoring/widgets/monitoring_top_bar.dart';
 import 'package:eyeon/features/monitoring/widgets/monitoring_bottom_bar.dart';
+import 'package:eyeon/features/monitoring/widgets/destination_search_sheet.dart';
 import 'package:gal/gal.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 enum ScreenMode { split, fullCamera, fullMap }
 
@@ -56,6 +59,9 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
       StreamController<Position>.broadcast();
   StreamSubscription<Position>? _positionSubscription;
 
+  LatLng? _destination;
+  String? _destinationName;
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +71,19 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
     
     // Request gallery access early
     Gal.requestAccess();
+  }
+
+  void _onSwipeToStart() {
+    DestinationSearchSheet.show(
+      context,
+      onSelected: (dest, name) {
+        setState(() {
+          _destination = dest;
+          _destinationName = name;
+        });
+        _startRide();
+      },
+    );
   }
 
   void _startRide() {
@@ -162,7 +181,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 const Expanded(child: Text('SOS terkirim via Telegram!')),
               ],
             ),
-            backgroundColor: const Color(0xFF0088CC),
+            backgroundColor: AppColors.telegramBlue,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -266,9 +285,21 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 fit: StackFit.expand,
                 children: [
                   if (_isCameraInitialized && _cameraController != null)
-                    CameraPreview(_cameraController!, child: _buildFaceMeshOverlay())
+                    ClipRect(
+                      child: OverflowBox(
+                        alignment: Alignment.center,
+                        child: FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: size.width,
+                            height: size.width * _cameraController!.value.aspectRatio,
+                            child: CameraPreview(_cameraController!, child: _buildFaceMeshOverlay()),
+                          ),
+                        ),
+                      ),
+                    )
                   else
-                    const Center(child: CircularProgressIndicator(color: Color(0xFFD7F454))),
+                    const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                   
                   // Toggle Fullscreen Camera
                   if (_isRideStarted)
@@ -308,7 +339,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                       decoration: BoxDecoration(
                         border: Border(
                           top: BorderSide(
-                            color: const Color(0xFFD7F454).withValues(alpha: 0.3),
+                            color: AppColors.primary.withValues(alpha: 0.3),
                             width: 2,
                           ),
                         ),
@@ -316,6 +347,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                       child: LiveMapWidget(
                         positionStream: _positionStreamController.stream,
                         initialPosition: _lastPosition,
+                        destination: _destination,
                       ),
                     ),
                   
@@ -360,7 +392,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
           // Bottom Bar
           if (_isRideStarted)
             Positioned(
-              bottom: 120, // Above the stop button
+              bottom: 120 + MediaQuery.of(context).padding.bottom, // Above the stop button
               left: 16,
               right: 16,
               child: MonitoringBottomBar(
@@ -373,7 +405,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
 
           // Bottom controls
           Positioned(
-            bottom: 40,
+            bottom: 40 + MediaQuery.of(context).padding.bottom,
             left: 0,
             right: 0,
             child: Center(
@@ -429,7 +461,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
 
   Widget _buildSwipeToStart() {
     return _InteractiveSwipeButton(
-      onStarted: _startRide,
+      onStarted: _onSwipeToStart,
     );
   }
 
@@ -584,7 +616,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                   _microsleepController.resumeMonitoring();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD7F454),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -677,11 +709,11 @@ class _InteractiveSwipeButtonState extends State<_InteractiveSwipeButton> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD7F454),
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFD7F454).withValues(alpha: 0.4),
+                          color: AppColors.primary.withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),

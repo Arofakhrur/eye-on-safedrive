@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:eyeon/core/services/preference_service.dart';
+import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class PermissionScreen extends StatefulWidget {
   const PermissionScreen({super.key});
@@ -93,7 +95,14 @@ class _PermissionScreenState extends State<PermissionScreen>
 
     if (_allGranted && mounted) {
       PreferenceService().setPermissionsGranted(true);
-      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+      
+      // If user is already logged in (e.g. they granted permissions after login), 
+      // we shouldn't send them back to login. Let splash screen figure out the next step.
+      if (SupabaseService.client.auth.currentUser != null) {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.splash);
+      } else {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+      }
     }
   }
 
@@ -229,14 +238,14 @@ class _PermissionScreenState extends State<PermissionScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isGranted ? const Color(0xFFD7F454).withValues(alpha: 0.5) : Colors.grey.shade100),
+        border: Border.all(color: isGranted ? AppColors.primary.withValues(alpha: 0.5) : Colors.grey.shade100),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: isGranted ? const Color(0xFFD7F454) : Colors.grey.shade200, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: isGranted ? AppColors.primary : Colors.grey.shade200, shape: BoxShape.circle),
             child: Icon(icon, color: isGranted ? Colors.black : Colors.black38, size: 20),
           ),
           const SizedBox(width: 16),
@@ -253,7 +262,7 @@ class _PermissionScreenState extends State<PermissionScreen>
             value: isGranted,
             onChanged: (_) => onToggle(),
             activeThumbColor: Colors.white,
-            activeTrackColor: const Color(0xFFD7F454),
+            activeTrackColor: AppColors.primary,
             inactiveThumbColor: Colors.white,
             inactiveTrackColor: Colors.grey.shade200,
             trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
@@ -270,7 +279,11 @@ class _PermissionScreenState extends State<PermissionScreen>
         onTap: _isRequesting ? null : () {
           if (_allGranted) {
             PreferenceService().setPermissionsGranted(true);
-            Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+            if (SupabaseService.client.auth.currentUser != null) {
+              Navigator.of(context).pushReplacementNamed(AppRoutes.splash);
+            } else {
+              Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+            }
           } else {
             _grantAllPermissions();
           }
@@ -279,7 +292,7 @@ class _PermissionScreenState extends State<PermissionScreen>
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
-            color: _isRequesting ? Colors.grey.shade300 : const Color(0xFFD7F454),
+            color: _isRequesting ? Colors.grey.shade300 : AppColors.primary,
             borderRadius: BorderRadius.circular(30),
             boxShadow: [if (!_isRequesting) BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4))],
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class UserProfileCard extends StatelessWidget {
   final String userName;
@@ -34,7 +35,7 @@ class UserProfileCard extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: const Color(0xFFD7F454),
+              color: AppColors.primary,
               shape: BoxShape.circle,
               image: avatarUrl != null
                   ? DecorationImage(

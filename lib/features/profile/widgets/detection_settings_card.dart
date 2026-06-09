@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
+import 'package:eyeon/core/constants/app_data.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class DetectionSettingsCard extends StatefulWidget {
   final double earThreshold;
@@ -26,29 +30,54 @@ class DetectionSettingsCard extends StatefulWidget {
 
 class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _playingSound;
+  Timer? _stopTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer.onPlayerComplete.listen((_) {
+      if (mounted) {
+        _stopPreview();
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _stopTimer?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
 
   void _previewSound(String soundName) async {
-    // Mapping display names to actual filenames in assets/sounds/
-    String fileName = '';
-    switch (soundName) {
-      case 'Sound 1': fileName = 'sound 1.mp3'; break;
-      case 'Sound 2': fileName = 'sound 2.mp3'; break;
-      case 'Sound 3': fileName = 'sound 3.mp3'; break;
-      case 'Sound 4': fileName = 'sound 4.mp3'; break;
-      default: fileName = 'sound 1.mp3';
+    if (_playingSound == soundName) {
+      await _stopPreview();
+      return;
     }
 
+    await _stopPreview();
+
+    final fileName = AppAssets.alarmSoundFiles[soundName] ?? AppAssets.alarmSound1;
+
     try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/$fileName'));
+      setState(() => _playingSound = soundName);
+      await _audioPlayer.play(AssetSource(fileName));
+      
+      _stopTimer = Timer(const Duration(seconds: 3), () {
+        _stopPreview();
+      });
     } catch (e) {
       debugPrint('Error playing sound preview: $e');
+      if (mounted) setState(() => _playingSound = null);
+    }
+  }
+
+  Future<void> _stopPreview() async {
+    _stopTimer?.cancel();
+    await _audioPlayer.stop();
+    if (mounted && _playingSound != null) {
+      setState(() => _playingSound = null);
     }
   }
 
@@ -98,7 +127,7 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
           min: min,
           max: max,
           onChanged: onChanged,
-          activeColor: const Color(0xFFD7F454),
+          activeColor: AppColors.primary,
           inactiveColor: Colors.grey.shade200,
         ),
         Row(
@@ -118,8 +147,10 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: ['Sound 1', 'Sound 2', 'Sound 3', 'Sound 4'].map((sound) {
+          children: AppAssets.alarmSoundFiles.keys.map((sound) {
             final isSelected = widget.alarmSound == sound;
+            final isPlaying = _playingSound == sound;
+            
             return InkWell(
               onTap: () {
                 widget.onSoundChanged(sound);
@@ -128,21 +159,32 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
               borderRadius: BorderRadius.circular(12),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFD7F454) : Colors.white,
+                  color: isSelected ? AppColors.primary : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected ? Colors.transparent : Colors.grey.shade200,
                   ),
                 ),
-                child: Text(
-                  sound,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? Colors.black : Colors.black54,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded,
+                      size: 16,
+                      color: isSelected ? Colors.black : Colors.black54,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      sound,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? Colors.black : Colors.black54,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );

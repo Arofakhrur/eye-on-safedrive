@@ -37,4 +37,8 @@ class AppDatabaseSchema {
   static const String colAddress = 'address';
   static const String colOrigin = 'origin';
   static const String colEmergencyMedicalNotes = 'emergency_medical_notes';
+  static const String colEarThreshold = 'ear_threshold';
+  static const String colShockSensitivity = 'shock_sensitivity';
+  static const String colAlarmSound = 'alarm_sound';
+  static const String colSaveToGallery = 'save_to_gallery';
 }

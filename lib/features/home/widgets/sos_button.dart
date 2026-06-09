@@ -33,7 +33,7 @@ class SOSButton extends StatelessWidget {
             const Icon(Icons.phone_in_talk_rounded, color: Colors.black87, size: 24),
             const SizedBox(width: 12),
             Text(
-              'Emergency Call',
+              'Hubungi Kontak Darurat',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,

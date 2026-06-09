@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -244,7 +245,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFD7F454),
+          color: AppColors.primary,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
@@ -318,7 +319,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   value: value,
                   strokeWidth: 4,
                   valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFFD7F454),
+                    AppColors.primary,
                   ),
                   strokeCap: StrokeCap.round,
                 ),

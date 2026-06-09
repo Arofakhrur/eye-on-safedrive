@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class MonitoringBottomBar extends StatelessWidget {
   final double currentSpeed;
@@ -42,12 +43,12 @@ class MonitoringBottomBar extends StatelessWidget {
           _buildMetric(
             Icons.visibility_rounded, 
             'EAR: ${currentEAR.toStringAsFixed(2)}',
-            currentEAR < 0.25 ? Colors.redAccent : const Color(0xFFD7F454),
+            currentEAR < 0.25 ? Colors.redAccent : AppColors.primary,
           ),
           _buildMetric(
             Icons.sensors_rounded, 
             'G: ${currentGForce.toStringAsFixed(1)}',
-            isAccident ? Colors.redAccent : const Color(0xFFD7F454),
+            isAccident ? Colors.redAccent : AppColors.primary,
           ),
         ],
       ),

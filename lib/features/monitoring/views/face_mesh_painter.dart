@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_mesh_detection/google_mlkit_face_mesh_detection.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class FaceMeshPainter extends CustomPainter {
   final List<FaceMesh> meshes;
@@ -16,7 +17,7 @@ class FaceMeshPainter extends CustomPainter {
     final Paint paint = Paint()
       ..style = PaintingStyle.fill
       ..strokeWidth = 2.0
-      ..color = isDrowsy ? Colors.redAccent : const Color(0xFFD7F454); // Neon Green/Yellow when awake, Red when drowsy
+      ..color = isDrowsy ? Colors.redAccent : AppColors.primary; // Neon Green/Yellow when awake, Red when drowsy
 
     for (final FaceMesh mesh in meshes) {
       for (final FaceMeshPoint point in mesh.points) {

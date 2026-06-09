@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class MonitoringTopBar extends StatelessWidget {
   final bool isDrowsy;
@@ -23,7 +24,7 @@ class MonitoringTopBar extends StatelessWidget {
     
     // Status text logic
     String statusText = 'DRIVING';
-    Color statusColor = const Color(0xFFD7F454); // Neon green
+    Color statusColor = AppColors.primary; // Neon green
     
     if (isAccident) {
       statusText = 'SOS ALERT';
@@ -33,7 +34,7 @@ class MonitoringTopBar extends StatelessWidget {
       statusColor = Colors.orangeAccent;
     } else if (isStopped) {
       statusText = 'STOPPED';
-      statusColor = const Color(0xFFD7F454);
+      statusColor = AppColors.primary;
     }
 
     return Container(

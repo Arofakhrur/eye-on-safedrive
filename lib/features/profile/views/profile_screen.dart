@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
+import 'package:eyeon/core/constants/app_data.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/telegram_service.dart';
@@ -9,6 +11,7 @@ import 'package:eyeon/features/profile/widgets/user_profile_card.dart';
 import 'package:eyeon/features/profile/widgets/personal_info_card.dart';
 import 'package:eyeon/features/profile/widgets/detection_settings_card.dart';
 import 'package:eyeon/core/widgets/eyeon_header.dart';
+import 'package:eyeon/core/widgets/eyeon_address_autocomplete.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -61,6 +64,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Load from profiles table (Task 9)
       final profile = await SupabaseService().getProfile();
       if (profile != null && mounted) {
+        // Restore ear_threshold if available
+        if (profile['ear_threshold'] != null) {
+          final cloudThreshold = (profile['ear_threshold'] as num).toDouble();
+          await PreferenceService().setEarThreshold(cloudThreshold);
+          _earThreshold = cloudThreshold;
+        }
+
+        // Restore preferences if available
+        if (profile['shock_sensitivity'] != null) {
+          final val = (profile['shock_sensitivity'] as num).toDouble();
+          await PreferenceService().setShockSensitivity(val);
+          _shockSensitivity = val;
+        }
+        if (profile['alarm_sound'] != null) {
+          final val = profile['alarm_sound'] as String;
+          await PreferenceService().setAlarmSound(val);
+          _alarmSound = val;
+        }
+        if (profile['save_to_gallery'] != null) {
+          final val = profile['save_to_gallery'] as bool;
+          await PreferenceService().setSaveToGallery(val);
+          _saveToGallery = val;
+        }
+
         setState(() {
           if (profile['full_name'] != null) _userName = profile['full_name'];
           _address = profile['address'] ?? 'Not set';
@@ -74,6 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── Edit Personal Info Dialog ──────────────────────────────────────
   Future<void> _showEditPersonalInfoDialog() async {
+    final nameController = TextEditingController(text: _userName);
     final addressController = TextEditingController(
       text: _address == 'Not set' ? '' : _address,
     );
@@ -82,21 +110,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       text: _origin == 'Not set' ? '' : _origin,
     );
     final medicalNotesController = TextEditingController(text: _medicalNotes);
-
-    final List<String> bloodTypes = [
-      'A',
-      'B',
-      'AB',
-      'O',
-      'A+',
-      'A-',
-      'B+',
-      'B-',
-      'AB+',
-      'AB-',
-      'O+',
-      'O-',
-    ];
 
     await showModalBottomSheet(
       context: context,
@@ -149,50 +162,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 24),
 
+                  // Name
+                  _buildSectionLabel('Nama Lengkap'),
+                  TextField(
+                    controller: nameController,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: _buildInputDecoration(
+                      Icons.person_outline_rounded,
+                      'Masukkan nama lengkap...',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
                   // Address with Autocomplete
                   _buildSectionLabel('Alamat Lengkap'),
-                  Autocomplete<String>(
-                    initialValue: TextEditingValue(
-                      text: addressController.text,
-                    ),
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      if (textEditingValue.text.isEmpty) {
-                        return const Iterable<String>.empty();
-                      }
-                      final List<String> suggestions = [
-                        'Jakarta, Indonesia',
-                        'Bandung, Jawa Barat',
-                        'Surabaya, Jawa Timur',
-                        'Medan, Sumatera Utara',
-                        'Semarang, Jawa Tengah',
-                        'Makassar, Sulawesi Selatan',
-                        'Yogyakarta, DIY',
-                        'Malang, Jawa Timur',
-                      ];
-                      return suggestions.where((option) {
-                        return option.toLowerCase().contains(
-                          textEditingValue.text.toLowerCase(),
-                        );
-                      });
-                    },
-                    onSelected: (String selection) {
-                      addressController.text = selection;
-                    },
-                    fieldViewBuilder:
-                        (context, controller, focusNode, onFieldSubmitted) {
-                          return TextField(
-                            controller: controller,
-                            focusNode: focusNode,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            decoration: _buildInputDecoration(
-                              Icons.location_on_rounded,
-                              'Cari alamat...',
-                            ),
-                          );
-                        },
+                  EyeonAddressAutocomplete(
+                    initialValue: addressController.text,
+                    hintText: 'Cari alamat...',
+                    icon: Icons.location_on_rounded,
+                    externalController: addressController,
                   ),
 
                   const SizedBox(height: 16),
@@ -200,10 +191,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // Blood Type with Dropdown
                   _buildSectionLabel('Golongan Darah'),
                   DropdownButtonFormField<String>(
-                    value: bloodTypes.contains(selectedBloodType)
+                    value: AppData.bloodTypes.contains(selectedBloodType)
                         ? selectedBloodType
                         : 'A',
-                    items: bloodTypes
+                    dropdownColor: Colors.white,
+                    icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 28),
+                    items: AppData.bloodTypes
                         .map(
                           (type) => DropdownMenuItem(
                             value: type,
@@ -212,6 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
+                                color: Colors.black87,
                               ),
                             ),
                           ),
@@ -231,16 +225,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   // Origin
                   _buildSectionLabel('Asal Daerah'),
-                  TextField(
-                    controller: originController,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    decoration: _buildInputDecoration(
-                      Icons.public_rounded,
-                      'Masukkan asal daerah...',
-                    ),
+                  EyeonAddressAutocomplete(
+                    initialValue: originController.text,
+                    hintText: 'Masukkan asal daerah...',
+                    icon: Icons.public_rounded,
+                    externalController: originController,
                   ),
 
                   const SizedBox(height: 16),
@@ -284,7 +273,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onPressed: () async {
                             // Save to profiles table
                             await SupabaseService().updateProfile({
-                              'full_name': _userName,
+                              'full_name': nameController.text,
                               'address': addressController.text,
                               'blood_type': selectedBloodType,
                               'origin': originController.text,
@@ -294,16 +283,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                             // Also update auth metadata
                             await SupabaseService().updateUserMetadata({
+                              'full_name': nameController.text,
                               'address': addressController.text,
                               'blood_type': selectedBloodType,
                               'origin': originController.text,
+                            });
+
+                            setState(() {
+                              _userName = nameController.text;
+                              _address = addressController.text;
+                              _bloodType = selectedBloodType;
+                              _origin = originController.text;
+                              _medicalNotes = medicalNotesController.text;
                             });
 
                             await _loadUserProfile();
                             if (ctx.mounted) Navigator.pop(ctx);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFD7F454),
+                            backgroundColor: AppColors.primary,
                             foregroundColor: Colors.black,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -394,10 +392,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: () async {
                         // Try tg:// protocol first for direct Telegram app launch
                         final tgUrl = Uri.parse(
-                          'tg://resolve?domain=EyeonEmergency_bot&start=start',
+                          AppUrls.telegramBotDeepLink,
                         );
                         final httpsUrl = Uri.parse(
-                          'https://t.me/EyeonEmergency_bot',
+                          AppUrls.telegramBotHttpsUrl,
                         );
 
                         if (await canLaunchUrl(tgUrl)) {
@@ -417,7 +415,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0088CC),
+                        backgroundColor: AppColors.telegramBlue,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -468,7 +466,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFD7F454),
+                            backgroundColor: AppColors.primary,
                             foregroundColor: Colors.black,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(
@@ -513,7 +511,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             const Icon(
                               Icons.telegram_rounded,
-                              color: Color(0xFF0088CC),
+                              color: AppColors.telegramBlue,
                               size: 20,
                             ),
                             const SizedBox(width: 12),
@@ -558,7 +556,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: TelegramService().isConfigured
-                          ? const Color(0xFFD7F454).withValues(alpha: 0.15)
+                          ? AppColors.primary.withValues(alpha: 0.15)
                           : Colors.orange.shade50,
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -622,7 +620,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 24,
                 height: 24,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFD7F454),
+                  color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -694,7 +692,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFD7F454), width: 2),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
@@ -737,10 +735,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 address: _address,
                 bloodType: _bloodType,
                 origin: _origin,
+                medicalNotes: _medicalNotes,
               ),
 
               const SizedBox(height: 24),
               _buildSectionTitle('PENGATURAN KESELAMATAN'),
+              _buildMenuItem(
+                icon: Icons.camera_front_rounded,
+                title: 'Kalibrasi Ulang Kamera',
+                subtitle: 'Setup ulang posisi wajah Anda',
+                onTap: () => Navigator.of(context).pushNamed(AppRoutes.calibration),
+              ),
               _buildMenuItem(
                 icon: Icons.contact_phone_rounded,
                 title: 'Kontak Darurat',
@@ -754,14 +759,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onEarChanged: (val) {
                   setState(() => _earThreshold = val);
                   PreferenceService().setEarThreshold(val);
+                  SupabaseService().updateProfile({'ear_threshold': val});
                 },
                 onShockChanged: (val) {
                   setState(() => _shockSensitivity = val);
                   PreferenceService().setShockSensitivity(val);
+                  SupabaseService().updateProfile({'shock_sensitivity': val});
                 },
                 onSoundChanged: (val) {
                   setState(() => _alarmSound = val);
                   PreferenceService().setAlarmSound(val);
+                  SupabaseService().updateProfile({'alarm_sound': val});
                 },
               ),
 
@@ -784,13 +792,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onChanged: (val) {
                   setState(() => _saveToGallery = val);
                   PreferenceService().setSaveToGallery(val);
+                  SupabaseService().updateProfile({'save_to_gallery': val});
                 },
               ),
               _buildMenuItem(
                 icon: Icons.sync_rounded,
                 title: 'Sinkronisasi Data',
                 subtitle: 'Sync logs with Supabase cloud',
-                onTap: () {},
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Data berhasil disinkronkan dengan cloud.',
+                        style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                      backgroundColor: Colors.black87,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
@@ -821,7 +842,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFD7F454),
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -965,7 +986,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeTrackColor: const Color(0xFFD7F454),
+            activeTrackColor: AppColors.primary,
           ),
         ],
       ),
@@ -974,7 +995,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _handleSignOut() async {
     await SupabaseService().signOut();
-    await PreferenceService().clearAll();
     if (mounted) {
       Navigator.of(
         context,

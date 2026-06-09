@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class EyeonBottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -75,7 +76,7 @@ class EyeonBottomNavBar extends StatelessWidget {
               icon,
               size: 24,
               color: isSelected
-                  ? const Color(0xFFD7F454)
+                  ? AppColors.primary
                   : Colors.white.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 4),
@@ -85,7 +86,7 @@ class EyeonBottomNavBar extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                 color: isSelected
-                    ? const Color(0xFFD7F454)
+                    ? AppColors.primary
                     : Colors.white.withValues(alpha: 0.5),
               ),
             ),
@@ -103,11 +104,11 @@ class EyeonBottomNavBar extends StatelessWidget {
         height: 68,
         margin: const EdgeInsets.only(bottom: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFD7F454),
+          color: AppColors.primary,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFD7F454).withValues(alpha: 0.4),
+              color: AppColors.primary.withValues(alpha: 0.4),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),

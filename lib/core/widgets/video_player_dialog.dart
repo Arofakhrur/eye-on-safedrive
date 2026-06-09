@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 /// In-app video player dialog for watching incident recordings
 /// without leaving the app.
@@ -198,10 +199,10 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                                         const RoundSliderOverlayShape(
                                             overlayRadius: 12),
                                     activeTrackColor:
-                                        const Color(0xFFD7F454),
+                                        AppColors.primary,
                                     inactiveTrackColor:
                                         Colors.white.withValues(alpha: 0.2),
-                                    thumbColor: const Color(0xFFD7F454),
+                                    thumbColor: AppColors.primary,
                                   ),
                                   child: Slider(
                                     value: (position / duration)
@@ -313,7 +314,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Color(0xFFD7F454)),
+            CircularProgressIndicator(color: AppColors.primary),
             SizedBox(height: 16),
             Text(
               'Memuat video…',
@@ -363,7 +364,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
               child: Text(
                 'Tutup',
                 style: GoogleFonts.plusJakartaSans(
-                  color: const Color(0xFFD7F454),
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),

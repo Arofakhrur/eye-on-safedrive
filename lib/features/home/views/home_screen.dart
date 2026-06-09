@@ -21,7 +21,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _screens = [
-      HomeDashboard(onProfileTap: () => _onTabTapped(4)),
+      HomeDashboard(
+        onProfileTap: () => _onTabTapped(4),
+        onHistoryTap: () => _onTabTapped(3),
+      ),
       const ActivityScreen(),
       const SizedBox.shrink(), // placeholder for the center "Start Ride" button
       const HistoryScreen(),

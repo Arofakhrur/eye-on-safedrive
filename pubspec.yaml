@@ -87,7 +87,7 @@ flutter_launcher_icons:
     icon_size: 48
   image_path: "assets/images/icon-apps.webp"
   adaptive_icon_background: "#D7F454"
-  adaptive_icon_foreground: "assets/images/EYE-ON!_Logo.webp"
+  adaptive_icon_foreground: "assets/images/icon-apps.webp"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

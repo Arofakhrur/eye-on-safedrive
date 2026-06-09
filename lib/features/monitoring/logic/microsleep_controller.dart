@@ -5,6 +5,7 @@ import 'package:google_mlkit_face_mesh_detection/google_mlkit_face_mesh_detectio
 import 'package:audioplayers/audioplayers.dart';
 import 'package:eyeon/core/utils/math_utils.dart';
 import 'package:eyeon/core/services/preference_service.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
 
 class MicrosleepController extends ChangeNotifier {
   final FaceMeshDetector _meshDetector = FaceMeshDetector(
@@ -45,12 +46,7 @@ class MicrosleepController extends ChangeNotifier {
   }
 
   /// Map alarm sound preference name to the actual asset file path.
-  static const Map<String, String> _alarmSoundFiles = {
-    'Sound 1': 'sounds/sound 1.mp3',
-    'Sound 2': 'sounds/sound 2.mp3',
-    'Sound 3': 'sounds/sound 3.mp3',
-    'Sound 4': 'sounds/sound 4.mp3',
-  };
+  static const Map<String, String> _alarmSoundFiles = AppAssets.alarmSoundFiles;
 
   Future<void> processImage(InputImage inputImage) async {
     if (_isProcessing) return;

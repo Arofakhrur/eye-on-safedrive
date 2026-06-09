@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -72,9 +73,7 @@ class _SplashScreenState extends State<SplashScreen>
         final contacts = await SupabaseService().getEmergencyContacts();
         if (contacts.isNotEmpty) {
           await prefs.setContactSetup(true);
-          // If they have contacts, we assume they might have calibrated too, 
-          // but we'll only skip calibration if the flag is explicitly set or if we want to be generous.
-          // For now, let's just skip setup.
+          await prefs.setCalibrated(true);
         }
       } catch (e) {
         debugPrint('Error checking existing contacts: $e');
@@ -83,7 +82,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     // 5. Emergency Contact
     if (!prefs.isContactSetup) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.setup);
+      Navigator.of(context).pushReplacementNamed(AppRoutes.setupWizard);
       return;
     }
 
@@ -106,7 +105,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFD7F454),
+      backgroundColor: AppColors.primary,
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,

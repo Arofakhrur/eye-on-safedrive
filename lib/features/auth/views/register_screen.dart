@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -78,7 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: AppColors.authBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -149,10 +150,10 @@ class _RegisterScreenState extends State<RegisterScreen>
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
+          color: AppColors.authSurface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: const Color(0xFF2A2A2A),
+            color: AppColors.authBorder,
             width: 1,
           ),
         ),
@@ -174,7 +175,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFD7F454),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Image.asset(
@@ -380,7 +381,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   )
                 : null,
             filled: true,
-            fillColor: const Color(0xFF1A1A1A),
+            fillColor: AppColors.authSurface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,
@@ -392,14 +393,14 @@ class _RegisterScreenState extends State<RegisterScreen>
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(
-                color: Color(0xFF2A2A2A),
+                color: AppColors.authBorder,
                 width: 1,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(
-                color: Color(0xFFD7F454),
+                color: AppColors.primary,
                 width: 1.5,
               ),
             ),
@@ -444,13 +445,13 @@ class _RegisterScreenState extends State<RegisterScreen>
             margin: const EdgeInsets.only(top: 2),
             decoration: BoxDecoration(
               color: _agreeToTerms
-                  ? const Color(0xFFD7F454)
+                  ? AppColors.primary
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
                 color: _agreeToTerms
-                    ? const Color(0xFFD7F454)
-                    : const Color(0xFF3A3A3A),
+                    ? AppColors.primary
+                    : AppColors.authBorderFocus,
                 width: 1.5,
               ),
             ),
@@ -474,7 +475,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFFD7F454),
+                      color: AppColors.primary,
                     ),
                   ),
                   TextSpan(
@@ -490,7 +491,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFFD7F454),
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -509,7 +510,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       child: ElevatedButton(
         onPressed: _handleRegister,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFD7F454),
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.black,
           elevation: 4,
           shadowColor: Colors.black.withValues(alpha: 0.5),
@@ -534,7 +535,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         Expanded(
           child: Container(
             height: 1,
-            color: const Color(0xFF2A2A2A),
+            color: AppColors.authBorder,
           ),
         ),
         Padding(
@@ -551,7 +552,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         Expanded(
           child: Container(
             height: 1,
-            color: const Color(0xFF2A2A2A),
+            color: AppColors.authBorder,
           ),
         ),
       ],
@@ -578,10 +579,10 @@ class _RegisterScreenState extends State<RegisterScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
+          color: AppColors.authSurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: const Color(0xFF2A2A2A),
+            color: AppColors.authBorder,
             width: 1,
           ),
         ),
@@ -622,7 +623,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFFD7F454),
+                  color: AppColors.primary,
                 ),
               ),
             ],

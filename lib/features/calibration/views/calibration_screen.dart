@@ -9,6 +9,8 @@ import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/utils/math_utils.dart';
 import 'package:eyeon/core/utils/camera_utils.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:eyeon/core/services/supabase_service.dart';
 
 /// ------------------------------------------------------------------
 /// CalibrationScreen
@@ -233,7 +235,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
   }
 
   /// Compute the personal EAR threshold and save it.
-  void _finishCalibration() {
+  Future<void> _finishCalibration() async {
     // Stop the camera stream
     try {
       _cameraController?.stopImageStream();
@@ -269,7 +271,16 @@ class _CalibrationScreenState extends State<CalibrationScreen>
     );
 
     // Save to preferences
-    PreferenceService().setEarThreshold(_calibratedThreshold);
+    await PreferenceService().setEarThreshold(_calibratedThreshold);
+
+    // Upload to Supabase profiles
+    try {
+      await SupabaseService().updateProfile({
+        'ear_threshold': _calibratedThreshold,
+      });
+    } catch (e) {
+      debugPrint('Failed to upload calibrated threshold: $e');
+    }
 
     if (mounted) {
       setState(() {
@@ -361,7 +372,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: _isCalibrationDone
-                        ? const Color(0xFFD7F454)
+                        ? AppColors.primary
                         : Colors.grey.shade200,
                     width: 3,
                   ),
@@ -397,7 +408,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
                   strokeWidth: 4,
                   strokeCap: StrokeCap.round,
                   valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFFD7F454)),
+                      AppColors.primary),
                   backgroundColor: Colors.transparent,
                 ),
               ),
@@ -439,7 +450,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFD7F454),
+                    color: AppColors.primary,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.check_rounded,
@@ -461,7 +472,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: _isCalibrationDone
-              ? const Color(0xFFD7F454).withValues(alpha: 0.15)
+              ? AppColors.primary.withValues(alpha: 0.15)
               : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
         ),
@@ -529,7 +540,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD7F454).withValues(alpha: 0.2),
+                  color: AppColors.primary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -587,7 +598,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
           decoration: BoxDecoration(
             color: _isCalibrating
                 ? Colors.grey.shade300
-                : const Color(0xFFD7F454),
+                : AppColors.primary,
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               if (!_isCalibrating)

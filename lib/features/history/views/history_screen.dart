@@ -4,7 +4,9 @@ import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/widgets/video_player_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:eyeon/core/constants/app_data.dart';
 import 'package:eyeon/core/widgets/eyeon_header.dart';
+import 'package:eyeon/core/theme/app_theme.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -15,7 +17,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String _selectedCategory = 'Semua';
-  final List<String> _categories = ['Semua', 'Microsleep', 'Kecelakaan'];
+  final List<String> _categories = AppData.historyCategories;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +46,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFD7F454)),
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   );
                 }
 
@@ -99,7 +101,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               label: Text(cat),
               selected: isSelected,
               onSelected: (val) => setState(() => _selectedCategory = cat),
-              selectedColor: const Color(0xFFD7F454),
+              selectedColor: AppColors.primary,
               backgroundColor: Colors.grey.shade50,
               labelStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
@@ -290,7 +292,7 @@ class _HistoryCardState extends State<HistoryCard> {
                         width: 20, height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFFD7F454),
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
