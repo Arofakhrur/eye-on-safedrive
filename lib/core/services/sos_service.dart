@@ -61,13 +61,21 @@ class SOSService {
       // 3. Send SOS via Telegram Bot API (free, no storage cost)
       Map<String, dynamic> telegramResult = {'success': false};
       try {
-        final chatIds = PreferenceService().telegramChatIds;
+        final contacts = await SupabaseService().getEmergencyContacts();
+        final chatIds = contacts
+            .where((c) => c.telegramChatId != null && c.telegramChatId!.isNotEmpty)
+            .map((c) => c.telegramChatId!)
+            .toList();
         if (chatIds.isNotEmpty && TelegramService().isConfigured) {
+          final user = SupabaseService().currentUser;
+          final name = user?.userMetadata?['full_name'] ?? user?.userMetadata?['name'] ?? 'Pengendara';
+
           telegramResult = await TelegramService().sendSOSAlert(
             chatIds: chatIds,
             lat: lat,
             lng: lng,
             magnitude: magnitude,
+            riderName: name,
             videoPath: videoPath,
           );
           debugPrint('📱 Telegram SOS result: $telegramResult');

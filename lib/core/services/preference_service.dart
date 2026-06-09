@@ -60,33 +60,7 @@ class PreferenceService {
   bool get saveToGallery => _prefs.getBool(_keySaveToGallery) ?? false;
   Future<void> setSaveToGallery(bool value) => _prefs.setBool(_keySaveToGallery, value);
 
-  // Telegram Chat IDs — stored as JSON array string
-  List<String> get telegramChatIds {
-    final raw = _prefs.getString(_keyTelegramChatIds);
-    if (raw == null || raw.isEmpty) return [];
-    try {
-      return List<String>.from(jsonDecode(raw));
-    } catch (_) {
-      return [];
-    }
-  }
-
-  Future<void> setTelegramChatIds(List<String> ids) =>
-      _prefs.setString(_keyTelegramChatIds, jsonEncode(ids));
-
-  Future<void> addTelegramChatId(String id) async {
-    final ids = telegramChatIds;
-    if (!ids.contains(id)) {
-      ids.add(id);
-      await setTelegramChatIds(ids);
-    }
-  }
-
-  Future<void> removeTelegramChatId(String id) async {
-    final ids = telegramChatIds;
-    ids.remove(id);
-    await setTelegramChatIds(ids);
-  }
+  // Removed Telegram Chat IDs logic since it's merged with Supabase Contacts
 
   // Reset all (for logout or testing)
   Future<void> clearAll() async {

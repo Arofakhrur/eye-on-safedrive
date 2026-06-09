@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/widgets/eyeon_top_bar.dart';
@@ -14,10 +15,12 @@ class SetupEmergencyContactScreen extends StatefulWidget {
   const SetupEmergencyContactScreen({super.key});
 
   @override
-  State<SetupEmergencyContactScreen> createState() => _SetupEmergencyContactScreenState();
+  State<SetupEmergencyContactScreen> createState() =>
+      _SetupEmergencyContactScreenState();
 }
 
-class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScreen> {
+class _SetupEmergencyContactScreenState
+    extends State<SetupEmergencyContactScreen> {
   final List<EmergencyContact> _contacts = [];
   bool _isLoading = false;
   bool _isInitialLoading = true;
@@ -74,16 +77,6 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
     }
   }
 
-  void _addContact(String name, String phone) {
-    setState(() {
-      _contacts.add(EmergencyContact(
-        userId: SupabaseService().currentUser?.id ?? '',
-        name: name,
-        phone: phone,
-      ));
-    });
-  }
-
   void _removeContact(int index) {
     setState(() {
       _contacts.removeAt(index);
@@ -103,8 +96,184 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
 
     final contact = await _pickContact();
     if (contact != null) {
-      _addContact(contact['name']!, contact['phone']!);
+      await _showContactDialog(
+        prefillName: contact['name'],
+        prefillPhone: contact['phone'],
+      );
     }
+  }
+
+  Future<void> _showContactDialog({
+    String? prefillName,
+    String? prefillPhone,
+    String? prefillTelegramId,
+    int? editIndex,
+  }) async {
+    final nameController = TextEditingController(text: prefillName);
+    final phoneController = TextEditingController(text: prefillPhone);
+    final telegramController = TextEditingController(text: prefillTelegramId);
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          editIndex == null ? 'Tambah Kontak' : 'Edit Kontak',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: _buildInputDecoration(Icons.person_rounded, 'Nama'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: _buildInputDecoration(
+                  Icons.phone_rounded,
+                  'Nomor HP',
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: telegramController,
+                decoration: _buildInputDecoration(
+                  Icons.telegram_rounded,
+                  'Chat ID Telegram (Opsional)',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () {
+                  final phone = phoneController.text.trim();
+                  if (phone.isNotEmpty) {
+                    _sendInviteLink(phone);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Isi nomor HP terlebih dahulu'),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.share_rounded, size: 14),
+                label: Text(
+                  'Dapatkan ID (Kirim via WA)',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black87,
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Kirim link ke kontak ini. Minta mereka klik START di bot, lalu tempelkan angka balasannya ke kolom di atas.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.plusJakartaSans(color: Colors.black45),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              final phone = phoneController.text.trim();
+              final telegramId = telegramController.text.trim();
+
+              if (name.isNotEmpty && phone.isNotEmpty) {
+                final newContact = EmergencyContact(
+                  userId: SupabaseService().currentUser?.id ?? '',
+                  name: name,
+                  phone: phone,
+                  telegramChatId: telegramId.isEmpty ? null : telegramId,
+                );
+
+                setState(() {
+                  if (editIndex != null) {
+                    final oldContact = _contacts[editIndex];
+                    _contacts[editIndex] = EmergencyContact(
+                      id: oldContact.id,
+                      userId: oldContact.userId,
+                      name: name,
+                      phone: phone,
+                      telegramChatId: telegramId.isEmpty ? null : telegramId,
+                    );
+                  } else {
+                    _contacts.add(newContact);
+                  }
+                });
+                Navigator.pop(ctx);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Simpan',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(IconData icon, String hint) {
+    return InputDecoration(
+      prefixIcon: Icon(icon, size: 20, color: Colors.black45),
+      hintText: hint,
+      hintStyle: GoogleFonts.plusJakartaSans(
+        fontSize: 14,
+        color: Colors.black26,
+      ),
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade100),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade100),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    );
   }
 
   Future<Map<String, String>?> _pickContact() async {
@@ -112,14 +281,17 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
     if (status.isGranted) {
       final contactId = await FlutterContacts.native.showPicker();
       if (contactId != null) {
-        final fullContact = await FlutterContacts.get(contactId, properties: {ContactProperty.phone, ContactProperty.name});
+        final fullContact = await FlutterContacts.get(
+          contactId,
+          properties: {ContactProperty.phone, ContactProperty.name},
+        );
         if (fullContact != null && fullContact.phones.isNotEmpty) {
           String phone = fullContact.phones.first.number
               .replaceAll(RegExp(r'\s+'), '')
               .replaceAll('-', '')
               .replaceAll('(', '')
               .replaceAll(')', '');
-          
+
           if (!phone.startsWith('+')) {
             if (phone.startsWith('0')) {
               phone = '+62${phone.substring(1)}';
@@ -145,7 +317,8 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
             if (_isInitialLoading)
               const Expanded(
                 child: Center(
-                    child: CircularProgressIndicator(color: AppColors.primary)),
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
               )
             else
               Expanded(
@@ -185,16 +358,22 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
                       child: _contacts.isEmpty
                           ? Center(
                               child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 24),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
                                 child: _buildEmptyState(),
                               ),
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
                               itemCount: _contacts.length,
                               itemBuilder: (context, index) {
-                                return _buildContactCard(_contacts[index], index);
+                                return _buildContactCard(
+                                  _contacts[index],
+                                  index,
+                                );
                               },
                             ),
                     ),
@@ -235,11 +414,18 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200, style: BorderStyle.solid),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          style: BorderStyle.solid,
+        ),
       ),
       child: Column(
         children: [
-          Icon(Icons.contact_phone_outlined, size: 48, color: Colors.grey.shade300),
+          Icon(
+            Icons.contact_phone_outlined,
+            size: 48,
+            color: Colors.grey.shade300,
+          ),
           const SizedBox(height: 16),
           Text(
             'No contacts added yet',
@@ -295,13 +481,57 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
               ],
             ),
           ),
-          IconButton(
-            onPressed: () => _removeContact(index),
-            icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: () => _showContactDialog(
+                  prefillName: contact.name,
+                  prefillPhone: contact.phone,
+                  prefillTelegramId: contact.telegramChatId,
+                  editIndex: index,
+                ),
+                icon: const Icon(Icons.edit_rounded, color: Colors.blueAccent),
+                tooltip: 'Edit Kontak',
+              ),
+              IconButton(
+                onPressed: () => _removeContact(index),
+                icon: const Icon(
+                  Icons.remove_circle_outline,
+                  color: Colors.redAccent,
+                ),
+                tooltip: 'Hapus Kontak',
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _sendInviteLink(String phone) async {
+    const text =
+        'Halo! Saya menggunakan aplikasi keselamatan berkendara EYE-ON! dan menjadikanmu sebagai kontak darurat saya. Tolong klik link ini: https://t.me/EyeonEmergency_bot lalu tekan tombol START. Setelah itu, tolong kirimkan angka Chat ID balasan dari bot tersebut ke saya ya! Terima kasih.';
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+    final url = Uri.parse(
+      'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(text)}',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      // Fallback SMS
+      final smsUrl = Uri.parse('sms:$phone?body=${Uri.encodeComponent(text)}');
+      if (await canLaunchUrl(smsUrl)) {
+        await launchUrl(smsUrl);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tidak dapat membuka aplikasi pesan')),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildAddButton() {
@@ -331,6 +561,4 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
       ),
     );
   }
-
-
 }

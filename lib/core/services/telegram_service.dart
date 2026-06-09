@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -126,6 +127,7 @@ class TelegramService {
     required double lat,
     required double lng,
     required double magnitude,
+    required String riderName,
     String? videoPath,
   }) async {
     if (!isConfigured) {
@@ -137,13 +139,30 @@ class TelegramService {
     }
 
     final mapsLink = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
-    final timestamp = DateTime.now().toIso8601String();
+    final timestamp = '${DateFormat('dd MMM yyyy - HH:mm').format(DateTime.now())} WIB';
+
+    String address = "Alamat tidak dapat dimuat";
+    try {
+      final reverseUrl = 'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json';
+      final response = await http.get(Uri.parse(reverseUrl)).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['display_name'] != null) {
+          address = data['display_name'];
+        }
+      }
+    } catch (e) {
+      debugPrint('Reverse geocoding error: $e');
+    }
 
     final message = '🚨 <b>DARURAT — EYE-ON! SOS ALERT</b> 🚨\n\n'
-        '⏰ Waktu: $timestamp\n'
-        '📍 Lokasi: $mapsLink\n'
-        '💥 Kekuatan guncangan: ${magnitude.toStringAsFixed(1)} rad/s\n\n'
-        'Pengguna ini mungkin mengalami kecelakaan atau microsleep saat berkendara. '
+        '👤 <b>Pengendara:</b> $riderName\n'
+        '⏰ <b>Waktu:</b> $timestamp\n'
+        '📍 <b>Area Terdekat:</b> $address\n'
+        '🗺️ <b>Google Maps:</b> <a href="$mapsLink">Buka Peta</a>\n'
+        '📌 <b>Koordinat:</b> <code>$lat, $lng</code>\n'
+        '💥 <b>Kekuatan guncangan:</b> ${magnitude.toStringAsFixed(1)} rad/s\n\n'
+        '$riderName mungkin mengalami kecelakaan atau microsleep saat berkendara. '
         'Segera hubungi atau cek lokasinya!';
 
     int successCount = 0;
