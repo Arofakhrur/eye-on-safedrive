@@ -61,7 +61,14 @@ class _SetupEmergencyContactScreenState
       await PreferenceService().setContactSetup(true);
 
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed(AppRoutes.calibration);
+        final isCalibrated = PreferenceService().isCalibrated;
+        if (isCalibrated) {
+          // User is editing from Profile → just go back
+          Navigator.pop(context);
+        } else {
+          // New user setup flow → go to calibration
+          Navigator.of(context).pushReplacementNamed(AppRoutes.calibration);
+        }
       }
     } catch (e) {
       if (mounted) {

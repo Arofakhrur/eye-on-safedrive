@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/video_buffer_service.dart';
 import 'package:eyeon/core/services/telegram_service.dart';
-import 'package:eyeon/core/services/preference_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:gal/gal.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -27,6 +25,8 @@ class SOSService {
     bool gallerySaved = false;
     String? galleryError;
     String? videoPath;
+    
+    final stopwatch = Stopwatch()..start();
 
     try {
       // 1. Get Location
@@ -35,10 +35,37 @@ class SOSService {
 
       final lat = position.latitude;
       final lng = position.longitude;
+      debugPrint('⏱️ Waktu ambil GPS: ${stopwatch.elapsedMilliseconds} ms');
 
-      // 2. Extract Video Buffer (evidence)
+      // 2. Get Contacts & Send Text/GPS (Instant)
+      final contacts = await SupabaseService().getEmergencyContacts();
+      final chatIds = contacts
+          .where((c) => c.telegramChatId != null && c.telegramChatId!.isNotEmpty)
+          .map((c) => c.telegramChatId!)
+          .toList();
+
+      Map<String, dynamic> telegramResult = {'success': false};
+      if (chatIds.isNotEmpty && TelegramService().isConfigured) {
+        final user = SupabaseService().currentUser;
+        final name = user?.userMetadata?['full_name'] ?? user?.userMetadata?['name'] ?? 'Pengendara';
+
+        telegramResult = await TelegramService().sendSOSAlert(
+          chatIds: chatIds,
+          lat: lat,
+          lng: lng,
+          magnitude: magnitude,
+          riderName: name,
+          videoPath: null, // Send text and GPS ONLY first
+        );
+        debugPrint('⏱️ Waktu kirim Teks & Lokasi Telegram: ${stopwatch.elapsedMilliseconds} ms');
+      } else {
+        debugPrint('⚠️ Telegram not configured or no chat IDs');
+      }
+
+      // 3. Process Video Evidence (Time-consuming FFmpeg process)
       try {
         videoPath = await VideoBufferService().saveBufferToVideo();
+        debugPrint('⏱️ Waktu Render Video FFmpeg: ${stopwatch.elapsedMilliseconds} ms');
         debugPrint('📹 Video Path: $videoPath');
 
         if (videoPath != null) {
@@ -53,46 +80,31 @@ class SOSService {
             galleryError = galError.toString();
             debugPrint('❌ Gagal: Video gagal tersimpan, Error: $galError');
           }
+          debugPrint('⏱️ Waktu simpan ke Galeri: ${stopwatch.elapsedMilliseconds} ms');
+
+          // Send Video to Telegram (As an attachment after text is already sent)
+          if (chatIds.isNotEmpty && TelegramService().isConfigured) {
+            for (final chatId in chatIds) {
+              await TelegramService().sendVideo(chatId, videoPath);
+            }
+            debugPrint('⏱️ Waktu kirim Video Telegram: ${stopwatch.elapsedMilliseconds} ms');
+          }
         }
       } catch (e) {
         debugPrint('Failed to process video buffer: $e');
       }
 
-      // 3. Send SOS via Telegram Bot API (free, no storage cost)
-      Map<String, dynamic> telegramResult = {'success': false};
-      try {
-        final contacts = await SupabaseService().getEmergencyContacts();
-        final chatIds = contacts
-            .where((c) => c.telegramChatId != null && c.telegramChatId!.isNotEmpty)
-            .map((c) => c.telegramChatId!)
-            .toList();
-        if (chatIds.isNotEmpty && TelegramService().isConfigured) {
-          final user = SupabaseService().currentUser;
-          final name = user?.userMetadata?['full_name'] ?? user?.userMetadata?['name'] ?? 'Pengendara';
-
-          telegramResult = await TelegramService().sendSOSAlert(
-            chatIds: chatIds,
-            lat: lat,
-            lng: lng,
-            magnitude: magnitude,
-            riderName: name,
-            videoPath: videoPath,
-          );
-          debugPrint('📱 Telegram SOS result: $telegramResult');
-        } else {
-          debugPrint('⚠️ Telegram not configured or no chat IDs');
-        }
-      } catch (e) {
-        debugPrint('Telegram SOS error: $e');
-      }
-
-      // 4. Log to Supabase (metadata only, no video upload to storage)
+      // 4. Log to Supabase (metadata only)
       await SupabaseService().logIncident(
         lat: lat,
         lng: lng,
         magnitude: magnitude,
         rideId: rideId,
       );
+      debugPrint('⏱️ Waktu catat insiden Supabase: ${stopwatch.elapsedMilliseconds} ms');
+      
+      stopwatch.stop();
+      debugPrint('⏱️ Total Waktu SOS: ${stopwatch.elapsedMilliseconds} ms');
 
       return {
         'gallerySaved': gallerySaved,
@@ -189,14 +201,37 @@ class SOSService {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(c.phone),
-                  trailing: const Icon(Icons.call, color: Colors.green),
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    final url = Uri.parse("tel:${c.phone}");
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url);
-                    }
-                  },
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.call, color: Colors.green),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          final url = Uri.parse("tel:${c.phone}");
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url);
+                          }
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.message_rounded, color: Colors.teal),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          // Format number to international format (e.g. 0812 -> 62812)
+                          String waNumber = c.phone.replaceAll(RegExp(r'\D'), '');
+                          if (waNumber.startsWith('0')) {
+                            waNumber = '62${waNumber.substring(1)}';
+                          }
+                          final url = Uri.parse("https://wa.me/$waNumber");
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  onTap: null, // Actions moved to trailing buttons
                 ),
               ),
               const SizedBox(height: 16),

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,21 +16,29 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:eyeon/features/monitoring/widgets/monitoring_top_bar.dart';
 import 'package:eyeon/features/monitoring/widgets/monitoring_bottom_bar.dart';
-import 'package:eyeon/features/monitoring/widgets/destination_search_sheet.dart';
+
 import 'package:gal/gal.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:eyeon/core/theme/app_theme.dart';
 
 enum ScreenMode { split, fullCamera, fullMap }
 
 class MonitoringScreen extends StatefulWidget {
-  const MonitoringScreen({super.key});
+  final LatLng? destination;
+  final String? destinationName;
+
+  const MonitoringScreen({
+    super.key,
+    this.destination,
+    this.destinationName,
+  });
 
   @override
   State<MonitoringScreen> createState() => _MonitoringScreenState();
 }
 
-class _MonitoringScreenState extends State<MonitoringScreen> {
+class _MonitoringScreenState extends State<MonitoringScreen>
+    with TickerProviderStateMixin {
   CameraController? _cameraController;
   final MicrosleepController _microsleepController = MicrosleepController();
   final AccidentController _accidentController = AccidentController();
@@ -60,38 +69,75 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   StreamSubscription<Position>? _positionSubscription;
 
   LatLng? _destination;
-  String? _destinationName;
+
+  // ── Circular Reveal Animation (Task 48/49) ──
+  late AnimationController _revealController;
+  late Animation<double> _revealAnimation;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+  bool _showRevealOverlay = false;
+  bool _isTransitioning = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    // Accept destination from RideSetupScreen
+    _destination = widget.destination;
+
+    // Task 47: DO NOT init camera here — defer to swipe start
     _microsleepController.addListener(_onUpdate);
     _accidentController.addListener(_onUpdate);
-    
+
     // Request gallery access early
     Gal.requestAccess();
-  }
 
-  void _onSwipeToStart() {
-    DestinationSearchSheet.show(
-      context,
-      onSelected: (dest, name) {
-        setState(() {
-          _destination = dest;
-          _destinationName = name;
-        });
-        _startRide();
-      },
+    // Setup circular reveal animation
+    _revealController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _revealAnimation = CurvedAnimation(
+      parent: _revealController,
+      curve: Curves.easeOutCubic,
+    );
+
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
     );
   }
 
-  void _startRide() {
-    setState(() {
-      _isRideStarted = true;
+  void _onSwipeToStart() {
+    if (_isTransitioning) return;
+    _isTransitioning = true;
+
+    // Task 48: Trigger circular reveal animation
+    setState(() => _showRevealOverlay = true);
+    _revealController.forward().then((_) {
+      // Task 49: After reveal covers screen, start ride + init camera
+      setState(() {
+        _isRideStarted = true;
+      });
+      _initializeCamera();
+      _accidentController.startMonitoring();
+      _startRideTracking();
+
+      // Fade out the green overlay to reveal monitoring UI
+      Future.delayed(const Duration(milliseconds: 200), () {
+        _fadeController.forward().then((_) {
+          if (mounted) {
+            setState(() {
+              _showRevealOverlay = false;
+              _isTransitioning = false;
+            });
+          }
+        });
+      });
     });
-    _accidentController.startMonitoring();
-    _startRideTracking();
   }
 
   void _startRideTracking() {
@@ -232,6 +278,8 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
     _cameraController?.dispose();
     _accidentController.dispose();
     _microsleepController.dispose();
+    _revealController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
@@ -251,12 +299,46 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ── Pre-Ride State (Task 45): Black background + Guide + Swipe ──
+    if (!_isRideStarted && !_showRevealOverlay) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            // Guide card + Swipe button
+            SafeArea(
+              child: Column(
+                children: [
+                  const Spacer(flex: 1),
+                  // Driving Guide Card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _buildDrivingGuideCard(),
+                  ),
+                  const Spacer(flex: 1),
+                  // Swipe to start
+                  _buildSwipeToStart(),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+
+            // Back button (Task 46)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 16,
+              child: _buildBackButton(),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Ride Active State: Camera + Map + Overlays ──
     final size = MediaQuery.of(context).size;
     final totalHeight = size.height;
 
-    double cameraTop = 0;
     double cameraHeight = totalHeight / 2;
-    double mapBottom = 0;
     double mapHeight = totalHeight / 2;
 
     if (_currentMode == ScreenMode.fullCamera) {
@@ -276,7 +358,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
           AnimatedPositioned(
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeInOutCubic,
-            top: cameraTop,
+            top: 0,
             left: 0,
             right: 0,
             height: cameraHeight,
@@ -302,21 +384,20 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                     const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                   
                   // Toggle Fullscreen Camera
-                  if (_isRideStarted)
-                    Positioned(
-                      top: MediaQuery.of(context).padding.top + 80,
-                      right: 16,
-                      child: _buildScreenToggleButton(
-                        isFull: _currentMode == ScreenMode.fullCamera,
-                        onTap: () {
-                          setState(() {
-                            _currentMode = _currentMode == ScreenMode.fullCamera
-                                ? ScreenMode.split
-                                : ScreenMode.fullCamera;
-                          });
-                        },
-                      ),
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 80,
+                    right: 16,
+                    child: _buildScreenToggleButton(
+                      isFull: _currentMode == ScreenMode.fullCamera,
+                      onTap: () {
+                        setState(() {
+                          _currentMode = _currentMode == ScreenMode.fullCamera
+                              ? ScreenMode.split
+                              : ScreenMode.fullCamera;
+                        });
+                      },
                     ),
+                  ),
                 ],
               ),
             ),
@@ -326,7 +407,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
           AnimatedPositioned(
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeInOutCubic,
-            bottom: mapBottom,
+            bottom: 0,
             left: 0,
             right: 0,
             height: mapHeight,
@@ -334,95 +415,140 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (_isRideStarted)
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                            width: 2,
-                          ),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          width: 2,
                         ),
                       ),
-                      child: LiveMapWidget(
-                        positionStream: _positionStreamController.stream,
-                        initialPosition: _lastPosition,
-                        destination: _destination,
-                      ),
                     ),
+                    child: LiveMapWidget(
+                      positionStream: _positionStreamController.stream,
+                      initialPosition: _lastPosition,
+                      destination: _destination,
+                    ),
+                  ),
                   
                   // Toggle Fullscreen Map
-                  if (_isRideStarted)
-                    Positioned(
-                      top: 16,
-                      right: 16,
-                      child: _buildScreenToggleButton(
-                        isFull: _currentMode == ScreenMode.fullMap,
-                        onTap: () {
-                          setState(() {
-                            _currentMode = _currentMode == ScreenMode.fullMap
-                                ? ScreenMode.split
-                                : ScreenMode.fullMap;
-                          });
-                        },
-                      ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: _buildScreenToggleButton(
+                      isFull: _currentMode == ScreenMode.fullMap,
+                      onTap: () {
+                        setState(() {
+                          _currentMode = _currentMode == ScreenMode.fullMap
+                              ? ScreenMode.split
+                              : ScreenMode.fullMap;
+                        });
+                      },
                     ),
+                  ),
                 ],
               ),
             ),
           ),
 
           // Top Bar
-          if (_isRideStarted)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 16,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: MonitoringTopBar(
-                  isDrowsy: _microsleepController.isDrowsy,
-                  isAccident: _accidentController.isAccidentDetected,
-                  currentSpeed: _currentSpeed,
-                  formattedDuration: _formatDuration(_rideDuration),
-                  totalDistance: _totalDistance,
-                ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: MonitoringTopBar(
+                isDrowsy: _microsleepController.isDrowsy,
+                isAccident: _accidentController.isAccidentDetected,
+                currentSpeed: _currentSpeed,
+                formattedDuration: _formatDuration(_rideDuration),
+                totalDistance: _totalDistance,
               ),
             ),
+          ),
 
           // Bottom Bar
-          if (_isRideStarted)
-            Positioned(
-              bottom: 120 + MediaQuery.of(context).padding.bottom, // Above the stop button
-              left: 16,
-              right: 16,
-              child: MonitoringBottomBar(
-                currentSpeed: _currentSpeed,
-                currentEAR: _microsleepController.currentEAR,
-                currentGForce: _accidentController.currentMagnitude,
-                isAccident: _accidentController.isAccidentDetected,
-              ),
+          Positioned(
+            bottom: 120 + MediaQuery.of(context).padding.bottom,
+            left: 16,
+            right: 16,
+            child: MonitoringBottomBar(
+              currentSpeed: _currentSpeed,
+              currentEAR: _microsleepController.currentEAR,
+              currentGForce: _accidentController.currentMagnitude,
+              isAccident: _accidentController.isAccidentDetected,
             ),
+          ),
 
-          // Bottom controls
+          // Stop button
           Positioned(
             bottom: 40 + MediaQuery.of(context).padding.bottom,
             left: 0,
             right: 0,
             child: Center(
-              child: _isRideStarted
-                  ? GestureDetector(
-                      onTap: _onStopRide,
-                      child: _buildStopButton(),
-                    )
-                  : _buildSwipeToStart(),
+              child: GestureDetector(
+                onTap: _onStopRide,
+                child: _buildStopButton(),
+              ),
             ),
           ),
 
           // Alert overlay
-          if (_isRideStarted)
-            _buildAlertOverlay(),
+          _buildAlertOverlay(),
+
+          // ── Circular Reveal Overlay (Task 48/49) ──
+          if (_showRevealOverlay)
+            _buildCircularRevealOverlay(),
         ],
       ),
+    );
+  }
+
+  // ── Task 46: Back button ──
+  Widget _buildBackButton() {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+        ),
+        child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+      ),
+    );
+  }
+
+  // ── Circular Reveal (Task 48/49) ──
+  Widget _buildCircularRevealOverlay() {
+    final size = MediaQuery.of(context).size;
+    // Max radius to cover entire screen from bottom center
+    final maxRadius = sqrt(size.width * size.width + size.height * size.height);
+
+    return AnimatedBuilder(
+      animation: _revealAnimation,
+      builder: (context, child) {
+        final currentRadius = _revealAnimation.value * maxRadius;
+        final fadeValue = _fadeController.isAnimating || _fadeController.isCompleted
+            ? (1.0 - _fadeAnimation.value)
+            : 1.0;
+
+        return IgnorePointer(
+          child: Opacity(
+            opacity: fadeValue,
+            child: ClipPath(
+              clipper: _CircularRevealClipper(
+                center: Offset(size.width / 2, size.height - 140),
+                radius: currentRadius,
+              ),
+              child: Container(
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -462,6 +588,113 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   Widget _buildSwipeToStart() {
     return _InteractiveSwipeButton(
       onStarted: _onSwipeToStart,
+    );
+  }
+
+  Widget _buildDrivingGuideCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Ready to drive?',
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'PANDUAN SEBELUM BERKENDARA',
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _guideItem('1', 'Helm SNI', 'Gunakan helm standar Nasional Indonesia.'),
+          _guideItem('2', 'Sistem Rem', 'Tes fungsi rem depan dan belakang.'),
+          _guideItem('3', 'Lampu & Sein', 'Pastikan semua lampu berfungsi.'),
+          _guideItem('4', 'Tekanan Ban', 'Cek tekanan ban depan dan belakang.'),
+          _guideItem('5', 'SIM & STNK', 'Pastikan dokumen berkendara terbawa.'),
+          const SizedBox(height: 16),
+          Text(
+            'HATI-HATI DIJALAN',
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'TEXT AFIRMASI TAMBAHAN',
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white38,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _guideItem(String number, String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$number.',
+            style: GoogleFonts.plusJakartaSans(
+              color: AppColors.primary,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+                children: [
+                  TextSpan(
+                    text: '$title: ',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  TextSpan(
+                    text: description,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -513,7 +746,86 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
 
   Widget _buildAlertOverlay() {
     if (_accidentController.isAccidentDetected) {
-      return Container(color: Colors.red.withValues(alpha: 0.5));
+      return Container(
+        color: Colors.black87,
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: AppShadows.card,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _BlinkingOverlay(
+                  child: const Icon(Icons.emergency_rounded, color: Colors.red, size: 80),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'INSIDEN TERDETEKSI!',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(color: Colors.red, fontSize: 24, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Sistem mendeteksi guncangan keras (${_accidentController.currentMagnitude.toStringAsFixed(1)} rad/s).\nSedang mengirim SOS ke kontak darurat...',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(color: Colors.black87, fontSize: 14, height: 1.5),
+                ),
+                const SizedBox(height: 24),
+                const CircularProgressIndicator(color: AppColors.primary),
+                const SizedBox(height: 16),
+                Text(
+                  'Memproses rekaman video...',
+                  style: GoogleFonts.plusJakartaSans(color: Colors.black54, fontSize: 12),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      _accidentController.resetAccidentState();
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.black87,
+                      side: BorderSide(color: Colors.grey.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text(
+                      'Saya Baik-Baik Saja (Matikan Alarm)',
+                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      SOSService().showEmergencyContactSheet(context);
+                    },
+                    icon: const Icon(Icons.call, color: Colors.white, size: 20),
+                    label: Text(
+                      'Hubungi Kontak Darurat',
+                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     if (_microsleepController.isPaused) {
@@ -639,6 +951,24 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   }
 }
 
+// ── Circular Reveal Clipper (Task 48) ──
+class _CircularRevealClipper extends CustomClipper<Path> {
+  final Offset center;
+  final double radius;
+
+  _CircularRevealClipper({required this.center, required this.radius});
+
+  @override
+  Path getClip(Size size) {
+    return Path()..addOval(Rect.fromCircle(center: center, radius: radius));
+  }
+
+  @override
+  bool shouldReclip(covariant _CircularRevealClipper oldClipper) {
+    return oldClipper.radius != radius || oldClipper.center != center;
+  }
+}
+
 class _InteractiveSwipeButton extends StatefulWidget {
   final VoidCallback onStarted;
   final String label;
@@ -688,16 +1018,15 @@ class _InteractiveSwipeButtonState extends State<_InteractiveSwipeButton> {
             child: Stack(
               alignment: Alignment.bottomCenter,
               children: [
-                // Track indicators
+                // Track indicators — double chevron (Task 37)
                 Positioned(
-                  top: 20,
+                  top: 24,
                   child: Opacity(
                     opacity: 1.0 - (_dragOffset / _maxDrag),
                     child: Column(
                       children: const [
-                        Icon(Icons.keyboard_arrow_up_rounded, color: Colors.white38, size: 24),
-                        Icon(Icons.keyboard_arrow_up_rounded, color: Colors.white24, size: 24),
-                        Icon(Icons.keyboard_arrow_up_rounded, color: Colors.white12, size: 24),
+                        Icon(Icons.expand_less_rounded, color: Colors.white54, size: 32),
+                        Icon(Icons.expand_less_rounded, color: Colors.white24, size: 28),
                       ],
                     ),
                   ),

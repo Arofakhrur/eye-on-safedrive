@@ -1,5 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
@@ -10,7 +8,7 @@ import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/models/emergency_contact.dart';
 import 'package:eyeon/core/widgets/eyeon_address_autocomplete.dart';
-import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -26,30 +24,36 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   int _currentIndex = 0;
   bool _isLoading = false;
 
-  // Step 1: Address
+  // Step 1: Profil Pengendara (merged)
+  final TextEditingController _usernameController = TextEditingController();
+  String _selectedBloodType = 'A';
   final TextEditingController _addressController = TextEditingController();
-  List<dynamic> _addressResults = [];
-  Timer? _debounce;
-  String _selectedAddress = '';
+  final TextEditingController _medicalNotesController = TextEditingController();
 
-  // Step 3: Emergency Contact
+  // Step 2: Emergency Contact
   final List<EmergencyContact> _selectedContacts = [];
 
-  // Step 2: Profile Additional
-  String _selectedBloodType = 'A';
-  final TextEditingController _originController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill username from current user email
+    final user = SupabaseService().currentUser;
+    if (user != null && user.email != null) {
+      _usernameController.text = user.email!.split('@').first;
+    }
+  }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _usernameController.dispose();
     _addressController.dispose();
-    _originController.dispose();
-    _debounce?.cancel();
+    _medicalNotesController.dispose();
     super.dispose();
   }
 
   void _nextPage() {
-    if (_currentIndex < 3) {
+    if (_currentIndex < 2) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -62,27 +66,24 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   Future<void> _finishSetup() async {
     setState(() => _isLoading = true);
     try {
-      // Save Emergency Contact
+      // Save Emergency Contacts
       if (_selectedContacts.isNotEmpty) {
         await SupabaseService().saveEmergencyContacts(_selectedContacts);
       }
-      
+
       // Save Profile Data
-      await SupabaseService().updateProfile({
-        'address': _selectedAddress,
+      final profileData = {
+        'address': _addressController.text,
         'blood_type': _selectedBloodType,
-        'origin': _originController.text,
-      });
-      await SupabaseService().updateUserMetadata({
-        'address': _selectedAddress,
-        'blood_type': _selectedBloodType,
-        'origin': _originController.text,
-      });
+        'username': _usernameController.text,
+        'medical_notes': _medicalNotesController.text,
+      };
+      await SupabaseService().updateProfile(profileData);
+      await SupabaseService().updateUserMetadata(profileData);
 
       await PreferenceService().setContactSetup(true);
 
       if (mounted) {
-        // Go to calibration screen as the final technical step
         Navigator.pushReplacementNamed(context, AppRoutes.calibration);
       }
     } catch (e) {
@@ -103,19 +104,22 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       );
       return;
     }
-    
+
     final status = await Permission.contacts.request();
     if (status.isGranted) {
       final contactId = await FlutterContacts.native.showPicker();
       if (contactId != null) {
-        final fullContact = await FlutterContacts.get(contactId, properties: {ContactProperty.phone, ContactProperty.name});
+        final fullContact = await FlutterContacts.get(
+          contactId,
+          properties: {ContactProperty.phone, ContactProperty.name},
+        );
         if (fullContact != null && fullContact.phones.isNotEmpty) {
           String phone = fullContact.phones.first.number
               .replaceAll(RegExp(r'\s+'), '')
               .replaceAll('-', '')
               .replaceAll('(', '')
               .replaceAll(')', '');
-          
+
           if (!phone.startsWith('+')) {
             if (phone.startsWith('0')) {
               phone = '+62${phone.substring(1)}';
@@ -123,36 +127,203 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               phone = '+$phone';
             }
           }
-          setState(() {
-            _selectedContacts.add(EmergencyContact(
-              userId: SupabaseService().currentUser?.id ?? '',
-              name: fullContact.displayName ?? '',
-              phone: phone,
-            ));
-          });
+
+          // Show dialog to input Telegram ID before adding
+          if (mounted) {
+            _showContactDialog(
+              prefillName: fullContact.displayName ?? '',
+              prefillPhone: phone,
+            );
+          }
         }
       }
     }
   }
 
-  void _onAddressSearch(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    if (query.isEmpty) {
-      setState(() => _addressResults = []);
-      return;
-    }
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      try {
-        final url = Uri.parse(AppUrls.nominatimSearchUrl(query));
-        final response = await http.get(url, headers: {'User-Agent': 'EyeOnSafeDrive/1.0'});
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (mounted) setState(() => _addressResults = data);
+  void _showContactDialog({
+    String? prefillName,
+    String? prefillPhone,
+    String? prefillTelegramId,
+    int? editIndex,
+  }) {
+    final nameController = TextEditingController(text: prefillName);
+    final phoneController = TextEditingController(text: prefillPhone);
+    final telegramController = TextEditingController(text: prefillTelegramId);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          editIndex == null ? 'Tambah Kontak' : 'Edit Kontak',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: _buildInputDecoration(Icons.person_rounded, 'Nama'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: _buildInputDecoration(Icons.phone_rounded, 'Nomor HP'),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: telegramController,
+                decoration: _buildInputDecoration(
+                  Icons.telegram_rounded,
+                  'Chat ID Telegram (Opsional)',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () {
+                  final phone = phoneController.text.trim();
+                  if (phone.isNotEmpty) {
+                    _sendInviteLink(phone);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Isi nomor HP terlebih dahulu')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.share_rounded, size: 14),
+                label: Text(
+                  'Dapatkan ID (Kirim via WA)',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black87,
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Kirim link ke kontak ini. Minta mereka klik START di bot, lalu tempelkan angka balasannya ke kolom di atas.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.plusJakartaSans(color: Colors.black45),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              final phone = phoneController.text.trim();
+              final telegramId = telegramController.text.trim();
+
+              if (name.isNotEmpty && phone.isNotEmpty) {
+                final newContact = EmergencyContact(
+                  userId: SupabaseService().currentUser?.id ?? '',
+                  name: name,
+                  phone: phone,
+                  telegramChatId: telegramId.isEmpty ? null : telegramId,
+                );
+
+                setState(() {
+                  if (editIndex != null) {
+                    final oldContact = _selectedContacts[editIndex];
+                    _selectedContacts[editIndex] = EmergencyContact(
+                      id: oldContact.id,
+                      userId: oldContact.userId,
+                      name: name,
+                      phone: phone,
+                      telegramChatId: telegramId.isEmpty ? null : telegramId,
+                    );
+                  } else {
+                    _selectedContacts.add(newContact);
+                  }
+                });
+                Navigator.pop(ctx);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Simpan',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(IconData icon, String hint) {
+    return InputDecoration(
+      prefixIcon: Icon(icon, size: 20, color: Colors.black45),
+      hintText: hint,
+      hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black26),
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade100),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade100),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    );
+  }
+
+  Future<void> _sendInviteLink(String phone) async {
+    const text =
+        'Halo! Saya menggunakan aplikasi keselamatan berkendara EYE-ON! dan menjadikanmu sebagai kontak darurat saya. Tolong klik link ini: https://t.me/EyeonEmergency_bot lalu tekan tombol START. Setelah itu, tolong kirimkan angka Chat ID balasan dari bot tersebut ke saya ya! Terima kasih.';
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+    final url = Uri.parse(
+      'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(text)}',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      final smsUrl = Uri.parse('sms:$phone?body=${Uri.encodeComponent(text)}');
+      if (await canLaunchUrl(smsUrl)) {
+        await launchUrl(smsUrl);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tidak dapat membuka aplikasi pesan')),
+          );
         }
-      } catch (e) {
-        debugPrint('Address search error: $e');
       }
-    });
+    }
   }
 
   @override
@@ -162,11 +333,11 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Progress Indicator
+            // Progress Indicator — now 3 steps instead of 4
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(
-                children: List.generate(4, (index) {
+                children: List.generate(3, (index) {
                   return Expanded(
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -180,14 +351,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 }),
               ),
             ),
-            
+
             Expanded(
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (index) => setState(() => _currentIndex = index),
                 children: [
-                  _buildAddressStep(),
                   _buildProfileStep(),
                   _buildEmergencyStep(),
                   _buildFinishStep(),
@@ -199,82 +369,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             Padding(
               padding: const EdgeInsets.all(24),
               child: EyeonPrimaryButton(
-                label: _currentIndex == 3 ? 'Selesaikan Setup' : 'Lanjutkan',
+                label: _currentIndex == 2 ? 'Selesaikan Setup' : 'Lanjutkan',
                 isLoading: _isLoading,
                 onTap: _nextPage,
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildAddressStep() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Alamat Utama',
-            style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tentukan lokasi alamat tempat tinggal Anda saat ini.',
-            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black54),
-          ),
-          const SizedBox(height: 24),
-          TextField(
-            controller: _addressController,
-            onChanged: _onAddressSearch,
-            decoration: InputDecoration(
-              hintText: 'Ketik alamat...',
-              prefixIcon: const Icon(Icons.location_on_rounded),
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (_selectedAddress.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle_rounded, color: Colors.green),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(_selectedAddress, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600))),
-                ],
-              ),
-            )
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: _addressResults.length,
-                itemBuilder: (context, index) {
-                  final item = _addressResults[index];
-                  return ListTile(
-                    leading: const Icon(Icons.location_city_rounded),
-                    title: Text(item['display_name'] ?? ''),
-                    onTap: () {
-                      setState(() {
-                        _selectedAddress = item['display_name'];
-                        _addressController.text = _selectedAddress;
-                        _addressResults = [];
-                      });
-                    },
-                  );
-                },
-              ),
-            ),
-        ],
       ),
     );
   }
@@ -293,10 +394,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Verifikasi informasi data diri Anda dan lengkapi data berikut.',
+              'Lengkapi data diri Anda untuk keselamatan berkendara.',
               style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black54),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             Center(
               child: CircleAvatar(
                 radius: 50,
@@ -308,15 +409,21 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            _buildInfoRow('Email', user?.email ?? 'Unknown'),
-            const Divider(height: 24),
-            Text(
-              'Golongan Darah',
-              style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
+
+            // Username
+            _buildFieldLabel('Nama Pengguna'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _usernameController,
+              decoration: _buildInputDecoration(Icons.person_outline_rounded, 'Masukkan nama pengguna...'),
             ),
+            const SizedBox(height: 20),
+
+            // Blood Type
+            _buildFieldLabel('Golongan Darah'),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedBloodType,
+              initialValue: _selectedBloodType,
               dropdownColor: Colors.white,
               icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 28),
               items: AppData.bloodTypes.map((type) => DropdownMenuItem(
@@ -329,36 +436,56 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.bloodtype_rounded, color: Colors.black45),
                 filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                fillColor: Colors.grey.shade50,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade100)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade100)),
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Asal Daerah',
-              style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
-            ),
+            const SizedBox(height: 20),
+
+            // Address (using EyeonAddressAutocomplete)
+            _buildFieldLabel('Alamat & Asal Daerah'),
             const SizedBox(height: 8),
             EyeonAddressAutocomplete(
-              initialValue: _originController.text,
-              hintText: 'Masukkan asal daerah...',
-              icon: Icons.public_rounded,
-              externalController: _originController,
+              initialValue: _addressController.text,
+              hintText: 'Cari alamat dari OpenStreetMap...',
+              icon: Icons.location_on_rounded,
+              externalController: _addressController,
             ),
+            const SizedBox(height: 20),
+
+            // Medical Notes
+            _buildFieldLabel('Catatan Medis / Alergi'),
+            const SizedBox(height: 4),
+            Text(
+              '(Opsional)',
+              style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black38),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _medicalNotesController,
+              maxLines: 3,
+              decoration: _buildInputDecoration(
+                Icons.medical_information_rounded,
+                'Contoh: Alergi penisilin, asma...',
+              ),
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {Color? color}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: GoogleFonts.plusJakartaSans(color: Colors.black54, fontSize: 16)),
-        Text(value, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 16, color: color ?? Colors.black)),
-      ],
+  Widget _buildFieldLabel(String label) {
+    return Text(
+      label,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: Colors.black87,
+      ),
     );
   }
 
@@ -410,16 +537,35 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             children: [
                               Text(contact.name, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
                               Text(contact.phone, style: GoogleFonts.plusJakartaSans(color: Colors.black54, fontSize: 13)),
+                              if (contact.telegramChatId != null && contact.telegramChatId!.isNotEmpty)
+                                Text(
+                                  'Telegram ID: ${contact.telegramChatId}',
+                                  style: GoogleFonts.plusJakartaSans(color: AppColors.telegramBlue, fontSize: 12, fontWeight: FontWeight.w600),
+                                ),
                             ],
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          onPressed: () {
-                            setState(() {
-                              _selectedContacts.removeAt(index);
-                            });
-                          },
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              onPressed: () => _showContactDialog(
+                                prefillName: contact.name,
+                                prefillPhone: contact.phone,
+                                prefillTelegramId: contact.telegramChatId,
+                                editIndex: index,
+                              ),
+                              icon: const Icon(Icons.edit_rounded, color: Colors.blueAccent, size: 20),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedContacts.removeAt(index);
+                                });
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),

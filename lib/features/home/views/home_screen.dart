@@ -3,7 +3,7 @@ import 'package:eyeon/features/home/views/home_dashboard.dart';
 import 'package:eyeon/features/activity/views/activity_screen.dart';
 import 'package:eyeon/features/history/views/history_screen.dart';
 import 'package:eyeon/features/profile/views/profile_screen.dart';
-import 'package:eyeon/features/monitoring/views/monitoring_screen.dart';
+import 'package:eyeon/features/ride_setup/views/ride_setup_screen.dart';
 import 'package:eyeon/features/home/widgets/eyeon_bottom_nav_bar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -40,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onStartRide() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const MonitoringScreen()),
+      MaterialPageRoute(builder: (context) => const RideSetupScreen()),
     );
   }
 
