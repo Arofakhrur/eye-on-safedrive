@@ -11,7 +11,7 @@ serve(async (req) => {
 
     // Parse JSON dari Telegram Webhook
     const update = await req.json()
-    
+
     // Validasi apakah ada pesan dan pesan berupa teks
     const message = update.message
     if (!message || !message.text) {
@@ -24,7 +24,7 @@ serve(async (req) => {
     // Jika user mengirim command /start
     if (text === '/start') {
       const replyText = `Sistem aktif! Chat ID Anda adalah: ${chatId}.\n\nSilakan berikan angka ini kepada pengendara untuk dimasukkan ke aplikasi EYE-ON!.`
-      
+
       // Kirim balik ke API Telegram
       const telegramApiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`
       const response = await fetch(telegramApiUrl, {
