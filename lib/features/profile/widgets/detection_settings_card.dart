@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
-import 'package:eyeon/core/constants/app_data.dart';
+
 import 'package:eyeon/core/theme/app_theme.dart';
 
 class DetectionSettingsCard extends StatefulWidget {

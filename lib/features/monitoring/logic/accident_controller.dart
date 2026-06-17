@@ -13,7 +13,7 @@ class AccidentController extends ChangeNotifier {
   bool _isAccidentDetected = false;
   double _currentMagnitude = 0.0;
   
-  final double _accidentThreshold = 5.0; // rad/s
+  double get _accidentThreshold => PreferenceService().shockSensitivity; // dynamically from user preference
 
   bool get isAccidentDetected => _isAccidentDetected;
   double get currentMagnitude => _currentMagnitude;

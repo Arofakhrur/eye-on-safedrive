@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/sos_service.dart';
 import 'package:eyeon/features/home/widgets/safety_score_card.dart';
-import 'package:eyeon/features/home/widgets/stat_card.dart';
+
 import 'package:eyeon/features/home/widgets/sos_button.dart';
 import 'package:eyeon/core/widgets/eyeon_header.dart';
 import 'package:eyeon/core/models/emergency_contact.dart';

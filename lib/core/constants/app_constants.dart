@@ -68,3 +68,11 @@ class AppUrls {
   static const String telegramBotHttpsUrl =
       'https://t.me/$telegramBotUsername';
 }
+
+/// Global app limits and constraints.
+class AppLimits {
+  AppLimits._();
+
+  /// Maximum number of emergency contacts a user can have.
+  static const int maxEmergencyContacts = 3;
+}

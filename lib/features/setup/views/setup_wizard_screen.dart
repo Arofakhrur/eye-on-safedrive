@@ -98,9 +98,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   }
 
   Future<void> _pickContact() async {
-    if (_selectedContacts.length >= 3) {
+    if (_selectedContacts.length >= AppLimits.maxEmergencyContacts) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maksimal 3 kontak darurat.')),
+        SnackBar(content: Text('Maksimal ${AppLimits.maxEmergencyContacts} kontak darurat.')),
       );
       return;
     }
@@ -502,7 +502,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Siapa yang harus kami hubungi saat terjadi kecelakaan? (Maks. 3 kontak)',
+              'Siapa yang harus kami hubungi saat terjadi kecelakaan? (Maks. ${AppLimits.maxEmergencyContacts} kontak)',
               style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black54),
             ),
             const SizedBox(height: 24),
@@ -572,7 +572,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   );
                 },
               ),
-            if (_selectedContacts.length < 3)
+            if (_selectedContacts.length < AppLimits.maxEmergencyContacts)
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(

@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/constants/app_data.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
-import 'package:eyeon/core/services/telegram_service.dart';
 import 'package:eyeon/features/profile/widgets/user_profile_card.dart';
 import 'package:eyeon/features/profile/widgets/personal_info_card.dart';
 import 'package:eyeon/features/profile/widgets/detection_settings_card.dart';
@@ -188,7 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // Blood Type with Dropdown
                   _buildSectionLabel('Golongan Darah'),
                   DropdownButtonFormField<String>(
-                    value: AppData.bloodTypes.contains(selectedBloodType)
+                    initialValue: AppData.bloodTypes.contains(selectedBloodType)
                         ? selectedBloodType
                         : 'A',
                     dropdownColor: Colors.white,
@@ -209,8 +206,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         )
                         .toList(),
                     onChanged: (val) {
-                      if (val != null)
+                      if (val != null) {
                         setModalState(() => selectedBloodType = val);
+                      }
                     },
                     decoration: _buildInputDecoration(
                       Icons.bloodtype_rounded,
@@ -328,65 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── Helper Widgets ─────────────────────────────────────────────────
 
-  Widget _buildStepCard({
-    required String step,
-    required String title,
-    required String subtitle,
-    required Widget child,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    step,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11,
-              color: Colors.black45,
-            ),
-          ),
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildSectionLabel(String label) {
     return Padding(

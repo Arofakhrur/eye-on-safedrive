@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:eyeon/core/models/emergency_contact.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
 
 class SupabaseService {
   static final SupabaseService _instance = SupabaseService._internal();
@@ -94,8 +95,8 @@ class SupabaseService {
 
     // Check max limit
     final existing = await getEmergencyContacts();
-    if (existing.length >= 5) {
-      throw Exception('Maksimal 5 kontak darurat');
+    if (existing.length >= AppLimits.maxEmergencyContacts) {
+      throw Exception('Maksimal ${AppLimits.maxEmergencyContacts} kontak darurat');
     }
 
     // Check uniqueness
@@ -239,7 +240,12 @@ class SupabaseService {
           .order('start_time', ascending: false);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      // Fallback to incident_logs if ride_logs is still missing
+      // Fallback to incident_logs only if ride_logs is specifically missing
+      final errStr = e.toString().toLowerCase();
+      if (!errStr.contains('does not exist') && !errStr.contains('42p01')) {
+        rethrow;
+      }
+      
       final response = await client
           .from('incident_logs')
           .select()

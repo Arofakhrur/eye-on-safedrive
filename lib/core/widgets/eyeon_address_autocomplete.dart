@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:eyeon/core/constants/app_data.dart';
+
 import 'package:eyeon/core/theme/app_theme.dart';
 
 /// A reusable Autocomplete widget for selecting Indonesian cities.

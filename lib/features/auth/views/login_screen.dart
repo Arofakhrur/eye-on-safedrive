@@ -4,6 +4,7 @@ import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:eyeon/core/utils/validators.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -210,14 +211,13 @@ class _LoginScreenState extends State<LoginScreen>
                           );
                         }
                       } catch (e) {
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Gagal mengirim: $e'),
                               backgroundColor: AppColors.error,
                             ),
                           );
-                        }
                       } finally {
                         if (ctx.mounted) {
                           setDialogState(() => isSending = false);
@@ -390,16 +390,7 @@ class _LoginScreenState extends State<LoginScreen>
             hint: 'Enter your email',
             prefixIcon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your email';
-              }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                  .hasMatch(value)) {
-                return 'Please enter a valid email';
-              }
-              return null;
-            },
+            validator: AppValidators.validateEmail,
           ),
 
           const SizedBox(height: 16),
@@ -411,15 +402,7 @@ class _LoginScreenState extends State<LoginScreen>
             hint: 'Enter your password',
             prefixIcon: Icons.lock_outline,
             isPassword: true,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your password';
-              }
-              if (value.length < 6) {
-                return 'Password must be at least 6 characters';
-              }
-              return null;
-            },
+            validator: AppValidators.validatePassword,
           ),
         ],
       ),
@@ -671,15 +654,14 @@ class _LoginScreenState extends State<LoginScreen>
         await _navigateAfterAuth();
       }
     } catch (e) {
-      print('LoginScreen GoogleSignIn Error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      debugPrint('LoginScreen GoogleSignIn Error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to sign in with Google: $e'),
             backgroundColor: Colors.redAccent,
           ),
         );
-      }
     } finally {
       if (mounted) setState(() => _isLoadingGoogle = false);
     }

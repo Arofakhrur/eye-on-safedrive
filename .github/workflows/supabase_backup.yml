@@ -1,0 +1,42 @@
+name: Automated Supabase Backup
+
+on:
+  schedule:
+    # Berjalan otomatis setiap hari pada pukul 00:00 UTC (07:00 WIB)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Mengizinkan trigger manual dari dashboard GitHub Actions
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Install PostgreSQL Client
+      run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+    - name: Backup Supabase Tables
+      env:
+        # Rahasia ini harus disetel di GitHub Secrets (Settings > Secrets and variables > Actions)
+        # Format URI: postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+        DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      run: |
+        echo "Memulai proses pencadangan (pg_dump)..."
+        mkdir -p backups
+        
+        # Ekspor tabel penting: ride_logs, incident_logs, dan evaluation_metrics
+        # -F p mengatur format output menjadi Plain Text (.sql)
+        pg_dump "$DB_URL" \
+          -t ride_logs \
+          -t incident_logs \
+          -t evaluation_metrics \
+          -F p > backups/eyeon_backup_$(date +'%Y-%m-%d').sql
+
+    - name: Upload Backup as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: supabase-backup-${{ github.run_id }}
+        path: backups/
+        retention-days: 30 # Menyimpan hasil backup di GitHub selama 30 hari

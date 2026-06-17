@@ -148,7 +148,7 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
             polylines: [
               Polyline(
                 points: [_currentLatLng!, widget.destination!],
-                color: Colors.blue.withOpacity(0.7),
+                color: Colors.blue.withValues(alpha: 0.7),
                 strokeWidth: 4.0,
               ),
             ],

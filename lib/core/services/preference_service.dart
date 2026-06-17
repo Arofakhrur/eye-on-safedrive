@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PreferenceService {
@@ -17,8 +16,6 @@ class PreferenceService {
   static const String _keyAlarmSound = 'alarm_sound';
   static const String _keySaveToGallery = 'save_to_gallery';
 
-  // Telegram integration
-  static const String _keyTelegramChatIds = 'telegram_chat_ids';
 
   late SharedPreferences _prefs;
 
@@ -46,7 +43,7 @@ class PreferenceService {
   double get earThreshold => _prefs.getDouble(_keyEarThreshold) ?? 0.25;
   Future<void> setEarThreshold(double value) => _prefs.setDouble(_keyEarThreshold, value);
 
-  double get shockSensitivity => _prefs.getDouble(_keyShockSensitivity) ?? 1.0;
+  double get shockSensitivity => _prefs.getDouble(_keyShockSensitivity) ?? 5.0;
   Future<void> setShockSensitivity(double value) => _prefs.setDouble(_keyShockSensitivity, value);
 
   // Alarm Settings

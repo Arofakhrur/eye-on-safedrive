@@ -40,7 +40,14 @@ class _SetupEmergencyContactScreenState
       });
     } catch (e) {
       setState(() => _isInitialLoading = false);
-      // Silent fail or show snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal memuat kontak. Periksa koneksi internet Anda.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
@@ -91,10 +98,10 @@ class _SetupEmergencyContactScreenState
   }
 
   Future<void> _showAddContactSheet() async {
-    if (_contacts.length >= 3) {
+    if (_contacts.length >= AppLimits.maxEmergencyContacts) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Maksimal 3 kontak darurat.'),
+        SnackBar(
+          content: Text('Maksimal ${AppLimits.maxEmergencyContacts} kontak darurat.'),
           backgroundColor: Colors.orange,
         ),
       );

@@ -1,5 +1,6 @@
 import 'package:eyeon/core/services/location_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/video_buffer_service.dart';
 import 'package:eyeon/core/services/telegram_service.dart';
@@ -15,9 +16,10 @@ class SOSService {
 
   /// Trigger the full SOS flow:
   /// 1. Get GPS location
-  /// 2. Save video to gallery
-  /// 3. Send SOS via Telegram (text + location + video)
-  /// 4. Log incident to Supabase (without uploading video to storage)
+  /// 2. Send SOS via Telegram Edge Function (text + location)
+  /// 3. Process video evidence (FFmpeg render)
+  /// 4. Save video to gallery + send via Telegram
+  /// 5. Log incident to Supabase
   Future<Map<String, dynamic>> triggerEmergencySOS(
     double magnitude, {
     String? rideId,
@@ -27,17 +29,22 @@ class SOSService {
     String? videoPath;
     
     final stopwatch = Stopwatch()..start();
+    int timeGps = 0;
+    int timeFfmpeg = 0;
+    int timeTelegram = 0;
 
     try {
       // 1. Get Location
+      final startGps = stopwatch.elapsedMilliseconds;
       final position = await LocationService.getCurrentLocation();
       if (position == null) throw Exception("Failed to get location");
 
       final lat = position.latitude;
       final lng = position.longitude;
-      debugPrint('⏱️ Waktu ambil GPS: ${stopwatch.elapsedMilliseconds} ms');
+      timeGps = stopwatch.elapsedMilliseconds - startGps;
+      // debugPrint('⏱️ Waktu ambil GPS: ...');
 
-      // 2. Get Contacts & Send Text/GPS (Instant)
+      // 2. Get Contacts & Send Text/GPS via Edge Function (Instant)
       final contacts = await SupabaseService().getEmergencyContacts();
       final chatIds = contacts
           .where((c) => c.telegramChatId != null && c.telegramChatId!.isNotEmpty)
@@ -49,23 +56,26 @@ class SOSService {
         final user = SupabaseService().currentUser;
         final name = user?.userMetadata?['full_name'] ?? user?.userMetadata?['name'] ?? 'Pengendara';
 
+        final startTextTelegram = stopwatch.elapsedMilliseconds;
         telegramResult = await TelegramService().sendSOSAlert(
           chatIds: chatIds,
           lat: lat,
           lng: lng,
           magnitude: magnitude,
           riderName: name,
-          videoPath: null, // Send text and GPS ONLY first
         );
-        debugPrint('⏱️ Waktu kirim Teks & Lokasi Telegram: ${stopwatch.elapsedMilliseconds} ms');
+        timeTelegram += (stopwatch.elapsedMilliseconds - startTextTelegram);
+        // debugPrint('⏱️ Waktu kirim Teks & Lokasi via Edge Function: ...');
       } else {
         debugPrint('⚠️ Telegram not configured or no chat IDs');
       }
 
       // 3. Process Video Evidence (Time-consuming FFmpeg process)
       try {
+        final startFfmpeg = stopwatch.elapsedMilliseconds;
         videoPath = await VideoBufferService().saveBufferToVideo();
-        debugPrint('⏱️ Waktu Render Video FFmpeg: ${stopwatch.elapsedMilliseconds} ms');
+        timeFfmpeg = stopwatch.elapsedMilliseconds - startFfmpeg;
+        // debugPrint('⏱️ Waktu Render Video FFmpeg: ...');
         debugPrint('📹 Video Path: $videoPath');
 
         if (videoPath != null) {
@@ -80,14 +90,24 @@ class SOSService {
             galleryError = galError.toString();
             debugPrint('❌ Gagal: Video gagal tersimpan, Error: $galError');
           }
-          debugPrint('⏱️ Waktu simpan ke Galeri: ${stopwatch.elapsedMilliseconds} ms');
+          // debugPrint('⏱️ Waktu simpan ke Galeri: ...');
 
-          // Send Video to Telegram (As an attachment after text is already sent)
+          // Upload to Supabase Storage, then send URL via Edge Function
           if (chatIds.isNotEmpty && TelegramService().isConfigured) {
-            for (final chatId in chatIds) {
-              await TelegramService().sendVideo(chatId, videoPath);
+            try {
+              final startVideoTelegram = stopwatch.elapsedMilliseconds;
+              final videoStorageUrl = await SupabaseService().uploadIncidentVideo(videoPath);
+              if (videoStorageUrl != null) {
+                await TelegramService().sendVideoToContacts(
+                  chatIds: chatIds,
+                  videoStorageUrl: videoStorageUrl,
+                );
+              }
+              timeTelegram += (stopwatch.elapsedMilliseconds - startVideoTelegram);
+            } catch (e) {
+              debugPrint('Failed to upload/send video via Edge Function: $e');
             }
-            debugPrint('⏱️ Waktu kirim Video Telegram: ${stopwatch.elapsedMilliseconds} ms');
+            // debugPrint('⏱️ Waktu kirim Video via Edge Function: ...');
           }
         }
       } catch (e) {
@@ -101,10 +121,25 @@ class SOSService {
         magnitude: magnitude,
         rideId: rideId,
       );
-      debugPrint('⏱️ Waktu catat insiden Supabase: ${stopwatch.elapsedMilliseconds} ms');
+      // debugPrint('⏱️ Waktu catat insiden Supabase: ...');
       
       stopwatch.stop();
-      debugPrint('⏱️ Total Waktu SOS: ${stopwatch.elapsedMilliseconds} ms');
+      // debugPrint('⏱️ Total Waktu SOS: ...');
+
+      if (kDebugMode) {
+        try {
+          await SupabaseService.client.from('evaluation_metrics').insert({
+            'test_scenario': 'SOS Trigger with Video',
+            'gps_latency_ms': timeGps,
+            'ffmpeg_render_ms': timeFfmpeg,
+            'telegram_latency_ms': timeTelegram,
+            'total_response_ms': stopwatch.elapsedMilliseconds,
+          });
+          debugPrint('📊 Evaluation metrics logged to Supabase.');
+        } catch (e) {
+          debugPrint('Failed to log metrics: $e');
+        }
+      }
 
       return {
         'gallerySaved': gallerySaved,

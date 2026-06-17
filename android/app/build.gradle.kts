@@ -36,8 +36,8 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -48,7 +48,10 @@ android {
             val outputImpl = this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl
             if (outputImpl != null) {
                 val versionName = variant.versionName ?: "1.0.0"
-                outputImpl.outputFileName = "EYE-ON-v${versionName}-${variant.name}.apk"
+                val abiFilter = (this as? com.android.build.gradle.internal.api.ApkVariantOutputImpl)
+                    ?.getFilter(com.android.build.VariantOutput.FilterType.ABI)
+                val abiSuffix = if (abiFilter != null) "-$abiFilter" else ""
+                outputImpl.outputFileName = "EYE-ON-v${versionName}${abiSuffix}-${variant.name}.apk"
             }
         }
     }

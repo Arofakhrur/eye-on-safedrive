@@ -60,7 +60,7 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   qr_flutter: ^4.1.0
-  ffmpeg_kit_flutter_min_gpl: ^6.0.3
+  ffmpeg_kit_flutter_new: ^4.2.1
 
 dev_dependencies:
   flutter_test:

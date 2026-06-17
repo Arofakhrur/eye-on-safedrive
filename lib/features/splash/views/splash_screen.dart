@@ -81,6 +81,8 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     // 5. Emergency Contact
+    if (!mounted) return;
+
     if (!prefs.isContactSetup) {
       Navigator.of(context).pushReplacementNamed(AppRoutes.setupWizard);
       return;

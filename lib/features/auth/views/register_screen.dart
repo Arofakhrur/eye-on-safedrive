@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:eyeon/core/utils/validators.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -252,16 +253,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             hint: 'Enter your email',
             prefixIcon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your email';
-              }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                  .hasMatch(value)) {
-                return 'Please enter a valid email';
-              }
-              return null;
-            },
+            validator: AppValidators.validateEmail,
           ),
 
           const SizedBox(height: 16),
@@ -274,15 +266,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             prefixIcon: Icons.lock_outline,
             isPassword: true,
             isConfirmPassword: false,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter a password';
-              }
-              if (value.length < 8) {
-                return 'Password must be at least 8 characters';
-              }
-              return null;
-            },
+            validator: AppValidators.validatePassword,
           ),
 
           const SizedBox(height: 16),

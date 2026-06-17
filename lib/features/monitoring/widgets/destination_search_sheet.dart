@@ -70,7 +70,7 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
       final url = Uri.parse(AppUrls.nominatimSearchUrl(query));
       final response = await http.get(url, headers: {
         'User-Agent': 'EyeOnSafeDrive/1.0',
-      });
+      }).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as List;

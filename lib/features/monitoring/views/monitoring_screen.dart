@@ -124,6 +124,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
       });
       _initializeCamera();
       _accidentController.startMonitoring();
+      VideoBufferService().init(); // Initialize encoder isolate for video buffer
       _startRideTracking();
 
       // Fade out the green overlay to reveal monitoring UI
@@ -280,6 +281,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     _microsleepController.dispose();
     _revealController.dispose();
     _fadeController.dispose();
+    VideoBufferService().dispose(); // Kill encoder isolate
     super.dispose();
   }
 

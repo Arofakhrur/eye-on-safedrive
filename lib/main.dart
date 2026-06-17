@@ -7,20 +7,28 @@ import 'package:eyeon/core/services/preference_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables from .env
-  await dotenv.load(fileName: '.env');
+  // Load environment variables from .env safely
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    debugPrint('DotEnv Load Error: $e');
+  }
 
   try {
     await Supabase.initialize(
-      url: dotenv.env['SUPABASE_URL']!,
-      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+      url: dotenv.env['SUPABASE_URL'] ?? '',
+      anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
     );
   } catch (e) {
     debugPrint('Supabase Init Error: $e');
   }
 
-  // Initialize Preferences
-  await PreferenceService().init();
+  // Initialize Preferences safely
+  try {
+    await PreferenceService().init();
+  } catch (e) {
+    debugPrint('Preferences Init Error: $e');
+  }
 
   runApp(const MyApp());
 }
