@@ -23,15 +23,18 @@ jobs:
         # Format URI: postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
         DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       run: |
+        if [ -z "$DB_URL" ]; then
+          echo "ERROR: SUPABASE_DB_URL secret is empty!"
+          exit 1
+        fi
+        
         echo "Memulai proses pencadangan (pg_dump)..."
         mkdir -p backups
         
-        # Ekspor tabel penting: ride_logs, incident_logs, dan evaluation_metrics
+        # Ekspor seluruh skema 'public' (mencakup semua tabel aplikasi Anda)
         # -F p mengatur format output menjadi Plain Text (.sql)
         pg_dump "$DB_URL" \
-          -t ride_logs \
-          -t incident_logs \
-          -t evaluation_metrics \
+          -n public \
           -F p > backups/eyeon_backup_$(date +'%Y-%m-%d').sql
 
     - name: Upload Backup as Artifact
