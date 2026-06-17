@@ -1,5 +1,4 @@
-# Setup Tables: `evaluation_metrics`
-```sql
+-- Setup Tables: evaluation_metrics
 CREATE TABLE IF NOT EXISTS evaluation_metrics (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -18,4 +17,4 @@ CREATE POLICY "Allow authenticated users to insert metrics"
   ON evaluation_metrics FOR INSERT 
   TO authenticated 
   WITH CHECK (true);
-```
+

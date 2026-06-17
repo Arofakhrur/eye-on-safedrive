@@ -56,6 +56,7 @@ android/key.properties
 # AI / Tooling related
 .gemini/
 antigravity/
-node_modules/
-node_modules/
-node_modules/
+# Backups / DB Dumps
+backups/
+*.sql
+*.dump
