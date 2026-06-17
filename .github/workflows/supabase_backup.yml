@@ -14,8 +14,8 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Install PostgreSQL Client
-      run: sudo apt-get update && sudo apt-get install -y postgresql-client
+    - name: Prepare Backup Directory
+      run: mkdir -p backups
 
     - name: Backup Supabase Tables
       env:
@@ -28,12 +28,10 @@ jobs:
           exit 1
         fi
         
-        echo "Memulai proses pencadangan (pg_dump)..."
-        mkdir -p backups
+        echo "Memulai proses pencadangan (pg_dump PostgreSQL 17 via Docker)..."
         
-        # Ekspor seluruh skema 'public' (mencakup semua tabel aplikasi Anda)
-        # -F p mengatur format output menjadi Plain Text (.sql)
-        pg_dump "$DB_URL" \
+        # Ekspor seluruh skema 'public' menggunakan container postgres 17 yang sesuai dengan versi server Supabase
+        docker run --rm postgres:17-alpine pg_dump "$DB_URL" \
           -n public \
           -F p > backups/eyeon_backup_$(date +'%Y-%m-%d').sql
 
