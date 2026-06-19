@@ -26,10 +26,16 @@ class LocationService {
     } 
 
     // When we reach here, permissions are granted.
-    return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-      ),
-    );
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 5), // Prevent hanging indefinitely indoors
+        ),
+      );
+    } catch (e) {
+      // Fallback to last known position if current position times out
+      return await Geolocator.getLastKnownPosition();
+    }
   }
 }

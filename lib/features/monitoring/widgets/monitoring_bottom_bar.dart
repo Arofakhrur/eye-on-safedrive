@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:eyeon/core/services/preference_service.dart';
 
 class MonitoringBottomBar extends StatelessWidget {
   final double currentSpeed;
@@ -18,6 +19,8 @@ class MonitoringBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final earThreshold = PreferenceService().earThreshold;
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
@@ -43,7 +46,7 @@ class MonitoringBottomBar extends StatelessWidget {
           _buildMetric(
             Icons.visibility_rounded, 
             'EAR: ${currentEAR.toStringAsFixed(2)}',
-            currentEAR < 0.25 ? Colors.redAccent : AppColors.primary,
+            currentEAR > 0 && currentEAR < earThreshold ? Colors.redAccent : AppColors.primary,
           ),
           _buildMetric(
             Icons.sensors_rounded, 

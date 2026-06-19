@@ -2,7 +2,6 @@ import 'package:eyeon/core/services/location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
-import 'package:eyeon/core/services/video_buffer_service.dart';
 import 'package:eyeon/core/services/telegram_service.dart';
 import 'package:gal/gal.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -23,10 +22,10 @@ class SOSService {
   Future<Map<String, dynamic>> triggerEmergencySOS(
     double magnitude, {
     String? rideId,
+    String? videoPath,
   }) async {
     bool gallerySaved = false;
     String? galleryError;
-    String? videoPath;
     
     final stopwatch = Stopwatch()..start();
     int timeGps = 0;
@@ -70,15 +69,13 @@ class SOSService {
         debugPrint('⚠️ Telegram not configured or no chat IDs');
       }
 
-      // 3. Process Video Evidence (Time-consuming FFmpeg process)
+      // 3. Process Video Evidence (if provided)
       try {
-        final startFfmpeg = stopwatch.elapsedMilliseconds;
-        videoPath = await VideoBufferService().saveBufferToVideo();
-        timeFfmpeg = stopwatch.elapsedMilliseconds - startFfmpeg;
-        // debugPrint('⏱️ Waktu Render Video FFmpeg: ...');
-        debugPrint('📹 Video Path: $videoPath');
-
         if (videoPath != null) {
+          final startFfmpeg = stopwatch.elapsedMilliseconds;
+          // Note: FFMpeg render time is technically zero now since it's native
+          timeFfmpeg = stopwatch.elapsedMilliseconds - startFfmpeg;
+          debugPrint('📹 Video Path: $videoPath');
           // Save to gallery (primary local action)
           try {
             final hasAccess = await Gal.hasAccess();

@@ -1,21 +1,17 @@
-import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:eyeon/core/utils/camera_utils.dart';
 import 'package:eyeon/features/monitoring/logic/microsleep_controller.dart';
 import 'package:eyeon/features/monitoring/logic/accident_controller.dart';
-import 'package:eyeon/features/monitoring/views/face_mesh_painter.dart';
-import 'package:google_mlkit_face_mesh_detection/google_mlkit_face_mesh_detection.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/sos_service.dart';
-import 'package:eyeon/core/services/video_buffer_service.dart';
 import 'package:eyeon/features/monitoring/widgets/live_map_widget.dart';
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:eyeon/features/monitoring/widgets/monitoring_top_bar.dart';
 import 'package:eyeon/features/monitoring/widgets/monitoring_bottom_bar.dart';
+import 'package:eyeon/features/monitoring/views/native_face_mesh_painter.dart';
 
 import 'package:gal/gal.dart';
 import 'package:latlong2/latlong.dart' hide Path;
@@ -39,7 +35,16 @@ class MonitoringScreen extends StatefulWidget {
 
 class _MonitoringScreenState extends State<MonitoringScreen>
     with TickerProviderStateMixin {
-  CameraController? _cameraController;
+  final MethodChannel _cameraChannel = const MethodChannel('eyeon_native_camera_control');
+  final EventChannel _cameraEventChannel = const EventChannel('eyeon_native_camera_events');
+  StreamSubscription? _cameraEventSubscription;
+
+  // Face Mesh Visuals
+  List<double>? _facePoints;
+  int _imageWidth = 0;
+  int _imageHeight = 0;
+  int _imageRotation = 0;
+
   final MicrosleepController _microsleepController = MicrosleepController();
   final AccidentController _accidentController = AccidentController();
 
@@ -116,16 +121,21 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     _isTransitioning = true;
 
     // Task 48: Trigger circular reveal animation
-    setState(() => _showRevealOverlay = true);
+    setState(() {
+      _showRevealOverlay = true;
+      _isCameraInitialized = true; // Mount AndroidView immediately for zero-latency start
+    });
+
     _revealController.forward().then((_) {
-      // Task 49: After reveal covers screen, start ride + init camera
+      // Task 49: After reveal covers screen, start ride
       setState(() {
         _isRideStarted = true;
       });
-      _initializeCamera();
       _accidentController.startMonitoring();
-      VideoBufferService().init(); // Initialize encoder isolate for video buffer
       _startRideTracking();
+
+      // Create ride ID early so incident videos can be linked
+      _createRideId();
 
       // Fade out the green overlay to reveal monitoring UI
       Future.delayed(const Duration(milliseconds: 200), () {
@@ -181,6 +191,9 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     if (mounted) {
       if (_microsleepController.isDrowsy && !_wasDrowsy) {
         _microsleepAlertsCount++;
+        _cameraChannel.invokeMethod('setDrowsyState', {'isDrowsy': true});
+      } else if (!_microsleepController.isDrowsy && _wasDrowsy) {
+        _cameraChannel.invokeMethod('setDrowsyState', {'isDrowsy': false});
       }
       _wasDrowsy = _microsleepController.isDrowsy;
 
@@ -196,9 +209,19 @@ class _MonitoringScreenState extends State<MonitoringScreen>
   }
 
   Future<void> _triggerSOS() async {
+    // 1. Lock video buffer first to capture the incident accurately
+    String? videoPath;
+    try {
+      videoPath = await _cameraChannel.invokeMethod('lockIncidentVideo');
+    } catch (e) {
+      debugPrint('Failed to lock incident video: $e');
+    }
+
+    // 2. Trigger SOS and pass the video path
     final result = await SOSService().triggerEmergencySOS(
       _accidentController.currentMagnitude,
       rideId: _currentRideId,
+      videoPath: videoPath,
     );
     
     if (mounted) {
@@ -232,41 +255,90 @@ class _MonitoringScreenState extends State<MonitoringScreen>
             behavior: SnackBarBehavior.floating,
           ),
         );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Gagal mengirim SOS: ${result['telegramError'] ?? 'Unknown error'}')),
+              ],
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
 
-  Future<void> _initializeCamera() async {
-    final cameras = await availableCameras();
-    int cameraIndex = -1;
-    for (int i = 0; i < cameras.length; i++) {
-      if (cameras[i].lensDirection == CameraLensDirection.front) {
-        cameraIndex = i;
-        break;
-      }
-    }
-    if (cameraIndex == -1 && cameras.isNotEmpty) cameraIndex = 0;
+  void _initializeCameraEvents() {
+    debugPrint('[MonitoringScreen] _initializeCameraEvents: Setting up EventChannel listener');
+    _cameraEventSubscription?.cancel();
+    _cameraEventSubscription = _cameraEventChannel.receiveBroadcastStream().listen(
+      (event) {
+        if (event != null && event is Map) {
+          final type = event['type'];
+          if (type == 'ear') {
+            double ear = (event['value'] as num).toDouble();
+            
+            // Extract face mesh points array for CustomPaint
+            List<double> points = [];
+            if (event['points'] != null) {
+              points = (event['points'] as List).map((e) => (e as num).toDouble()).toList();
+            }
+            int width = event['imageWidth'] ?? 0;
+            int height = event['imageHeight'] ?? 0;
+            int rotation = event['rotation'] ?? 0;
 
-    if (cameraIndex != -1) {
-      _cameraController = CameraController(
-        cameras[cameraIndex],
-        ResolutionPreset.high,
-        enableAudio: false,
-        imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+            _microsleepController.updateEAR(ear);
+            
+            if (mounted) {
+              setState(() {
+                _facePoints = points;
+                _imageWidth = width;
+                _imageHeight = height;
+                _imageRotation = rotation;
+              });
+            }
+          } else if (type == 'no_face') {
+            _microsleepController.updateEAR(0.0);
+            if (mounted) {
+              setState(() {
+                _facePoints = null;
+              });
+            }
+          } else if (type == 'incident_video_ready') {
+            String path = event['path'] ?? '';
+            debugPrint('[MonitoringScreen] Incident video ready at: $path');
+            if (_currentRideId != null && path.isNotEmpty) {
+              SupabaseService().uploadIncidentVideo(path, _currentRideId!);
+            }
+          }
+        }
+      },
+      onError: (error) {
+        debugPrint('[MonitoringScreen] EventChannel error: $error');
+      },
+      onDone: () {
+        debugPrint('[MonitoringScreen] EventChannel stream closed');
+      },
+    );
+  }
+
+  Future<void> _createRideId() async {
+    try {
+      _currentRideId = await SupabaseService().logRide(
+        startTime: _rideStartTime,
+        endTime: _rideStartTime, // Placeholder, will be updated on stop
+        totalMicrosleepAlerts: 0,
+        totalAccidentAlerts: 0,
+        distance: 0,
       );
-
-      await _cameraController!.initialize();
-      if (!mounted) return;
-
-      _cameraController!.startImageStream((CameraImage image) {
-        // Feed rolling video buffer for incident evidence
-        VideoBufferService().addFrame(image);
-        
-        final inputImage = CameraUtils.inputImageFromCameraImage(image, _cameraController);
-        if (inputImage != null) _microsleepController.processImage(inputImage);
-      });
-
-      setState(() => _isCameraInitialized = true);
+      debugPrint('[MonitoringScreen] Ride ID created: $_currentRideId');
+    } catch (e) {
+      debugPrint('[MonitoringScreen] Failed to create ride ID: $e');
     }
   }
 
@@ -275,25 +347,46 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     _timer?.cancel();
     _positionSubscription?.cancel();
     _positionStreamController.close();
-    _cameraController?.stopImageStream();
-    _cameraController?.dispose();
+    _cameraEventSubscription?.cancel();
     _accidentController.dispose();
     _microsleepController.dispose();
     _revealController.dispose();
     _fadeController.dispose();
-    VideoBufferService().dispose(); // Kill encoder isolate
     super.dispose();
   }
 
   Future<void> _onStopRide() async {
-    // Log ride and get the ride UUID for incident linking
-    _currentRideId = await SupabaseService().logRide(
-      startTime: _rideStartTime,
-      endTime: DateTime.now(),
-      totalMicrosleepAlerts: _microsleepAlertsCount,
-      totalAccidentAlerts: _accidentAlertsCount,
-      distance: _totalDistance,
-    );
+    // Stop camera event stream
+    _cameraEventSubscription?.cancel();
+    _cameraEventSubscription = null;
+
+    // Stop accident monitoring
+    _accidentController.stopMonitoring();
+
+    // Update the ride record with final data
+    if (_currentRideId != null) {
+      try {
+        await SupabaseService().updateRide(
+          rideId: _currentRideId!,
+          endTime: DateTime.now(),
+          totalMicrosleepAlerts: _microsleepAlertsCount,
+          totalAccidentAlerts: _accidentAlertsCount,
+          distance: _totalDistance,
+        );
+      } catch (e) {
+        debugPrint('[MonitoringScreen] Failed to update ride: $e');
+      }
+    } else {
+      // Fallback: create ride log if no ID was created earlier
+      await SupabaseService().logRide(
+        startTime: _rideStartTime,
+        endTime: DateTime.now(),
+        totalMicrosleepAlerts: _microsleepAlertsCount,
+        totalAccidentAlerts: _accidentAlertsCount,
+        distance: _totalDistance,
+      );
+    }
+
     if (mounted) {
       Navigator.pop(context);
     }
@@ -368,7 +461,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (_isCameraInitialized && _cameraController != null)
+                  if (_isCameraInitialized)
                     ClipRect(
                       child: OverflowBox(
                         alignment: Alignment.center,
@@ -376,34 +469,57 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                           fit: BoxFit.cover,
                           child: SizedBox(
                             width: size.width,
-                            height: size.width * _cameraController!.value.aspectRatio,
-                            child: CameraPreview(_cameraController!, child: _buildFaceMeshOverlay()),
+                            height: size.width * (4.0 / 3.0), // Standard 4:3 native ratio
+                            child: CustomPaint(
+                              foregroundPainter: _facePoints != null && _facePoints!.isNotEmpty
+                                  ? NativeFaceMeshPainter(
+                                      _facePoints!,
+                                      Size(_imageWidth.toDouble(), _imageHeight.toDouble()),
+                                      _imageRotation,
+                                      _microsleepController.isDrowsy,
+                                    )
+                                  : null,
+                              child: AndroidView(
+                                viewType: 'eyeon_native_camera',
+                                creationParamsCodec: const StandardMessageCodec(),
+                                onPlatformViewCreated: (id) async {
+                                  // Subscribe to events AFTER the native view is created!
+                                  _initializeCameraEvents();
+                                  try {
+                                    await _cameraChannel.invokeMethod('startCamera');
+                                  } catch (e) {
+                                    debugPrint('Failed to start native camera: $e');
+                                  }
+                                },
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     )
                   else
                     const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                  
-                  // Toggle Fullscreen Camera
-                  Positioned(
-                    top: MediaQuery.of(context).padding.top + 80,
-                    right: 16,
-                    child: _buildScreenToggleButton(
-                      isFull: _currentMode == ScreenMode.fullCamera,
-                      onTap: () {
-                        setState(() {
-                          _currentMode = _currentMode == ScreenMode.fullCamera
-                              ? ScreenMode.split
-                              : ScreenMode.fullCamera;
-                        });
-                      },
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
+
+          // Toggle Fullscreen Camera (Moved outside of ClipRRect to ensure it is always visible)
+          if (_isRideStarted && !_showRevealOverlay)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              right: 16,
+              child: _buildScreenToggleButton(
+                isFull: _currentMode == ScreenMode.fullCamera,
+                onTap: () {
+                  setState(() {
+                    _currentMode = _currentMode == ScreenMode.fullCamera
+                        ? ScreenMode.split
+                        : ScreenMode.fullCamera;
+                  });
+                },
+              ),
+            ),
 
           // Map Panel
           AnimatedPositioned(
@@ -728,23 +844,6 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     );
   }
 
-  Widget _buildFaceMeshOverlay() {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) return const SizedBox();
-    final size = MediaQuery.of(context).size;
-    var rotation = InputImageRotation.rotation0deg;
-    if (Platform.isAndroid) {
-      rotation = InputImageRotationValue.fromRawValue(_cameraController!.description.sensorOrientation) ?? InputImageRotation.rotation270deg;
-    }
-    return CustomPaint(
-      painter: FaceMeshPainter(
-        _microsleepController.currentMeshes,
-        _cameraController!.value.previewSize ?? const Size(480, 640),
-        rotation,
-        _microsleepController.isDrowsy,
-      ),
-      size: size,
-    );
-  }
 
   Widget _buildAlertOverlay() {
     if (_accidentController.isAccidentDetected) {

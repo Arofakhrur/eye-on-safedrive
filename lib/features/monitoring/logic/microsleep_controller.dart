@@ -1,41 +1,32 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:google_mlkit_face_mesh_detection/google_mlkit_face_mesh_detection.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:eyeon/core/utils/math_utils.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 
 class MicrosleepController extends ChangeNotifier {
-  final FaceMeshDetector _meshDetector = FaceMeshDetector(
-    option: FaceMeshDetectorOptions.faceMesh,
-  );
-
-  bool _isProcessing = false;
   double _currentEAR = 0.0;
   bool _isDrowsy = false;
-  DateTime? _drowsyStartTime;
-  List<FaceMesh> _currentMeshes = [];
   
   // Task 14: State Management
   int _drowsyCount = 0;
   bool _isPaused = false;
   
   final AudioPlayer _audioPlayer = AudioPlayer();
-  final Duration _microsleepDuration = const Duration(seconds: 2);
   bool _isAlarmPlaying = false;
 
   double get currentEAR => _currentEAR;
   bool get isDrowsy => _isDrowsy;
-  List<FaceMesh> get currentMeshes => _currentMeshes;
   int get drowsyCount => _drowsyCount;
   bool get isPaused => _isPaused;
+  
+  // For compatibility with any UI still checking meshes
+  dynamic get currentMeshes => [];
 
   void resumeMonitoring() {
     _isPaused = false;
     _isDrowsy = false;
-    _drowsyStartTime = null;
+    _consecutiveDrowsyFrames = 0;
     _stopAlarm();
     notifyListeners();
   }
@@ -48,76 +39,29 @@ class MicrosleepController extends ChangeNotifier {
   /// Map alarm sound preference name to the actual asset file path.
   static const Map<String, String> _alarmSoundFiles = AppAssets.alarmSoundFiles;
 
-  Future<void> processImage(InputImage inputImage) async {
-    if (_isProcessing) return;
-    _isProcessing = true;
+  int _consecutiveDrowsyFrames = 0;
+  static const int _drowsyFrameThreshold = 10; // Approx 500ms at ~20fps
 
-    try {
-      final meshes = await _meshDetector.processImage(inputImage);
-      _currentMeshes = meshes;
-      
-      if (meshes.isNotEmpty) {
-        final faceMesh = meshes.first; // Process primary face
-        
-        // MediaPipe Face Mesh indices for eyes:
-        // Right Eye: 33, 160, 158, 133, 153, 144
-        // Left Eye: 362, 385, 387, 263, 373, 380
-        
-        double rightEAR = _calculateEyeEAR(
-          faceMesh.points,
-          [33, 160, 158, 133, 153, 144]
-        );
+  void updateEAR(double ear) {
+    _currentEAR = ear;
+    notifyListeners();
 
-        double leftEAR = _calculateEyeEAR(
-          faceMesh.points,
-          [362, 385, 387, 263, 373, 380]
-        );
-
-        // Average EAR
-        _currentEAR = (rightEAR + leftEAR) / 2.0;
-
-        _evaluateDrowsiness();
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Error processing face mesh: $e');
-    } finally {
-      _isProcessing = false;
-    }
-  }
-
-  double _calculateEyeEAR(List<FaceMeshPoint> allPoints, List<int> indices) {
-    if (allPoints.length < 468) return 0.0;
-
-    final p1 = Point<int>(allPoints[indices[0]].x.toInt(), allPoints[indices[0]].y.toInt());
-    final p2 = Point<int>(allPoints[indices[1]].x.toInt(), allPoints[indices[1]].y.toInt());
-    final p3 = Point<int>(allPoints[indices[2]].x.toInt(), allPoints[indices[2]].y.toInt());
-    final p4 = Point<int>(allPoints[indices[3]].x.toInt(), allPoints[indices[3]].y.toInt());
-    final p5 = Point<int>(allPoints[indices[4]].x.toInt(), allPoints[indices[4]].y.toInt());
-    final p6 = Point<int>(allPoints[indices[5]].x.toInt(), allPoints[indices[5]].y.toInt());
-
-    return MathUtils.calculateEAR(p1: p1, p2: p2, p3: p3, p4: p4, p5: p5, p6: p6);
-  }
-
-  void _evaluateDrowsiness() {
     if (_isPaused) return;
 
     final threshold = PreferenceService().earThreshold;
-    if (_currentEAR < threshold) {
-      _drowsyStartTime ??= DateTime.now();
-      
-      final elapsed = DateTime.now().difference(_drowsyStartTime!);
-      if (elapsed >= _microsleepDuration && !_isDrowsy) {
-        _isDrowsy = true;
-        _drowsyCount++;
-        _isPaused = true;
-        _triggerAlarm();
+    if (ear < threshold) {
+      _consecutiveDrowsyFrames++;
+      if (_consecutiveDrowsyFrames >= _drowsyFrameThreshold) {
+        if (!_isDrowsy) {
+          _isDrowsy = true;
+          _drowsyCount++;
+          _isPaused = true;
+          _triggerAlarm();
+          notifyListeners();
+        }
       }
     } else {
-      _drowsyStartTime = null;
-      if (_isDrowsy) {
-        // Do not auto-reset here because the user must manually dismiss the alert via resumeMonitoring()
-      }
+      _consecutiveDrowsyFrames = 0;
     }
   }
 
@@ -161,7 +105,6 @@ class MicrosleepController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _meshDetector.close();
     _audioPlayer.stop();
     _audioPlayer.dispose();
     super.dispose();

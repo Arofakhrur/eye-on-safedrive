@@ -41,6 +41,13 @@ class AccidentController extends ChangeNotifier {
     });
   }
 
+  void stopMonitoring() {
+    _gyroSubscription?.cancel();
+    _gyroSubscription = null;
+    _speedCheckTimer?.cancel();
+    _stopAlarm();
+  }
+
   Future<void> _verifyAccidentWithSpeedGate() async {
     _isCheckingSpeed = true;
     notifyListeners();

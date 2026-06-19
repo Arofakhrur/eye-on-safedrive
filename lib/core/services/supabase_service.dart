@@ -230,6 +230,28 @@ class SupabaseService {
     }
   }
 
+  /// Update an existing ride record with final data when ride ends.
+  Future<void> updateRide({
+    required String rideId,
+    required DateTime endTime,
+    required int totalMicrosleepAlerts,
+    required int totalAccidentAlerts,
+    required double distance,
+  }) async {
+    if (currentUser == null) return;
+    try {
+      await client.from('ride_logs').update({
+        'end_time': endTime.toIso8601String(),
+        'microsleep_alerts': totalMicrosleepAlerts,
+        'accident_alerts': totalAccidentAlerts,
+        'distance': distance,
+      }).eq('id', rideId);
+      debugPrint('Ride updated: $rideId');
+    } catch (e) {
+      debugPrint('Update Ride Error: $e');
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getRideHistory() async {
     if (currentUser == null) return [];
     try {
@@ -329,12 +351,24 @@ class SupabaseService {
   // Video Upload (kept as optional backup)
   // ================================================================
 
-  Future<String?> uploadIncidentVideo(String filePath) async {
+  Future<String?> uploadIncidentVideo(String filePath, [String? rideId]) async {
     if (currentUser == null) return null;
     final fileName = 'incident_${DateTime.now().millisecondsSinceEpoch}.mp4';
     final path = '${currentUser!.id}/$fileName';
     final file = File(filePath);
-    await client.storage.from('incident_videos').upload(path, file);
-    return client.storage.from('incident_videos').getPublicUrl(path);
+    
+    try {
+      await client.storage.from('incident_videos').upload(path, file);
+      
+      // Cleanup local cache to free up memory
+      if (await file.exists()) {
+        await file.delete();
+      }
+      
+      return client.storage.from('incident_videos').getPublicUrl(path);
+    } catch (e) {
+      debugPrint('Upload video error: $e');
+      return null;
+    }
   }
 }
