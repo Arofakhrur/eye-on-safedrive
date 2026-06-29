@@ -152,7 +152,7 @@ class SupabaseService {
         'user_id': currentUser!.id,
         'name': c.name,
         'phone': c.phone,
-        if (c.telegramChatId != null) 'telegram_chat_id': c.telegramChatId,
+        'telegram_chat_id': c.telegramChatId,
         'updated_at': DateTime.now().toIso8601String(),
       }).toList();
       await client.from('emergency_contacts').insert(data);

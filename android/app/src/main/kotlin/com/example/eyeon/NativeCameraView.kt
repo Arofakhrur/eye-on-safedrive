@@ -78,6 +78,7 @@ class NativeCameraView(
             ViewGroup.LayoutParams.MATCH_PARENT
         )
         previewView.setBackgroundColor(Color.BLACK)
+        previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         
         container.addView(previewView)
 
@@ -93,9 +94,21 @@ class NativeCameraView(
                 "lockIncidentVideo" -> {
                     Log.d(TAG, "lockIncidentVideo called")
                     isIncidentLocked = true
-                    stopRecording()
+                    rollingJob?.cancel()
+                    rollingJob = null
+                    activeRecording?.stop()
+                    activeRecording = null
                     scope.launch {
-                        delay(500) // Wait briefly for file to finalize
+                        var retries = 0
+                        while (lockedVideoPath == null && retries < 50) {
+                            delay(100)
+                            retries++
+                        }
+                        if (lockedVideoPath == null) {
+                            Log.e(TAG, "lockIncidentVideo: Timeout waiting for video to finalize!")
+                        } else {
+                            Log.d(TAG, "lockIncidentVideo: Video ready at $lockedVideoPath")
+                        }
                         result.success(lockedVideoPath)
                     }
                 }
@@ -108,6 +121,10 @@ class NativeCameraView(
                         startCamera()
                         result.success(true)
                     }
+                }
+                "setDrowsyState" -> {
+                    // Accept drowsy state from Flutter (for future use if needed)
+                    result.success(true)
                 }
                 else -> result.notImplemented()
             }
@@ -123,7 +140,9 @@ class NativeCameraView(
         cameraExecutor.shutdown()
         detector.close()
         scope.cancel()
-        activeRecording?.stop()
+        try {
+            activeRecording?.stop()
+        } catch (_: Exception) {}
         activeRecording = null
         rollingJob?.cancel()
         rollingJob = null
@@ -258,36 +277,46 @@ class NativeCameraView(
 
         rollingJob = scope.launch(Dispatchers.IO) {
             while (isActive && !isIncidentLocked) {
-                val outputFile = File(context.cacheDir, "rolling_buffer_${System.currentTimeMillis()}.mp4")
+                try {
+                    val outputFile = File(context.cacheDir, "rolling_buffer_${System.currentTimeMillis()}.mp4")
 
-                withContext(Dispatchers.Main) {
-                    val outputOptions = FileOutputOptions.Builder(outputFile).build()
-                    activeRecording = videoCapture?.output
-                        ?.prepareRecording(context, outputOptions)
-                        ?.start(ContextCompat.getMainExecutor(context)) { recordEvent ->
-                            if (recordEvent is VideoRecordEvent.Finalize) {
-                                if (!recordEvent.hasError()) {
-                                    if (isIncidentLocked) {
-                                        lockedVideoPath = recordEvent.outputResults.outputUri.path
-                                        Log.d(TAG, "Rolling buffer: Incident video locked at $lockedVideoPath")
-                                        sendEvent(mapOf("type" to "incident_video_ready", "path" to lockedVideoPath))
+                    withContext(Dispatchers.Main) {
+                        val outputOptions = FileOutputOptions.Builder(outputFile).build()
+                        activeRecording = videoCapture?.output
+                            ?.prepareRecording(context, outputOptions)
+                            ?.start(ContextCompat.getMainExecutor(context)) { recordEvent ->
+                                if (recordEvent is VideoRecordEvent.Finalize) {
+                                    if (!recordEvent.hasError()) {
+                                        if (isIncidentLocked) {
+                                            lockedVideoPath = recordEvent.outputResults.outputUri.path
+                                            Log.d(TAG, "Rolling buffer: Incident video locked at $lockedVideoPath")
+                                            sendEvent(mapOf("type" to "incident_video_ready", "path" to lockedVideoPath))
+                                        } else {
+                                            // Delete the file if no incident
+                                            outputFile.delete()
+                                        }
                                     } else {
-                                        // Delete the file if no incident
+                                        Log.e(TAG, "Rolling buffer: Recording finalized with error: ${recordEvent.error}")
                                         outputFile.delete()
                                     }
-                                } else {
-                                    Log.e(TAG, "Rolling buffer: Recording finalized with error: ${recordEvent.error}")
-                                    outputFile.delete()
                                 }
                             }
+                    }
+
+                    // Record for 5 seconds
+                    delay(5000)
+
+                    // Only stop if incident hasn't been locked during this segment
+                    if (!isIncidentLocked) {
+                        withContext(Dispatchers.Main) {
+                            stopRecording()
                         }
-                }
-
-                // Record for 5 seconds
-                delay(5000)
-
-                withContext(Dispatchers.Main) {
-                    stopRecording()
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    Log.d(TAG, "Rolling buffer: Coroutine cancelled (incident lock or dispose)")
+                    break
+                } catch (e: Exception) {
+                    Log.e(TAG, "Rolling buffer: Error in recording cycle", e)
                 }
             }
         }

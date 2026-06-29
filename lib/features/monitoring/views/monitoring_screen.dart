@@ -211,18 +211,23 @@ class _MonitoringScreenState extends State<MonitoringScreen>
   Future<void> _triggerSOS() async {
     // 1. Lock video buffer first to capture the incident accurately
     String? videoPath;
+    final extractionStopwatch = Stopwatch()..start();
     try {
       videoPath = await _cameraChannel.invokeMethod('lockIncidentVideo');
     } catch (e) {
       debugPrint('Failed to lock incident video: $e');
     }
+    final videoExtractionMs = extractionStopwatch.elapsedMilliseconds;
 
-    // 2. Trigger SOS and pass the video path
+    // 2. Trigger SOS and pass the video path and latencies
     final result = await SOSService().triggerEmergencySOS(
       _accidentController.currentMagnitude,
       rideId: _currentRideId,
       videoPath: videoPath,
+      sensorDetectionMs: _accidentController.sensorDetectionLatencyMs,
+      videoExtractionMs: videoExtractionMs,
     );
+
     
     if (mounted) {
       if (result['gallerySaved'] == true) {
@@ -312,9 +317,8 @@ class _MonitoringScreenState extends State<MonitoringScreen>
           } else if (type == 'incident_video_ready') {
             String path = event['path'] ?? '';
             debugPrint('[MonitoringScreen] Incident video ready at: $path');
-            if (_currentRideId != null && path.isNotEmpty) {
-              SupabaseService().uploadIncidentVideo(path, _currentRideId!);
-            }
+            // Video upload is handled by _triggerSOS -> SOSService flow.
+            // Do NOT upload here to avoid duplicate upload and premature file deletion.
           }
         }
       },

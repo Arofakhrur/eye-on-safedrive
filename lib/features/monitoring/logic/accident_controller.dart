@@ -15,29 +15,60 @@ class AccidentController extends ChangeNotifier {
   bool _isCheckingSpeed = false;
   double _currentMagnitude = 0.0;
   double _filteredMagnitude = 0.0;
-  final double _alpha = 0.2; // LPF factor
+  double _peakMagnitude = 0.0; // Menyimpan nilai puncak tertinggi saat crash
+  
+  // LPF (Low-Pass Filter) factor. 
+  // Ditingkatkan menjadi 0.5 agar lebih responsif terhadap kecelakaan nyata.
+  final double _alpha = 0.5; 
+
+  int _sensorDetectionLatencyMs = 0;
+  int get sensorDetectionLatencyMs => _sensorDetectionLatencyMs;
+
   Timer? _speedCheckTimer;
   
   double get _accidentThreshold => PreferenceService().shockSensitivity; // dynamically from user preference
 
   bool get isAccidentDetected => _isAccidentDetected;
-  double get currentMagnitude => _currentMagnitude;
+  
+  // Tampilkan nilai peak jika sedang dalam fase kecelakaan, jika tidak tampilkan real-time
+  double get currentMagnitude => (_isCheckingSpeed || _isAccidentDetected) ? _peakMagnitude : _currentMagnitude;
 
   void startMonitoring() {
     _gyroSubscription = gyroscopeEventStream().listen((GyroscopeEvent event) {
-      if (_isAccidentDetected || _isCheckingSpeed) return;
+      if (_isAccidentDetected) return; // Hanya berhenti membaca jika SOS sudah fix dikirim
 
       final rawMagnitude = sqrt(pow(event.x, 2) + pow(event.y, 2) + pow(event.z, 2));
       
-      // Low-Pass Filter (LPF)
+      // =====================================================================
+      // DOKUMENTASI UNTUK SIDANG: ALGORITMA LOW-PASS FILTER (LPF)
+      // =====================================================================
+      // LPF digunakan untuk memfilter "noise" atau getaran frekuensi tinggi 
+      // yang terjadi terus-menerus (misal: getaran mesin, jalan bebatuan/rusak).
+      // 
+      // Rumus: Filtered = (alpha * Raw) + ((1 - alpha) * Previous_Filtered)
+      // 
+      // Dengan alpha = 0.5, sistem mengambil 50% kekuatan guncangan asli saat ini,
+      // dan mempertahankan 50% dari guncangan sebelumnya. Hal ini mencegah sensor 
+      // melonjak tiba-tiba ke angka tinggi hanya karena satu lubang kecil, 
+      // namun tetap responsif jika terjadi benturan kecelakaan yang berkelanjutan.
+      // =====================================================================
       _filteredMagnitude = (_alpha * rawMagnitude) + ((1.0 - _alpha) * _filteredMagnitude);
       _currentMagnitude = _filteredMagnitude;
       
-      if (_currentMagnitude > _accidentThreshold) {
-        _verifyAccidentWithSpeedGate();
+      if (_isCheckingSpeed) {
+        // Jika sedang dalam masa 4 detik Speed-Gate, terus pantau nilai puncaknya!
+        if (_currentMagnitude > _peakMagnitude) {
+          _peakMagnitude = _currentMagnitude;
+          notifyListeners();
+        }
+      } else {
+        if (_currentMagnitude > _accidentThreshold) {
+          _peakMagnitude = _currentMagnitude;
+          _verifyAccidentWithSpeedGate();
+        } else {
+          notifyListeners();
+        }
       }
-      
-      notifyListeners();
     });
   }
 
@@ -53,6 +84,8 @@ class AccidentController extends ChangeNotifier {
     notifyListeners();
     debugPrint('⚠️ Guncangan terdeteksi (LPF: ${_currentMagnitude.toStringAsFixed(2)}). Menunggu 4 detik untuk verifikasi Speed-Gate...');
 
+    final stopwatch = Stopwatch()..start();
+
     _speedCheckTimer?.cancel();
     _speedCheckTimer = Timer(const Duration(seconds: 4), () async {
       try {
@@ -61,7 +94,22 @@ class AccidentController extends ChangeNotifier {
           final speedKmH = position.speed * 3.6;
           debugPrint('🏍️ SPEED CHECK: ${speedKmH.toStringAsFixed(2)} km/h');
 
+          // =====================================================================
+          // DOKUMENTASI UNTUK SIDANG: LOGIKA SPEED-GATE (ANTI FALSE-ALARM)
+          // =====================================================================
+          // Jalanan yang rusak berat (misal: Gunung Salak / KKA) bisa menghasilkan
+          // guncangan keras yang menembus batas LPF. Untuk mencegah Alarm Palsu,
+          // sistem melakukan verifikasi cerdas berbasis GPS:
+          //
+          // Sistem di-delay 4 detik setelah guncangan keras terjadi. Setelah itu:
+          // 1. Jika Kecepatan < 2.0 km/jam: Artinya motor membentur sesuatu dan 
+          //    berhenti total (jatuh). Ini adalah KECELAKAAN NYATA -> Kirim SOS.
+          // 2. Jika Kecepatan >= 2.0 km/jam: Artinya motor masih melaju normal. 
+          //    Guncangan tadi hanyalah murni karena melindas lubang jalanan. 
+          //    Ini adalah FALSE ALARM -> Batalkan SOS.
+          // =====================================================================
           if (speedKmH < 2.0) {
+            _sensorDetectionLatencyMs = stopwatch.elapsedMilliseconds;
             _isAccidentDetected = true;
             _triggerAccidentResponse();
           } else {
@@ -70,6 +118,7 @@ class AccidentController extends ChangeNotifier {
         }
       } catch (e) {
         debugPrint('Gagal verifikasi kecepatan: $e. Memaksa SOS demi keamanan.');
+        _sensorDetectionLatencyMs = stopwatch.elapsedMilliseconds;
         _isAccidentDetected = true;
         _triggerAccidentResponse();
       } finally {
@@ -80,7 +129,7 @@ class AccidentController extends ChangeNotifier {
   }
 
   Future<void> _triggerAccidentResponse() async {
-    debugPrint('🚨 ACCIDENT DETECTED! 🚨 Magnitude: $_currentMagnitude rad/s');
+    debugPrint('🚨 ACCIDENT DETECTED! 🚨 Peak Magnitude: $_peakMagnitude rad/s');
     
     // Auto-Play Alarm on Max Volume
     try {
@@ -98,8 +147,6 @@ class AccidentController extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error playing alarm: $e');
     }
-
-    SOSService().triggerEmergencySOS(_currentMagnitude);
   }
 
   void _stopAlarm() {

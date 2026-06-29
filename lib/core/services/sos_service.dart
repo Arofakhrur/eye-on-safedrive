@@ -16,141 +16,203 @@ class SOSService {
   /// Trigger the full SOS flow:
   /// 1. Get GPS location
   /// 2. Send SOS via Telegram Edge Function (text + location)
-  /// 3. Process video evidence (FFmpeg render)
-  /// 4. Save video to gallery + send via Telegram
-  /// 5. Log incident to Supabase
+  /// 3. Process video evidence (CameraX rolling (5) )
+  /// 4. kirim ke Telegram + Save video ke galeri (optional)
+  /// 5. Log insidene langsung ke Supabase
+
+
   Future<Map<String, dynamic>> triggerEmergencySOS(
     double magnitude, {
     String? rideId,
     String? videoPath,
+    int sensorDetectionMs = 0,
+    int videoExtractionMs = 0,
   }) async {
+    bool isTelegramSent = false;
+    Map<String, dynamic>? telegramDetails;
     bool gallerySaved = false;
     String? galleryError;
-    
+
     final stopwatch = Stopwatch()..start();
-    int timeGps = 0;
-    int timeFfmpeg = 0;
-    int timeTelegram = 0;
+    int gallerySaveMs = 0;
+    int telegramApiMs = 0;
+    int startTelegramApiPart1 = 0;
+    int startTelegramApiPart2 = 0;
+    int telegramPart1Ms = 0;
+    int telegramPart2Ms = 0;
 
     try {
-      // 1. Get Location
-      final startGps = stopwatch.elapsedMilliseconds;
+      // 1. Get Location and Contacts (Part of Telegram API process)
+      startTelegramApiPart1 = stopwatch.elapsedMilliseconds;
       final position = await LocationService.getCurrentLocation();
       if (position == null) throw Exception("Failed to get location");
 
       final lat = position.latitude;
       final lng = position.longitude;
-      timeGps = stopwatch.elapsedMilliseconds - startGps;
-      // debugPrint('⏱️ Waktu ambil GPS: ...');
 
       // 2. Get Contacts & Send Text/GPS via Edge Function (Instant)
       final contacts = await SupabaseService().getEmergencyContacts();
       final chatIds = contacts
-          .where((c) => c.telegramChatId != null && c.telegramChatId!.isNotEmpty)
-          .map((c) => c.telegramChatId!)
+          .where((c) => c.telegramChatId.isNotEmpty)
+          .map((c) => c.telegramChatId)
           .toList();
 
-      Map<String, dynamic> telegramResult = {'success': false};
       if (chatIds.isNotEmpty && TelegramService().isConfigured) {
         final user = SupabaseService().currentUser;
         final name = user?.userMetadata?['full_name'] ?? user?.userMetadata?['name'] ?? 'Pengendara';
 
-        final startTextTelegram = stopwatch.elapsedMilliseconds;
-        telegramResult = await TelegramService().sendSOSAlert(
+        telegramDetails = await TelegramService().sendSOSAlert(
           chatIds: chatIds,
           lat: lat,
           lng: lng,
           magnitude: magnitude,
           riderName: name,
         );
-        timeTelegram += (stopwatch.elapsedMilliseconds - startTextTelegram);
-        // debugPrint('⏱️ Waktu kirim Teks & Lokasi via Edge Function: ...');
+        isTelegramSent = telegramDetails['success'] ?? false;
       } else {
         debugPrint('⚠️ Telegram not configured or no chat IDs');
       }
+      telegramPart1Ms = stopwatch.elapsedMilliseconds - startTelegramApiPart1;
 
       // 3. Process Video Evidence (if provided)
       try {
         if (videoPath != null) {
-          final startFfmpeg = stopwatch.elapsedMilliseconds;
-          // Note: FFMpeg render time is technically zero now since it's native
-          timeFfmpeg = stopwatch.elapsedMilliseconds - startFfmpeg;
           debugPrint('📹 Video Path: $videoPath');
           // Save to gallery (primary local action)
           try {
+            final startGallery = stopwatch.elapsedMilliseconds;
             final hasAccess = await Gal.hasAccess();
             if (!hasAccess) await Gal.requestAccess();
             await Gal.putVideo(videoPath);
             gallerySaved = true;
+            gallerySaveMs = stopwatch.elapsedMilliseconds - startGallery;
             debugPrint('📁 Berhasil: Video tersimpan ke galeri');
           } catch (galError) {
             galleryError = galError.toString();
             debugPrint('❌ Gagal: Video gagal tersimpan, Error: $galError');
           }
-          // debugPrint('⏱️ Waktu simpan ke Galeri: ...');
 
           // Upload to Supabase Storage, then send URL via Edge Function
+          String? finalVideoUrl;
           if (chatIds.isNotEmpty && TelegramService().isConfigured) {
             try {
-              final startVideoTelegram = stopwatch.elapsedMilliseconds;
-              final videoStorageUrl = await SupabaseService().uploadIncidentVideo(videoPath);
-              if (videoStorageUrl != null) {
+              startTelegramApiPart2 = stopwatch.elapsedMilliseconds;
+              finalVideoUrl = await SupabaseService().uploadIncidentVideo(videoPath);
+              if (finalVideoUrl != null) {
                 await TelegramService().sendVideoToContacts(
                   chatIds: chatIds,
-                  videoStorageUrl: videoStorageUrl,
+                  videoStorageUrl: finalVideoUrl,
                 );
               }
-              timeTelegram += (stopwatch.elapsedMilliseconds - startVideoTelegram);
+              telegramPart2Ms = stopwatch.elapsedMilliseconds - startTelegramApiPart2;
             } catch (e) {
               debugPrint('Failed to upload/send video via Edge Function: $e');
             }
-            // debugPrint('⏱️ Waktu kirim Video via Edge Function: ...');
           }
+
+          // 4. Log to Supabase (metadata only)
+          await SupabaseService().logIncident(
+            lat: lat,
+            lng: lng,
+            magnitude: magnitude,
+            rideId: rideId,
+            videoUrl: finalVideoUrl,
+          );
+        } else {
+          // No video, just log incident
+          await SupabaseService().logIncident(
+            lat: lat,
+            lng: lng,
+            magnitude: magnitude,
+            rideId: rideId,
+          );
         }
       } catch (e) {
         debugPrint('Failed to process video buffer: $e');
+        // Fallback logging if video processing completely fails
+        await SupabaseService().logIncident(
+          lat: lat,
+          lng: lng,
+          magnitude: magnitude,
+          rideId: rideId,
+        );
       }
-
-      // 4. Log to Supabase (metadata only)
-      await SupabaseService().logIncident(
-        lat: lat,
-        lng: lng,
-        magnitude: magnitude,
-        rideId: rideId,
-      );
-      // debugPrint('⏱️ Waktu catat insiden Supabase: ...');
       
       stopwatch.stop();
-      // debugPrint('⏱️ Total Waktu SOS: ...');
+
+      telegramApiMs = telegramPart1Ms + telegramPart2Ms;
+      int totalMitigationMs = sensorDetectionMs + videoExtractionMs + gallerySaveMs + telegramApiMs;
 
       if (kDebugMode) {
+        debugPrint('📊 [METRICS] sensor_detection_ms: $sensorDetectionMs');
+        debugPrint('📊 [METRICS] video_extraction_ms: $videoExtractionMs');
+        debugPrint('📊 [METRICS] gallery_save_ms: $gallerySaveMs');
+        debugPrint('📊 [METRICS] telegram_api_ms: $telegramApiMs');
+        debugPrint('📊 [METRICS] total_mitigation_ms: $totalMitigationMs');
+
+        // Konversi Milidetik ke Detik
+        double waktuSensor = sensorDetectionMs / 1000.0;
+        double waktuVideo = videoExtractionMs / 1000.0;
+        double waktuGaleri = gallerySaveMs / 1000.0;
+        double waktuTelegram = telegramApiMs / 1000.0;
+        double waktuTotal = totalMitigationMs / 1000.0;
+
+        // Cetak langsung ke Terminal dengan tag pencarian
+        debugPrint('\n========== [EVALUASI BAB 4] TABEL 4.3 ==========');
+        debugPrint('1. Deteksi sensor hingga memicu status Accident : ${waktuSensor.toStringAsFixed(2)} Detik');
+        debugPrint('2. Ekstraksi Video Buffer MP4 (CameraX)         : ${waktuVideo.toStringAsFixed(2)} Detik');
+        debugPrint('3. Penyimpanan Video ke Galeri Perangkat        : ${waktuGaleri.toStringAsFixed(2)} Detik');
+        debugPrint('4. Telegram API: Kirim Teks, GPS, & Video       : ${waktuTelegram.toStringAsFixed(2)} Detik');
+        debugPrint('--------------------------------------------------');
+        debugPrint('TOTAL WAKTU RESPONS MITIGASI                    : ${waktuTotal.toStringAsFixed(2)} Detik');
+        debugPrint('==================================================\n');
+
         try {
           await SupabaseService.client.from('evaluation_metrics').insert({
-            'test_scenario': 'SOS Trigger with Video',
-            'gps_latency_ms': timeGps,
-            'ffmpeg_render_ms': timeFfmpeg,
-            'telegram_latency_ms': timeTelegram,
-            'total_response_ms': stopwatch.elapsedMilliseconds,
+            'test_scenario': 'SOS Success',
+            'sensor_detection_ms': sensorDetectionMs,
+            'video_extraction_ms': videoExtractionMs,
+            'gallery_save_ms': gallerySaveMs,
+            'telegram_api_ms': telegramApiMs,
+            'total_mitigation_ms': totalMitigationMs,
           });
           debugPrint('📊 Evaluation metrics logged to Supabase.');
         } catch (e) {
-          debugPrint('Failed to log metrics: $e');
+          debugPrint('⚠️ Failed to log metrics (table might need migration): $e');
         }
       }
 
       return {
         'gallerySaved': gallerySaved,
         'galleryError': galleryError,
-        'telegramSent': telegramResult['success'] ?? false,
-        'telegramDetails': telegramResult,
+        'telegramSent': isTelegramSent,
+        'telegramDetails': telegramDetails,
       };
     } catch (e) {
       debugPrint('SOS Service Error: $e');
+      stopwatch.stop();
+
+      // LOG METRICS EVEN ON ERROR SO WE KNOW WHAT FAILED
+      telegramApiMs = telegramPart1Ms + telegramPart2Ms;
+      int totalMitigationMs = sensorDetectionMs + videoExtractionMs + gallerySaveMs + telegramApiMs;
+      
+      try {
+        await SupabaseService.client.from('evaluation_metrics').insert({
+          'test_scenario': 'SOS FAILED: ${e.toString().substring(0, e.toString().length > 100 ? 100 : e.toString().length)}',
+          'sensor_detection_ms': sensorDetectionMs,
+          'video_extraction_ms': videoExtractionMs,
+          'gallery_save_ms': gallerySaveMs,
+          'telegram_api_ms': telegramApiMs,
+          'total_mitigation_ms': totalMitigationMs,
+        });
+      } catch (_) {}
+
       // Final fallback: Call emergency contact
       await callEmergencyContact();
       return {
         'gallerySaved': false,
-        'telegramSent': false,
+        'telegramSent': isTelegramSent,
+        'telegramDetails': telegramDetails,
         'error': e.toString(),
       };
     }

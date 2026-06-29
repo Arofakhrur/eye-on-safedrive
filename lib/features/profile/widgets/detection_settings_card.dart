@@ -123,7 +123,7 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
       children: [
         Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700)),
         Slider(
-          value: value,
+          value: value.clamp(min, max),
           min: min,
           max: max,
           onChanged: onChanged,

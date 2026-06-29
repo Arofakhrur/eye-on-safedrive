@@ -311,19 +311,32 @@ class _CalibrationScreenState extends State<CalibrationScreen>
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            const Spacer(),
-            _buildViewfinder(),
-            const SizedBox(height: 32),
-            _buildStatusBadge(),
-            const SizedBox(height: 24),
-            _buildTitleSection(),
-            const Spacer(),
-            _buildActionButton(),
-            const SizedBox(height: 32),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
+                      _buildTopBar(),
+                      const Spacer(),
+                      _buildViewfinder(),
+                      const SizedBox(height: 32),
+                      _buildStatusBadge(),
+                      const SizedBox(height: 24),
+                      _buildTitleSection(),
+                      const Spacer(),
+                      _buildActionButton(),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -385,7 +398,14 @@ class _CalibrationScreenState extends State<CalibrationScreen>
                   width: 270,
                   height: 270,
                   child: _isCameraReady
-                      ? CameraPreview(_cameraController!)
+                      ? FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _cameraController!.value.previewSize?.height ?? 480,
+                            height: _cameraController!.value.previewSize?.width ?? 640,
+                            child: CameraPreview(_cameraController!),
+                          ),
+                        )
                       : Container(
                           color: Colors.grey.shade100,
                           child: Icon(
@@ -415,33 +435,36 @@ class _CalibrationScreenState extends State<CalibrationScreen>
 
               // Percentage overlay while calibrating
               if (_isCalibrating)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${(_progress * 100).toInt()}%',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      if (_currentEAR > 0)
+                Positioned(
+                  bottom: 24,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         Text(
-                          'EAR: ${_currentEAR.toStringAsFixed(3)}',
+                          '${(_progress * 100).toInt()}%',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            color: Colors.white70,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
-                    ],
+                        if (_currentEAR > 0)
+                          Text(
+                            'EAR: ${_currentEAR.toStringAsFixed(3)}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              color: Colors.white70,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
 

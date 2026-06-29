@@ -179,7 +179,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 controller: telegramController,
                 decoration: _buildInputDecoration(
                   Icons.telegram_rounded,
-                  'Chat ID Telegram (Opsional)',
+                  'Chat ID Telegram (Wajib untuk Notif SOS)',
                 ),
                 keyboardType: TextInputType.number,
               ),
@@ -237,12 +237,22 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               final phone = phoneController.text.trim();
               final telegramId = telegramController.text.trim();
 
-              if (name.isNotEmpty && phone.isNotEmpty) {
+              if (name.isEmpty || phone.isEmpty || telegramId.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Nama, Nomor HP, dan Chat ID Telegram wajib diisi mutlak untuk sistem SOS!'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+                return;
+              }
+
+              if (name.isNotEmpty && phone.isNotEmpty && telegramId.isNotEmpty) {
                 final newContact = EmergencyContact(
                   userId: SupabaseService().currentUser?.id ?? '',
                   name: name,
                   phone: phone,
-                  telegramChatId: telegramId.isEmpty ? null : telegramId,
+                  telegramChatId: telegramId,
                 );
 
                 setState(() {
@@ -253,7 +263,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       userId: oldContact.userId,
                       name: name,
                       phone: phone,
-                      telegramChatId: telegramId.isEmpty ? null : telegramId,
+                      telegramChatId: telegramId,
                     );
                   } else {
                     _selectedContacts.add(newContact);
@@ -537,7 +547,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             children: [
                               Text(contact.name, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
                               Text(contact.phone, style: GoogleFonts.plusJakartaSans(color: Colors.black54, fontSize: 13)),
-                              if (contact.telegramChatId != null && contact.telegramChatId!.isNotEmpty)
+                              if (contact.telegramChatId.isNotEmpty)
                                 Text(
                                   'Telegram ID: ${contact.telegramChatId}',
                                   style: GoogleFonts.plusJakartaSans(color: AppColors.telegramBlue, fontSize: 12, fontWeight: FontWeight.w600),

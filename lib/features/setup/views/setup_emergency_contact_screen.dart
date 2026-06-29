@@ -159,7 +159,7 @@ class _SetupEmergencyContactScreenState
                 controller: telegramController,
                 decoration: _buildInputDecoration(
                   Icons.telegram_rounded,
-                  'Chat ID Telegram (Opsional)',
+                  'Chat ID Telegram (Wajib untuk Notif SOS)',
                 ),
                 keyboardType: TextInputType.number,
               ),
@@ -222,12 +222,22 @@ class _SetupEmergencyContactScreenState
               final phone = phoneController.text.trim();
               final telegramId = telegramController.text.trim();
 
-              if (name.isNotEmpty && phone.isNotEmpty) {
+              if (name.isEmpty || phone.isEmpty || telegramId.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Nama, Nomor HP, dan Chat ID Telegram wajib diisi mutlak untuk sistem SOS!'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+                return;
+              }
+
+              if (name.isNotEmpty && phone.isNotEmpty && telegramId.isNotEmpty) {
                 final newContact = EmergencyContact(
                   userId: SupabaseService().currentUser?.id ?? '',
                   name: name,
                   phone: phone,
-                  telegramChatId: telegramId.isEmpty ? null : telegramId,
+                  telegramChatId: telegramId,
                 );
 
                 setState(() {
@@ -238,7 +248,7 @@ class _SetupEmergencyContactScreenState
                       userId: oldContact.userId,
                       name: name,
                       phone: phone,
-                      telegramChatId: telegramId.isEmpty ? null : telegramId,
+                      telegramChatId: telegramId,
                     );
                   } else {
                     _contacts.add(newContact);
