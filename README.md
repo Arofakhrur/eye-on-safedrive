@@ -7,55 +7,64 @@
 ## 🚀 Key Features
 
 ### 1. Microsleep Detection (Computer Vision)
-- Real-time face tracking using **MediaPipe Face Mesh**.
+- Real-time face tracking using **Google ML Kit Face Mesh Detection**.
 - Calculates **Eye Aspect Ratio (EAR)** to detect drowsiness.
-- Automatic high-pitched audio alarm if eyes are closed for more than 2 seconds.
+- Personalized threshold calibration.
+- Automatic high-pitched audio alarm if eyes are closed for a prolonged duration.
 
 ### 2. Accident Detection (Inertial Sensors)
-- Monitors **Gyroscope** and **Accelerometer** data.
-- Detects high-magnitude rotation events (> 5 rad/s) indicative of a crash.
+- Monitors **Gyroscope** and **Accelerometer** data to track extreme changes in motion.
+- Detects high-magnitude rotation events indicative of a crash or sudden fall.
+- Smart accident verification using GPS speed gating to prevent false positives when the vehicle is stationary.
 
 ### 3. Rolling Video Buffer (Blackbox Evidence)
-- Maintains a **10-second rolling buffer** of the front camera during the ride.
+- Maintains a **rolling buffer** of the front camera during the ride.
 - Automatically saves and extracts the video buffer into an `.mp4` file upon accident detection using **FFmpeg**.
 
-### 4. Smart SOS Response
-- **Automatic WhatsApp Alerts**: Sends SOS messages with live GPS location to emergency contacts via Supabase Edge Functions & WhatsApp Business API.
-- **National Emergency Integration**: Quick access to 112 emergency services.
+### 4. Smart SOS Response via Telegram
+- **Automatic Telegram Alerts**: Sends SOS messages with live GPS location and crash video evidence to emergency contacts via Supabase Edge Functions & Telegram Bot API.
+- Replaces WhatsApp integration for faster, more reliable bot interactions.
+
+### 5. Comprehensive Safety Tracking
+- **Safety Score**: Calculates ride safety based on driving behavior and detected incidents.
+- **Incident Logs**: Detailed history of all microsleep events, alarms, and accidents, synchronized to the cloud.
 
 ---
 
 ## 🛠️ Tech Stack
 - **Framework**: Flutter (Dart)
-- **Backend**: Supabase (Auth, PostgreSQL, Storage, Edge Functions)
+- **Backend & Auth**: Supabase (Auth, PostgreSQL, Storage, Edge Functions)
 - **CV Engine**: Google ML Kit (Face Mesh)
 - **Media Processing**: FFmpeg Kit
 - **State Management**: Provider / ChangeNotifier
+- **Maps & Geocoding**: OpenStreetMap / Nominatim (flutter_map)
+- **Local Storage**: SharedPreferences, Sqflite
 
 ---
 
 ## 🛠️ Setup Instructions
 
 ### 1. Prerequisites
-- Flutter SDK (Latest Stable)
+- Flutter SDK (Latest Stable, ^3.10.0)
 - Supabase Project
+- Telegram Bot Token
 
 ### 2. Environment Variables
-Create a `.env` file in the root directory and add your Supabase credentials:
+Create a `.env` file in the root directory and add your credentials:
 ```env
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ### 3. Database Setup
-Execute the SQL script located in `supabase/schema.sql` in your Supabase SQL Editor to create the necessary tables (`emergency_contacts`, `incident_logs`) and RLS policies.
+Execute the SQL scripts in your Supabase SQL Editor to create the necessary tables (`users`, `emergency_contacts`, `incident_logs`, `activities`) and their respective RLS policies.
 
-### 4. Edge Functions (WhatsApp SOS)
-Deploy the Edge Function for automatic background messaging:
+### 4. Edge Functions (Telegram SOS)
+Deploy the Edge Function for automatic background messaging to Telegram:
 ```bash
-supabase functions deploy send_sos
+supabase functions deploy send-telegram-sos
 ```
-*Note: Requires Meta WhatsApp Business API credentials configured in Supabase Secrets.*
+*Note: Ensure your Telegram Bot Token is configured in Supabase Secrets for this edge function to work.*
 
 ---
 
@@ -65,7 +74,7 @@ supabase functions deploy send_sos
 > **Privacy & Permissions**: This app requires access to Camera, Location, Contacts, and Physical Activity sensors. Data is processed locally for detection, but incident videos and logs are uploaded to your private Supabase storage.
 
 > [!WARNING]
-> **Sensitive Files**: Do **NOT** commit your `.env` or `google-services.json` files to public repositories. These are excluded by the current `.gitignore`.
+> **Sensitive Files**: Do **NOT** commit your `.env` file to public repositories. This is excluded by the current `.gitignore`.
 
 > [!NOTE]
 > **Device Placement**: For optimal microsleep detection, the smartphone must be mounted on the motorcycle/vehicle with a clear, stable view of the rider's face.
@@ -73,4 +82,4 @@ supabase functions deploy send_sos
 ---
 
 ## 📜 License
-This project is developed for **Skripsi/Thesis** purposes. All rights reserved.
+This project is developed for **Skripsi** purposes. All rights reserved.
