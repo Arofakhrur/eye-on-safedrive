@@ -8,7 +8,7 @@ import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/services/location_service.dart';
 
 class AccidentController extends ChangeNotifier {
-  StreamSubscription<GyroscopeEvent>? _gyroSubscription;
+  StreamSubscription<UserAccelerometerEvent>? _accelSubscription;
   final AudioPlayer _audioPlayer = AudioPlayer();
   
   bool _isAccidentDetected = false;
@@ -34,7 +34,7 @@ class AccidentController extends ChangeNotifier {
   double get currentMagnitude => (_isCheckingSpeed || _isAccidentDetected) ? _peakMagnitude : _currentMagnitude;
 
   void startMonitoring() {
-    _gyroSubscription = gyroscopeEventStream().listen((GyroscopeEvent event) {
+    _accelSubscription = userAccelerometerEventStream().listen((UserAccelerometerEvent event) {
       if (_isAccidentDetected) return; // Hanya berhenti membaca jika SOS sudah fix dikirim
 
       final rawMagnitude = sqrt(pow(event.x, 2) + pow(event.y, 2) + pow(event.z, 2));
@@ -73,8 +73,8 @@ class AccidentController extends ChangeNotifier {
   }
 
   void stopMonitoring() {
-    _gyroSubscription?.cancel();
-    _gyroSubscription = null;
+    _accelSubscription?.cancel();
+    _accelSubscription = null;
     _speedCheckTimer?.cancel();
     _stopAlarm();
   }
@@ -82,12 +82,53 @@ class AccidentController extends ChangeNotifier {
   Future<void> _verifyAccidentWithSpeedGate() async {
     _isCheckingSpeed = true;
     notifyListeners();
-    debugPrint('⚠️ Guncangan terdeteksi (LPF: ${_currentMagnitude.toStringAsFixed(2)}). Menunggu 4 detik untuk verifikasi Speed-Gate...');
+    debugPrint('⚠️ Guncangan terdeteksi (LPF: ${_currentMagnitude.toStringAsFixed(2)} m/s²). Menunggu 4 detik untuk verifikasi Speed-Gate...');
 
     final stopwatch = Stopwatch()..start();
+    bool tiltTriggered = false;
+
+    // =====================================================================
+    // DOKUMENTASI UNTUK SIDANG: KOMPENSASI TILT (KEMIRINGAN)
+    // =====================================================================
+    // Selama 4 detik Speed-Gate berjalan, sistem juga memantau kemiringan
+    // motor menggunakan accelerometerEventStream (mengandung gravitasi).
+    //
+    // Rumus Tilt: acos(gz / sqrt(gx² + gy² + gz²)) × (180/π)
+    //
+    // Jika tilt > 60°, artinya motor sudah rebah/terbalik (tidak mungkin
+    // terjadi saat berkendara normal). Dalam kasus ini, syarat kecepatan
+    // diabaikan dan SOS langsung dikirim.
+    // =====================================================================
+    StreamSubscription<AccelerometerEvent>? tiltSubscription;
+    tiltSubscription = accelerometerEventStream().listen((AccelerometerEvent event) {
+      if (tiltTriggered) return;
+      final gx = event.x;
+      final gy = event.y;
+      final gz = event.z;
+      final totalG = sqrt(gx * gx + gy * gy + gz * gz);
+      if (totalG < 0.1) return; // Hindari divide-by-zero
+
+      final tiltDeg = acos((gz.abs() / totalG).clamp(0.0, 1.0)) * (180.0 / pi);
+
+      if (tiltDeg > 60.0) {
+        tiltTriggered = true;
+        debugPrint('🔄 TILT DETECTED: ${tiltDeg.toStringAsFixed(1)}° — Motor rebah! Bypass Speed-Gate.');
+        tiltSubscription?.cancel();
+        _speedCheckTimer?.cancel();
+        _sensorDetectionLatencyMs = stopwatch.elapsedMilliseconds;
+        _isAccidentDetected = true;
+        _isCheckingSpeed = false;
+        _triggerAccidentResponse();
+        notifyListeners();
+      }
+    });
 
     _speedCheckTimer?.cancel();
     _speedCheckTimer = Timer(const Duration(seconds: 4), () async {
+      tiltSubscription?.cancel(); // Bersihkan stream tilt setelah timer habis
+
+      if (tiltTriggered) return; // Sudah di-trigger oleh tilt, skip speed check
+
       try {
         final position = await LocationService.getCurrentLocation();
         if (position != null) {
@@ -129,7 +170,7 @@ class AccidentController extends ChangeNotifier {
   }
 
   Future<void> _triggerAccidentResponse() async {
-    debugPrint('🚨 ACCIDENT DETECTED! 🚨 Peak Magnitude: $_peakMagnitude rad/s');
+    debugPrint('🚨 ACCIDENT DETECTED! 🚨 Peak Magnitude: $_peakMagnitude m/s²');
     
     // Auto-Play Alarm on Max Volume
     try {
@@ -163,7 +204,7 @@ class AccidentController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _gyroSubscription?.cancel();
+    _accelSubscription?.cancel();
     _speedCheckTimer?.cancel();
     _audioPlayer.dispose();
     super.dispose();

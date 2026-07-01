@@ -33,7 +33,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
     final user = SupabaseService().currentUser;
     if (user != null && user.userMetadata != null) {
       final name = user.userMetadata!['full_name'] ?? user.userMetadata!['name'];
-      final avatar = user.userMetadata!['avatar_url'] ?? user.userMetadata!['picture'];
+      final avatar = (user.userMetadata!['avatar_url'] ?? user.userMetadata!['picture'])
+          ?.toString().replaceFirst('http://', 'https://');
       setState(() {
         if (name != null) _userName = name;
         _avatarUrl = avatar;

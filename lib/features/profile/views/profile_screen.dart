@@ -51,7 +51,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               user.userMetadata!['name'] ??
               'Rider';
           _avatarUrl =
-              user.userMetadata!['avatar_url'] ?? user.userMetadata!['picture'];
+              (user.userMetadata!['avatar_url'] ?? user.userMetadata!['picture'])
+                  ?.toString().replaceFirst('http://', 'https://');
         }
       });
 
@@ -460,18 +461,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: Icons.sync_rounded,
                 title: 'Sinkronisasi Data',
                 subtitle: 'Sync logs with Supabase cloud',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Data berhasil disinkronkan dengan cloud.',
-                        style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
-                      ),
-                      backgroundColor: Colors.black87,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  );
+                onTap: () async {
+                  try {
+                    final synced = await SupabaseService().syncOfflineData();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            synced > 0
+                                ? '$synced data berhasil disinkronkan.'
+                                : 'Tidak ada data offline untuk disinkronkan.',
+                            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                          backgroundColor: Colors.black87,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Gagal menyinkronkan data: $e',
+                            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                          backgroundColor: Colors.redAccent,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
 

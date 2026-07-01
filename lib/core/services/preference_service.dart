@@ -43,7 +43,7 @@ class PreferenceService {
   double get earThreshold => _prefs.getDouble(_keyEarThreshold) ?? 0.25;
   Future<void> setEarThreshold(double value) => _prefs.setDouble(_keyEarThreshold, value);
 
-  double get shockSensitivity => _prefs.getDouble(_keyShockSensitivity) ?? 1.25;
+  double get shockSensitivity => _prefs.getDouble(_keyShockSensitivity) ?? 30.0;
   Future<void> setShockSensitivity(double value) => _prefs.setDouble(_keyShockSensitivity, value);
 
   // Alarm Settings

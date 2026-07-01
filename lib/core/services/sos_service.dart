@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/telegram_service.dart';
 import 'package:gal/gal.dart';
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SOSService {
@@ -19,7 +20,6 @@ class SOSService {
   /// 3. Process video evidence (CameraX rolling (5) )
   /// 4. kirim ke Telegram + Save video ke galeri (optional)
   /// 5. Log insidene langsung ke Supabase
-
 
   Future<Map<String, dynamic>> triggerEmergencySOS(
     double magnitude, {
@@ -59,7 +59,10 @@ class SOSService {
 
       if (chatIds.isNotEmpty && TelegramService().isConfigured) {
         final user = SupabaseService().currentUser;
-        final name = user?.userMetadata?['full_name'] ?? user?.userMetadata?['name'] ?? 'Pengendara';
+        final name =
+            user?.userMetadata?['full_name'] ??
+            user?.userMetadata?['name'] ??
+            'Pengendara';
 
         telegramDetails = await TelegramService().sendSOSAlert(
           chatIds: chatIds,
@@ -97,14 +100,17 @@ class SOSService {
           if (chatIds.isNotEmpty && TelegramService().isConfigured) {
             try {
               startTelegramApiPart2 = stopwatch.elapsedMilliseconds;
-              finalVideoUrl = await SupabaseService().uploadIncidentVideo(videoPath);
+              finalVideoUrl = await SupabaseService().uploadIncidentVideo(
+                videoPath,
+              );
               if (finalVideoUrl != null) {
                 await TelegramService().sendVideoToContacts(
                   chatIds: chatIds,
                   videoStorageUrl: finalVideoUrl,
                 );
               }
-              telegramPart2Ms = stopwatch.elapsedMilliseconds - startTelegramApiPart2;
+              telegramPart2Ms =
+                  stopwatch.elapsedMilliseconds - startTelegramApiPart2;
             } catch (e) {
               debugPrint('Failed to upload/send video via Edge Function: $e');
             }
@@ -137,11 +143,12 @@ class SOSService {
           rideId: rideId,
         );
       }
-      
+
       stopwatch.stop();
 
       telegramApiMs = telegramPart1Ms + telegramPart2Ms;
-      int totalMitigationMs = sensorDetectionMs + videoExtractionMs + gallerySaveMs + telegramApiMs;
+      int totalMitigationMs =
+          sensorDetectionMs + videoExtractionMs + gallerySaveMs + telegramApiMs;
 
       if (kDebugMode) {
         debugPrint('📊 [METRICS] sensor_detection_ms: $sensorDetectionMs');
@@ -159,12 +166,22 @@ class SOSService {
 
         // Cetak langsung ke Terminal dengan tag pencarian
         debugPrint('\n========== [EVALUASI BAB 4] TABEL 4.3 ==========');
-        debugPrint('1. Deteksi sensor hingga memicu status Accident : ${waktuSensor.toStringAsFixed(2)} Detik');
-        debugPrint('2. Ekstraksi Video Buffer MP4 (CameraX)         : ${waktuVideo.toStringAsFixed(2)} Detik');
-        debugPrint('3. Penyimpanan Video ke Galeri Perangkat        : ${waktuGaleri.toStringAsFixed(2)} Detik');
-        debugPrint('4. Telegram API: Kirim Teks, GPS, & Video       : ${waktuTelegram.toStringAsFixed(2)} Detik');
+        debugPrint(
+          '1. Deteksi sensor hingga memicu status Accident : ${waktuSensor.toStringAsFixed(2)} Detik',
+        );
+        debugPrint(
+          '2. Ekstraksi Video Buffer MP4 (CameraX)         : ${waktuVideo.toStringAsFixed(2)} Detik',
+        );
+        debugPrint(
+          '3. Penyimpanan Video ke Galeri Perangkat        : ${waktuGaleri.toStringAsFixed(2)} Detik',
+        );
+        debugPrint(
+          '4. Telegram API: Kirim Teks, GPS, & Video       : ${waktuTelegram.toStringAsFixed(2)} Detik',
+        );
         debugPrint('--------------------------------------------------');
-        debugPrint('TOTAL WAKTU RESPONS MITIGASI                    : ${waktuTotal.toStringAsFixed(2)} Detik');
+        debugPrint(
+          'TOTAL WAKTU RESPONS MITIGASI                    : ${waktuTotal.toStringAsFixed(2)} Detik',
+        );
         debugPrint('==================================================\n');
 
         try {
@@ -178,7 +195,9 @@ class SOSService {
           });
           debugPrint('📊 Evaluation metrics logged to Supabase.');
         } catch (e) {
-          debugPrint('⚠️ Failed to log metrics (table might need migration): $e');
+          debugPrint(
+            '⚠️ Failed to log metrics (table might need migration): $e',
+          );
         }
       }
 
@@ -194,11 +213,13 @@ class SOSService {
 
       // LOG METRICS EVEN ON ERROR SO WE KNOW WHAT FAILED
       telegramApiMs = telegramPart1Ms + telegramPart2Ms;
-      int totalMitigationMs = sensorDetectionMs + videoExtractionMs + gallerySaveMs + telegramApiMs;
-      
+      int totalMitigationMs =
+          sensorDetectionMs + videoExtractionMs + gallerySaveMs + telegramApiMs;
+
       try {
         await SupabaseService.client.from('evaluation_metrics').insert({
-          'test_scenario': 'SOS FAILED: ${e.toString().substring(0, e.toString().length > 100 ? 100 : e.toString().length)}',
+          'test_scenario':
+              'SOS FAILED: ${e.toString().substring(0, e.toString().length > 100 ? 100 : e.toString().length)}',
           'sensor_detection_ms': sensorDetectionMs,
           'video_extraction_ms': videoExtractionMs,
           'gallery_save_ms': gallerySaveMs,
@@ -224,16 +245,20 @@ class SOSService {
       final contacts = await SupabaseService().getEmergencyContacts();
       if (contacts.isNotEmpty) {
         final phone = contacts.first.phone;
-        final url = Uri.parse("tel:$phone");
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url);
-          return;
-        }
+        final called = await FlutterPhoneDirectCaller.callNumber(phone);
+        if (called == true) return;
       }
     } catch (e) {
       debugPrint('Failed to get emergency contacts: $e');
     }
 
+    // Fallback to national emergency number
+    try {
+      final called = await FlutterPhoneDirectCaller.callNumber('112');
+      if (called == true) return;
+    } catch (_) {}
+
+    // Final fallback via url_launcher
     final url = Uri.parse("tel:112");
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
@@ -309,17 +334,26 @@ class SOSService {
                         },
                       ),
                       IconButton(
-                        icon: const Icon(Icons.message_rounded, color: Colors.teal),
+                        icon: const Icon(
+                          Icons.message_rounded,
+                          color: Colors.teal,
+                        ),
                         onPressed: () async {
                           Navigator.pop(ctx);
                           // Format number to international format (e.g. 0812 -> 62812)
-                          String waNumber = c.phone.replaceAll(RegExp(r'\D'), '');
+                          String waNumber = c.phone.replaceAll(
+                            RegExp(r'\D'),
+                            '',
+                          );
                           if (waNumber.startsWith('0')) {
                             waNumber = '62${waNumber.substring(1)}';
                           }
                           final url = Uri.parse("https://wa.me/$waNumber");
                           if (await canLaunchUrl(url)) {
-                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                            await launchUrl(
+                              url,
+                              mode: LaunchMode.externalApplication,
+                            );
                           }
                         },
                       ),

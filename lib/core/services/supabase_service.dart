@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:eyeon/core/models/emergency_contact.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart' as p;
 
 class SupabaseService {
   static final SupabaseService _instance = SupabaseService._internal();
@@ -16,6 +19,79 @@ class SupabaseService {
   SupabaseService._internal();
 
   static SupabaseClient get client => Supabase.instance.client;
+
+  // ================================================================
+  // SQLite Offline Queue
+  // ================================================================
+
+  Database? _db;
+
+  Future<Database> _getDb() async {
+    if (_db != null) return _db!;
+    final dbPath = await getDatabasesPath();
+    _db = await openDatabase(
+      p.join(dbPath, 'eyeon_offline.db'),
+      version: 2,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE offline_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            table_name TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            created_at TEXT NOT NULL
+          )
+        ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS offline_queue (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              table_name TEXT NOT NULL,
+              payload TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            )
+          ''');
+        }
+      },
+    );
+    return _db!;
+  }
+
+  Future<void> _saveToOfflineQueue(String tableName, Map<String, dynamic> data) async {
+    final db = await _getDb();
+    await db.insert('offline_queue', {
+      'table_name': tableName,
+      'payload': jsonEncode(data),
+      'created_at': DateTime.now().toIso8601String(),
+    });
+    debugPrint('📦 Saved to offline queue: $tableName');
+  }
+
+  /// Sync all offline queued data to Supabase.
+  /// Returns the number of successfully synced records.
+  Future<int> syncOfflineData() async {
+    final db = await _getDb();
+    final rows = await db.query('offline_queue', orderBy: 'id ASC');
+    if (rows.isEmpty) return 0;
+
+    int synced = 0;
+    for (final row in rows) {
+      try {
+        final tableName = row['table_name'] as String;
+        final payload = jsonDecode(row['payload'] as String) as Map<String, dynamic>;
+        await client.from(tableName).insert(payload);
+        await db.delete('offline_queue', where: 'id = ?', whereArgs: [row['id']]);
+        synced++;
+      } catch (e) {
+        debugPrint('⚠️ Failed to sync row ${row['id']}: $e');
+        // Stop at first failure to maintain order
+        break;
+      }
+    }
+    debugPrint('✅ Synced $synced/${rows.length} offline records');
+    return synced;
+  }
 
   // --- Auth Utilities ---
 
@@ -177,7 +253,7 @@ class SupabaseService {
     String? rideId,
   }) async {
     if (currentUser == null) return;
-    await client.from('incident_logs').insert({
+    final data = {
       'user_id': currentUser!.id,
       'latitude': lat,
       'longitude': lng,
@@ -185,7 +261,13 @@ class SupabaseService {
       if (videoUrl != null) 'video_url': videoUrl,
       if (rideId != null) 'ride_id': rideId,
       'timestamp': DateTime.now().toIso8601String(),
-    });
+    };
+    try {
+      await client.from('incident_logs').insert(data);
+    } catch (e) {
+      debugPrint('⚠️ logIncident failed, saving offline: $e');
+      await _saveToOfflineQueue('incident_logs', data);
+    }
   }
 
   /// Get incidents associated with a specific ride.
@@ -248,7 +330,15 @@ class SupabaseService {
       }).eq('id', rideId);
       debugPrint('Ride updated: $rideId');
     } catch (e) {
-      debugPrint('Update Ride Error: $e');
+      debugPrint('Update Ride Error, saving offline: $e');
+      await _saveToOfflineQueue('ride_logs', {
+        'user_id': currentUser!.id,
+        'id': rideId,
+        'end_time': endTime.toIso8601String(),
+        'microsleep_alerts': totalMicrosleepAlerts,
+        'accident_alerts': totalAccidentAlerts,
+        'distance': distance,
+      });
     }
   }
 

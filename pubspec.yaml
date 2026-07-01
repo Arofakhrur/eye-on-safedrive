@@ -61,6 +61,8 @@ dependencies:
   latlong2: ^0.9.1
   qr_flutter: ^4.1.0
   ffmpeg_kit_flutter_new: ^4.2.1
+  flutter_phone_direct_caller: ^2.1.1
+  sqflite: ^2.4.1
 
 dev_dependencies:
   flutter_test:

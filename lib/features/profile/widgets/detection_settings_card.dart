@@ -105,8 +105,8 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
           _buildSliderSection(
             'Sensitivitas Guncangan',
             widget.shockSensitivity,
-            0.5,
-            2.0,
+            10.0,
+            50.0,
             widget.onShockChanged,
             ['Rendah', 'Normal', 'Tinggi'],
           ),

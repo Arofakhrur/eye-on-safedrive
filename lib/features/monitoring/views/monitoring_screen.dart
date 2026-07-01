@@ -34,7 +34,7 @@ class MonitoringScreen extends StatefulWidget {
 }
 
 class _MonitoringScreenState extends State<MonitoringScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final MethodChannel _cameraChannel = const MethodChannel('eyeon_native_camera_control');
   final EventChannel _cameraEventChannel = const EventChannel('eyeon_native_camera_events');
   StreamSubscription? _cameraEventSubscription;
@@ -60,6 +60,10 @@ class _MonitoringScreenState extends State<MonitoringScreen>
 
   // Ride ID for incident linking (Task 8)
   String? _currentRideId;
+
+  // No-face warning
+  bool _noFaceWarning = false;
+  Timer? _noFaceTimer;
 
   // Ride Metrics
   Timer? _timer;
@@ -92,6 +96,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     // Task 47: DO NOT init camera here — defer to swipe start
     _microsleepController.addListener(_onUpdate);
     _accidentController.addListener(_onUpdate);
+    WidgetsBinding.instance.addObserver(this);
 
     // Request gallery access early
     Gal.requestAccess();
@@ -308,10 +313,16 @@ class _MonitoringScreenState extends State<MonitoringScreen>
               });
             }
           } else if (type == 'no_face') {
-            _microsleepController.updateEAR(0.0);
             if (mounted) {
               setState(() {
                 _facePoints = null;
+                _noFaceWarning = true;
+              });
+              _noFaceTimer?.cancel();
+              _noFaceTimer = Timer(const Duration(seconds: 3), () {
+                if (mounted) {
+                  setState(() => _noFaceWarning = false);
+                }
               });
             }
           } else if (type == 'incident_video_ready') {
@@ -349,6 +360,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
   @override
   void dispose() {
     _timer?.cancel();
+    _noFaceTimer?.cancel();
     _positionSubscription?.cancel();
     _positionStreamController.close();
     _cameraEventSubscription?.cancel();
@@ -356,7 +368,29 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     _microsleepController.dispose();
     _revealController.dispose();
     _fadeController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      _saveRideDataOnExit();
+    }
+  }
+
+  /// Save ride data when app is paused/force-closed to prevent dangling records.
+  void _saveRideDataOnExit() {
+    if (!_isRideStarted) return;
+    if (_currentRideId != null) {
+      SupabaseService().updateRide(
+        rideId: _currentRideId!,
+        endTime: DateTime.now(),
+        totalMicrosleepAlerts: _microsleepAlertsCount,
+        totalAccidentAlerts: _accidentAlertsCount,
+        distance: _totalDistance,
+      );
+    }
   }
 
   Future<void> _onStopRide() async {
@@ -617,6 +651,37 @@ class _MonitoringScreenState extends State<MonitoringScreen>
 
           // Alert overlay
           _buildAlertOverlay(),
+
+          // No-face warning overlay
+          if (_noFaceWarning && _isRideStarted && !_showRevealOverlay)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 80,
+              left: 24,
+              right: 24,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade800.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.face_retouching_off, color: Colors.white, size: 22),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Wajah tidak terdeteksi',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // ── Circular Reveal Overlay (Task 48/49) ──
           if (_showRevealOverlay)

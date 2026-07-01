@@ -21,6 +21,7 @@ class _PermissionScreenState extends State<PermissionScreen>
   bool _contactsGranted = false;
   bool _microphoneGranted = false;
   bool _storageGranted = false;
+  bool _phoneGranted = false;
   bool _isRequesting = false;
 
   @override
@@ -49,6 +50,7 @@ class _PermissionScreenState extends State<PermissionScreen>
     final notificationStatus = await Permission.notification.status;
     final contactsStatus = await Permission.contacts.status;
     final microphoneStatus = await Permission.microphone.status;
+    final phoneStatus = await Permission.phone.status;
     
     // For storage, we check videos on newer Android or storage on older
     final storageStatus = await Permission.storage.status;
@@ -62,6 +64,7 @@ class _PermissionScreenState extends State<PermissionScreen>
         _contactsGranted = contactsStatus.isGranted;
         _microphoneGranted = microphoneStatus.isGranted;
         _storageGranted = storageStatus.isGranted || videoStatus.isGranted;
+        _phoneGranted = phoneStatus.isGranted;
       });
     }
   }
@@ -89,6 +92,7 @@ class _PermissionScreenState extends State<PermissionScreen>
     }
     if (!_notificationGranted) await _requestSinglePermission(Permission.notification);
     if (!_contactsGranted) await _requestSinglePermission(Permission.contacts);
+    if (!_phoneGranted) await _requestSinglePermission(Permission.phone);
 
     await _checkCurrentPermissions();
     setState(() => _isRequesting = false);
@@ -130,7 +134,7 @@ class _PermissionScreenState extends State<PermissionScreen>
   }
 
   bool get _allGranted =>
-      _locationGranted && _cameraGranted && _notificationGranted && _contactsGranted && _microphoneGranted && _storageGranted;
+      _locationGranted && _cameraGranted && _notificationGranted && _contactsGranted && _microphoneGranted && _storageGranted && _phoneGranted;
 
   @override
   Widget build(BuildContext context) {
@@ -200,6 +204,14 @@ class _PermissionScreenState extends State<PermissionScreen>
                     subtitle: 'Quickly pick your emergency contact',
                     isGranted: _contactsGranted,
                     onToggle: () => _requestSinglePermission(Permission.contacts),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildPermissionCard(
+                    icon: Icons.phone_in_talk_rounded,
+                    title: 'Phone Call',
+                    subtitle: 'Direct call to emergency contact',
+                    isGranted: _phoneGranted,
+                    onToggle: () => _requestSinglePermission(Permission.phone),
                   ),
                 ],
               ),

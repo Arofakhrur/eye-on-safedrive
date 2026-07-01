@@ -6,11 +6,13 @@ import 'package:eyeon/core/constants/app_constants.dart';
 
 class MicrosleepController extends ChangeNotifier {
   double _currentEAR = 0.0;
+  double _filteredEAR = 0.0;
   bool _isDrowsy = false;
   
   // Task 14: State Management
   int _drowsyCount = 0;
   bool _isPaused = false;
+  DateTime? _lastWarningTime;
   
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isAlarmPlaying = false;
@@ -27,6 +29,7 @@ class MicrosleepController extends ChangeNotifier {
     _isPaused = false;
     _isDrowsy = false;
     _consecutiveDrowsyFrames = 0;
+    _lastWarningTime = DateTime.now();
     _stopAlarm();
     notifyListeners();
   }
@@ -40,16 +43,26 @@ class MicrosleepController extends ChangeNotifier {
   static const Map<String, String> _alarmSoundFiles = AppAssets.alarmSoundFiles;
 
   int _consecutiveDrowsyFrames = 0;
-  static const int _drowsyFrameThreshold = 10; // Approx 500ms at ~20fps
+  static const int _drowsyFrameThreshold = 30; // Approx 1.5s at ~20fps
 
   void updateEAR(double ear) {
+    // Cooldown 10 detik setelah resume untuk mencegah spam
+    if (_lastWarningTime != null &&
+        DateTime.now().difference(_lastWarningTime!).inSeconds < 10) {
+      _currentEAR = ear;
+      notifyListeners();
+      return;
+    }
+
+    // Low-Pass Filter pada EAR untuk memperhalus fluktuasi
+    _filteredEAR = (0.4 * ear) + (0.6 * _filteredEAR);
     _currentEAR = ear;
     notifyListeners();
 
     if (_isPaused) return;
 
     final threshold = PreferenceService().earThreshold;
-    if (ear < threshold) {
+    if (_filteredEAR < threshold) {
       _consecutiveDrowsyFrames++;
       if (_consecutiveDrowsyFrames >= _drowsyFrameThreshold) {
         if (!_isDrowsy) {
