@@ -43,19 +43,18 @@ class MicrosleepController extends ChangeNotifier {
   static const Map<String, String> _alarmSoundFiles = AppAssets.alarmSoundFiles;
 
   int _consecutiveDrowsyFrames = 0;
-  static const int _drowsyFrameThreshold = 30; // Approx 1.5s at ~20fps
 
   void updateEAR(double ear) {
-    // Cooldown 10 detik setelah resume untuk mencegah spam
+    // Cooldown setelah resume untuk mencegah spam
     if (_lastWarningTime != null &&
-        DateTime.now().difference(_lastWarningTime!).inSeconds < 10) {
+        DateTime.now().difference(_lastWarningTime!).inSeconds < DetectionConfig.resumeCooldownSeconds) {
       _currentEAR = ear;
       notifyListeners();
       return;
     }
 
     // Low-Pass Filter pada EAR untuk memperhalus fluktuasi
-    _filteredEAR = (0.4 * ear) + (0.6 * _filteredEAR);
+    _filteredEAR = (DetectionConfig.earLpfAlpha * ear) + (DetectionConfig.earLpfBeta * _filteredEAR);
     _currentEAR = ear;
     notifyListeners();
 
@@ -64,7 +63,7 @@ class MicrosleepController extends ChangeNotifier {
     final threshold = PreferenceService().earThreshold;
     if (_filteredEAR < threshold) {
       _consecutiveDrowsyFrames++;
-      if (_consecutiveDrowsyFrames >= _drowsyFrameThreshold) {
+      if (_consecutiveDrowsyFrames >= DetectionConfig.drowsyFrameThreshold) {
         if (!_isDrowsy) {
           _isDrowsy = true;
           _drowsyCount++;
@@ -87,7 +86,7 @@ class MicrosleepController extends ChangeNotifier {
         _isAlarmPlaying = true;
 
         // Set volume based on drowsyCount (Level 1: 0.7, Level 2+: 1.0)
-        double volume = _drowsyCount > 1 ? 1.0 : 0.7;
+        double volume = _drowsyCount > 1 ? DetectionConfig.alarmVolumeMax : DetectionConfig.alarmVolumeLevel1;
         await _audioPlayer.setVolume(volume);
 
         // Loop the alarm until eyes open

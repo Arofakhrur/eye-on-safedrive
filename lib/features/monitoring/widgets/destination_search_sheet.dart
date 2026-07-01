@@ -69,8 +69,8 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
     try {
       final url = Uri.parse(AppUrls.nominatimSearchUrl(query));
       final response = await http.get(url, headers: {
-        'User-Agent': 'EyeOnSafeDrive/1.0',
-      }).timeout(const Duration(seconds: 5));
+        'User-Agent': AppUrls.userAgent,
+      }).timeout(AppDurations.nominatimTimeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as List;
@@ -104,7 +104,7 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
     }
 
     setState(() => _isLoading = true);
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
+    _debounce = Timer(AppDurations.searchDebounce, () async {
       final results = await _fetchSuggestions(query);
       if (mounted && query == _currentQuery) {
         setState(() {

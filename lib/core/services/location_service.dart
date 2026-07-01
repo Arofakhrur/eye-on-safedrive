@@ -1,4 +1,5 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
 
 class LocationService {
   /// Check and request location permissions, then return current location.
@@ -30,7 +31,7 @@ class LocationService {
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 5), // Prevent hanging indefinitely indoors
+          timeLimit: AppDurations.locationTimeout,
         ),
       );
     } catch (e) {

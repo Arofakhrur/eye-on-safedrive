@@ -3,12 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
 
 /// Service for sending SOS alerts via Telegram Bot API.
-///
-/// All Telegram API calls are proxied through a Supabase Edge Function
-/// (`send-telegram-sos`) to keep the bot token secure on the server side.
-/// The client never has access to the bot token.
 class TelegramService {
   static final TelegramService _instance = TelegramService._internal();
   factory TelegramService() => _instance;
@@ -32,13 +29,17 @@ class TelegramService {
       return {'success': false, 'error': 'No Telegram chat IDs configured'};
     }
 
-    final mapsLink = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
-    final timestamp = '${DateFormat('dd MMM yyyy - HH:mm').format(DateTime.now())} WIB';
+    final mapsLink =
+        '${AppUrls.googleMapsSearch}&query=$lat,$lng';
+    final timestamp =
+        '${DateFormat('dd MMM yyyy - HH:mm').format(DateTime.now())} WIB';
 
     String address = "Alamat tidak dapat dimuat";
     try {
-      final reverseUrl = 'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json';
-      final response = await http.get(Uri.parse(reverseUrl)).timeout(const Duration(seconds: 5));
+      final reverseUrl = AppUrls.nominatimReverseUrl(lat, lng);
+      final response = await http
+          .get(Uri.parse(reverseUrl))
+          .timeout(AppDurations.reverseGeocodeTimeout);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['display_name'] != null) {
@@ -49,7 +50,8 @@ class TelegramService {
       debugPrint('Reverse geocoding error: $e');
     }
 
-    final message = '🚨 <b>DARURAT — EYE-ON! SOS ALERT</b> 🚨\n\n'
+    final message =
+        '🚨 <b>DARURAT — EYE-ON! SOS ALERT</b> 🚨\n\n'
         '👤 <b>Pengendara:</b> $riderName\n'
         '⏰ <b>Waktu:</b> $timestamp\n'
         '📍 <b>Area Terdekat:</b> $address\n'
@@ -61,7 +63,7 @@ class TelegramService {
 
     try {
       final res = await Supabase.instance.client.functions.invoke(
-        'send-telegram-sos',
+        SupabaseConfig.edgeFunctionTelegramSOS,
         body: {
           'chatIds': chatIds,
           'message': message,
@@ -73,11 +75,16 @@ class TelegramService {
 
       if (res.status == 200) {
         final data = res.data as Map<String, dynamic>;
-        debugPrint('✅ Telegram SOS sent via Edge Function: ${data['sent']}/${data['total']}');
+        debugPrint(
+          '✅ Telegram SOS sent via Edge Function: ${data['sent']}/${data['total']}',
+        );
         return data;
       } else {
         debugPrint('❌ Edge Function error: ${res.status}');
-        return {'success': false, 'error': 'Edge Function returned ${res.status}'};
+        return {
+          'success': false,
+          'error': 'Edge Function returned ${res.status}',
+        };
       }
     } catch (e) {
       debugPrint('TelegramService Edge Function error: $e');
@@ -93,7 +100,7 @@ class TelegramService {
   }) async {
     try {
       final res = await Supabase.instance.client.functions.invoke(
-        'send-telegram-sos',
+        SupabaseConfig.edgeFunctionTelegramSOS,
         body: {
           'chatIds': chatIds,
           'message': '',

@@ -16,6 +16,7 @@ import 'package:eyeon/features/monitoring/views/native_face_mesh_painter.dart';
 import 'package:gal/gal.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
 
 enum ScreenMode { split, fullCamera, fullMap }
 
@@ -168,7 +169,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
+        distanceFilter: LocationConfig.distanceFilterMeters,
       ),
     ).listen((Position position) {
       if (mounted) {
@@ -319,7 +320,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                 _noFaceWarning = true;
               });
               _noFaceTimer?.cancel();
-              _noFaceTimer = Timer(const Duration(seconds: 3), () {
+              _noFaceTimer = Timer(AppDurations.noFaceWarning, () {
                 if (mounted) {
                   setState(() => _noFaceWarning = false);
                 }
@@ -1068,7 +1069,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
   }
 
   Widget _buildLevel3Overlay() {
-    bool canUnlock = _currentSpeed < 1.0; // Close to 0 km/h
+    bool canUnlock = _currentSpeed < DetectionConfig.level3UnlockSpeedKmH;
     return Container(
       color: Colors.black87,
       child: Center(

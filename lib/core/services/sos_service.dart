@@ -6,6 +6,7 @@ import 'package:eyeon/core/services/telegram_service.dart';
 import 'package:gal/gal.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
 
 class SOSService {
   static final SOSService _instance = SOSService._internal();
@@ -62,7 +63,7 @@ class SOSService {
         final name =
             user?.userMetadata?['full_name'] ??
             user?.userMetadata?['name'] ??
-            'Pengendara';
+            EmergencyConfig.fallbackRiderName;
 
         telegramDetails = await TelegramService().sendSOSAlert(
           chatIds: chatIds,
@@ -185,7 +186,7 @@ class SOSService {
         debugPrint('==================================================\n');
 
         try {
-          await SupabaseService.client.from('evaluation_metrics').insert({
+          await SupabaseService.client.from(SupabaseConfig.tableEvaluationMetrics).insert({
             'test_scenario': 'SOS Success',
             'sensor_detection_ms': sensorDetectionMs,
             'video_extraction_ms': videoExtractionMs,
@@ -217,7 +218,7 @@ class SOSService {
           sensorDetectionMs + videoExtractionMs + gallerySaveMs + telegramApiMs;
 
       try {
-        await SupabaseService.client.from('evaluation_metrics').insert({
+        await SupabaseService.client.from(SupabaseConfig.tableEvaluationMetrics).insert({
           'test_scenario':
               'SOS FAILED: ${e.toString().substring(0, e.toString().length > 100 ? 100 : e.toString().length)}',
           'sensor_detection_ms': sensorDetectionMs,
@@ -254,12 +255,12 @@ class SOSService {
 
     // Fallback to national emergency number
     try {
-      final called = await FlutterPhoneDirectCaller.callNumber('112');
+      final called = await FlutterPhoneDirectCaller.callNumber(EmergencyConfig.nationalEmergencyNumber);
       if (called == true) return;
     } catch (_) {}
 
     // Final fallback via url_launcher
-    final url = Uri.parse("tel:112");
+    final url = Uri.parse("tel:${EmergencyConfig.nationalEmergencyNumber}");
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     }
@@ -346,9 +347,9 @@ class SOSService {
                             '',
                           );
                           if (waNumber.startsWith('0')) {
-                            waNumber = '62${waNumber.substring(1)}';
+                            waNumber = '${EmergencyConfig.indonesianCountryCode}${waNumber.substring(1)}';
                           }
-                          final url = Uri.parse("https://wa.me/$waNumber");
+                          final url = Uri.parse("${EmergencyConfig.whatsAppBaseUrl}$waNumber");
                           if (await canLaunchUrl(url)) {
                             await launchUrl(
                               url,
@@ -372,11 +373,11 @@ class SOSService {
                   'Layanan Darurat Nasional',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: const Text('112'),
+                subtitle: Text(EmergencyConfig.nationalEmergencyNumber),
                 trailing: const Icon(Icons.call, color: Colors.green),
                 onTap: () async {
                   Navigator.pop(ctx);
-                  final url = Uri.parse("tel:112");
+                  final url = Uri.parse("tel:${EmergencyConfig.nationalEmergencyNumber}");
                   if (await canLaunchUrl(url)) {
                     await launchUrl(url);
                   }

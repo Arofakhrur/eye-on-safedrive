@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:sensors_plus/sensors_plus.dart';
-import 'package:eyeon/core/services/sos_service.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/services/location_service.dart';
@@ -19,7 +19,7 @@ class AccidentController extends ChangeNotifier {
   
   // LPF (Low-Pass Filter) factor. 
   // Ditingkatkan menjadi 0.5 agar lebih responsif terhadap kecelakaan nyata.
-  final double _alpha = 0.5; 
+  final double _alpha = DetectionConfig.accelLpfAlpha; 
 
   int _sensorDetectionLatencyMs = 0;
   int get sensorDetectionLatencyMs => _sensorDetectionLatencyMs;
@@ -106,11 +106,11 @@ class AccidentController extends ChangeNotifier {
       final gy = event.y;
       final gz = event.z;
       final totalG = sqrt(gx * gx + gy * gy + gz * gz);
-      if (totalG < 0.1) return; // Hindari divide-by-zero
+      if (totalG < DetectionConfig.minGravityMagnitude) return; // Hindari divide-by-zero
 
       final tiltDeg = acos((gz.abs() / totalG).clamp(0.0, 1.0)) * (180.0 / pi);
 
-      if (tiltDeg > 60.0) {
+      if (tiltDeg > DetectionConfig.tiltThresholdDegrees) {
         tiltTriggered = true;
         debugPrint('🔄 TILT DETECTED: ${tiltDeg.toStringAsFixed(1)}° — Motor rebah! Bypass Speed-Gate.');
         tiltSubscription?.cancel();
@@ -124,7 +124,7 @@ class AccidentController extends ChangeNotifier {
     });
 
     _speedCheckTimer?.cancel();
-    _speedCheckTimer = Timer(const Duration(seconds: 4), () async {
+    _speedCheckTimer = Timer(Duration(seconds: DetectionConfig.speedGateSeconds), () async {
       tiltSubscription?.cancel(); // Bersihkan stream tilt setelah timer habis
 
       if (tiltTriggered) return; // Sudah di-trigger oleh tilt, skip speed check
@@ -149,7 +149,7 @@ class AccidentController extends ChangeNotifier {
           //    Guncangan tadi hanyalah murni karena melindas lubang jalanan. 
           //    Ini adalah FALSE ALARM -> Batalkan SOS.
           // =====================================================================
-          if (speedKmH < 2.0) {
+          if (speedKmH < DetectionConfig.speedGateThresholdKmH) {
             _sensorDetectionLatencyMs = stopwatch.elapsedMilliseconds;
             _isAccidentDetected = true;
             _triggerAccidentResponse();
@@ -175,14 +175,8 @@ class AccidentController extends ChangeNotifier {
     // Auto-Play Alarm on Max Volume
     try {
       final alarmSound = PreferenceService().alarmSound;
-      String audioPath = 'audio/sound1.mp3';
-      switch (alarmSound) {
-        case 'Sound 1': audioPath = 'audio/sound1.mp3'; break;
-        case 'Sound 2': audioPath = 'audio/sound2.mp3'; break;
-        case 'Sound 3': audioPath = 'audio/sound3.mp3'; break;
-        case 'Sound 4': audioPath = 'audio/sound4.mp3'; break;
-      }
-      await _audioPlayer.setVolume(1.0); // Force Max Volume
+      final audioPath = AppAssets.alarmAudioFiles[alarmSound] ?? AppAssets.alarmAudioFiles.values.first;
+      await _audioPlayer.setVolume(DetectionConfig.alarmVolumeMax);
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
       await _audioPlayer.play(AssetSource(audioPath));
     } catch (e) {

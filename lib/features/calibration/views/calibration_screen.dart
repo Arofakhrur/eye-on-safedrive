@@ -48,11 +48,11 @@ class _CalibrationScreenState extends State<CalibrationScreen>
 
   // ── EAR Calibration Data ──────────────────────────────────────────
   final List<double> _earSamples = [];
-  static const int _targetSamples = 100; // ~5 seconds of data at ~20fps
+  static const int _targetSamples = DetectionConfig.calibrationTargetSamples;
   double _currentEAR = 0.0;
   double _calibratedThreshold = 0.0;
   int _noFaceFrames = 0;
-  static const int _noFaceTimeout = 60; // ~3 seconds without face = warning
+  static const int _noFaceTimeout = DetectionConfig.noFaceTimeoutFrames;
 
   // ── Animation ─────────────────────────────────────────────────────
   late AnimationController _pulseController;
@@ -162,7 +162,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
         final avgEAR = (rightEAR + leftEAR) / 2.0;
 
         // Only accept reasonable EAR values (filter noise)
-        if (avgEAR > 0.05 && avgEAR < 0.6) {
+        if (avgEAR > DetectionConfig.earSampleMin && avgEAR < DetectionConfig.earSampleMax) {
           _earSamples.add(avgEAR);
           _currentEAR = avgEAR;
         }
@@ -259,10 +259,10 @@ class _CalibrationScreenState extends State<CalibrationScreen>
         : averageEAR;
 
     // Personal threshold = 75% of robust baseline average
-    _calibratedThreshold = robustAverage * 0.75;
+    _calibratedThreshold = robustAverage * DetectionConfig.earThresholdMultiplier;
 
     // Clamp to reasonable range
-    _calibratedThreshold = _calibratedThreshold.clamp(0.12, 0.35);
+    _calibratedThreshold = _calibratedThreshold.clamp(DetectionConfig.earThresholdMin, DetectionConfig.earThresholdMax);
 
     debugPrint(
       '✅ Calibration complete: '

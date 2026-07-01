@@ -30,7 +30,7 @@ class SupabaseService {
     if (_db != null) return _db!;
     final dbPath = await getDatabasesPath();
     _db = await openDatabase(
-      p.join(dbPath, 'eyeon_offline.db'),
+      p.join(dbPath, SupabaseConfig.offlineDbName),
       version: 2,
       onCreate: (db, version) async {
         await db.execute('''
@@ -183,7 +183,7 @@ class SupabaseService {
       throw Exception('Nomor telepon sudah terdaftar');
     }
 
-    await client.from('emergency_contacts').insert(contact.toJson());
+    await client.from(SupabaseConfig.tableEmergencyContacts).insert(contact.toJson());
   }
 
   /// Update an existing emergency contact by its ID.
@@ -203,7 +203,7 @@ class SupabaseService {
     if (telegramChatId != null) updates['telegram_chat_id'] = telegramChatId;
 
     await client
-        .from('emergency_contacts')
+        .from(SupabaseConfig.tableEmergencyContacts)
         .update(updates)
         .eq('id', contactId)
         .eq('user_id', currentUser!.id);
@@ -213,7 +213,7 @@ class SupabaseService {
   Future<void> deleteEmergencyContact(String contactId) async {
     if (currentUser == null) return;
     await client
-        .from('emergency_contacts')
+        .from(SupabaseConfig.tableEmergencyContacts)
         .delete()
         .eq('id', contactId)
         .eq('user_id', currentUser!.id);
@@ -222,7 +222,7 @@ class SupabaseService {
   /// Legacy bulk save — kept for backward compatibility during initial setup.
   Future<void> saveEmergencyContacts(List<EmergencyContact> contacts) async {
     if (currentUser == null) return;
-    await client.from('emergency_contacts').delete().eq('user_id', currentUser!.id);
+    await client.from(SupabaseConfig.tableEmergencyContacts).delete().eq('user_id', currentUser!.id);
     if (contacts.isNotEmpty) {
       final data = contacts.map((c) => {
         'user_id': currentUser!.id,
@@ -231,13 +231,13 @@ class SupabaseService {
         'telegram_chat_id': c.telegramChatId,
         'updated_at': DateTime.now().toIso8601String(),
       }).toList();
-      await client.from('emergency_contacts').insert(data);
+      await client.from(SupabaseConfig.tableEmergencyContacts).insert(data);
     }
   }
 
   Future<List<EmergencyContact>> getEmergencyContacts() async {
     if (currentUser == null) return [];
-    final response = await client.from('emergency_contacts').select().eq('user_id', currentUser!.id);
+    final response = await client.from(SupabaseConfig.tableEmergencyContacts).select().eq('user_id', currentUser!.id);
     return (response as List).map((json) => EmergencyContact.fromJson(json)).toList();
   }
 
@@ -263,10 +263,10 @@ class SupabaseService {
       'timestamp': DateTime.now().toIso8601String(),
     };
     try {
-      await client.from('incident_logs').insert(data);
+      await client.from(SupabaseConfig.tableIncidentLogs).insert(data);
     } catch (e) {
       debugPrint('⚠️ logIncident failed, saving offline: $e');
-      await _saveToOfflineQueue('incident_logs', data);
+      await _saveToOfflineQueue(SupabaseConfig.tableIncidentLogs, data);
     }
   }
 
@@ -274,7 +274,7 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getIncidentsForRide(String rideId) async {
     if (currentUser == null) return [];
     final response = await client
-        .from('incident_logs')
+        .from(SupabaseConfig.tableIncidentLogs)
         .select()
         .eq('ride_id', rideId)
         .order('timestamp');
@@ -296,7 +296,7 @@ class SupabaseService {
   }) async {
     if (currentUser == null) return null;
     try {
-      final result = await client.from('ride_logs').insert({
+      final result = await client.from(SupabaseConfig.tableRideLogs).insert({
         'user_id': currentUser!.id,
         'start_time': startTime.toIso8601String(),
         'end_time': endTime.toIso8601String(),
@@ -322,7 +322,7 @@ class SupabaseService {
   }) async {
     if (currentUser == null) return;
     try {
-      await client.from('ride_logs').update({
+      await client.from(SupabaseConfig.tableRideLogs).update({
         'end_time': endTime.toIso8601String(),
         'microsleep_alerts': totalMicrosleepAlerts,
         'accident_alerts': totalAccidentAlerts,
@@ -346,7 +346,7 @@ class SupabaseService {
     if (currentUser == null) return [];
     try {
       final response = await client
-          .from('ride_logs')
+          .from(SupabaseConfig.tableRideLogs)
           .select()
           .eq('user_id', currentUser!.id)
           .order('start_time', ascending: false);
@@ -359,7 +359,7 @@ class SupabaseService {
       }
       
       final response = await client
-          .from('incident_logs')
+          .from(SupabaseConfig.tableIncidentLogs)
           .select()
           .eq('user_id', currentUser!.id)
           .order('timestamp', ascending: false);
@@ -386,7 +386,7 @@ class SupabaseService {
     // We try to stream from ride_logs. 
     // Supabase will automatically listen to updates on this table if Realtime is enabled.
     return client
-        .from('ride_logs')
+        .from(SupabaseConfig.tableRideLogs)
         .stream(primaryKey: ['id'])
         .eq('user_id', currentUser!.id)
         .order('start_time', ascending: false)
@@ -407,7 +407,7 @@ class SupabaseService {
     if (currentUser == null) return null;
     try {
       final response = await client
-          .from('profiles')
+          .from(SupabaseConfig.tableProfiles)
           .select()
           .eq('id', currentUser!.id)
           .maybeSingle();
@@ -422,7 +422,7 @@ class SupabaseService {
   Future<void> updateProfile(Map<String, dynamic> data) async {
     if (currentUser == null) return;
     try {
-      await client.from('profiles').upsert({
+      await client.from(SupabaseConfig.tableProfiles).upsert({
         'id': currentUser!.id,
         ...data,
         'updated_at': DateTime.now().toIso8601String(),
@@ -448,14 +448,14 @@ class SupabaseService {
     final file = File(filePath);
     
     try {
-      await client.storage.from('incident_videos').upload(path, file);
+      await client.storage.from(SupabaseConfig.bucketIncidentVideos).upload(path, file);
       
       // Cleanup local cache to free up memory
       if (await file.exists()) {
         await file.delete();
       }
       
-      return client.storage.from('incident_videos').getPublicUrl(path);
+      return client.storage.from(SupabaseConfig.bucketIncidentVideos).getPublicUrl(path);
     } catch (e) {
       debugPrint('Upload video error: $e');
       return null;
