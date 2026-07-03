@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:eyeon/core/services/preference_service.dart';
-import 'package:eyeon/core/services/supabase_service.dart';
-import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:eyeon/features/splash/logic/splash_controller.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,6 +14,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
+  final SplashController _controller = SplashController();
 
   @override
   void initState() {
@@ -39,68 +37,13 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _animController.forward();
-    _handleNavigation();
-  }
-
-  Future<void> _handleNavigation() async {
-    await Future.delayed(AppDurations.splashDelay);
-    if (!mounted) return;
-
-    final prefs = PreferenceService();
-    final user = Supabase.instance.client.auth.currentUser;
-
-    // 1. Onboarding
-    if (prefs.isFirstTime) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.onboarding);
-      return;
-    }
-
-    // 2. Permissions
-    if (!prefs.isPermissionsGranted) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.permission);
-      return;
-    }
-
-    // 3. Auth
-    if (user == null) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
-      return;
-    }
-
-    // 4. Smart Data Check: If logged in, check if setup was already done in Supabase
-    if (!prefs.isContactSetup) {
-      try {
-        final contacts = await SupabaseService().getEmergencyContacts();
-        if (contacts.isNotEmpty) {
-          await prefs.setContactSetup(true);
-          await prefs.setCalibrated(true);
-        }
-      } catch (e) {
-        debugPrint('Error checking existing contacts: $e');
-      }
-    }
-
-    // 5. Emergency Contact
-    if (!mounted) return;
-
-    if (!prefs.isContactSetup) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.setupWizard);
-      return;
-    }
-
-    // 6. Calibration
-    if (!prefs.isCalibrated) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.calibration);
-      return;
-    }
-
-    // 7. Home
-    Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+    _controller.handleNavigation(context);
   }
 
   @override
   void dispose() {
     _animController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 

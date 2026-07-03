@@ -12,6 +12,8 @@ import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:eyeon/core/utils/mock_data.dart';
 
+import 'package:eyeon/features/home/logic/home_controller.dart';
+
 class HomeDashboard extends StatefulWidget {
   final VoidCallback? onProfileTap;
   final VoidCallback? onHistoryTap;
@@ -22,29 +24,13 @@ class HomeDashboard extends StatefulWidget {
 }
 
 class _HomeDashboardState extends State<HomeDashboard> {
-  String _userName = 'Rider';
-  String? _avatarUrl;
+  final HomeController _controller = HomeController();
 
   @override
-  void initState() {
-    super.initState();
-    _loadUserProfile();
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
-
-  void _loadUserProfile() {
-    final user = SupabaseService().currentUser;
-    if (user != null && user.userMetadata != null) {
-      final name = user.userMetadata!['full_name'] ?? user.userMetadata!['name'];
-      final avatar = (user.userMetadata!['avatar_url'] ?? user.userMetadata!['picture'])
-          ?.toString().replaceFirst('http://', 'https://');
-      setState(() {
-        if (name != null) _userName = name;
-        _avatarUrl = avatar;
-      });
-    }
-  }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +44,12 @@ class _HomeDashboardState extends State<HomeDashboard> {
             children: [
               const SizedBox(height: 24),
               const EyeOnHeader(),
-              _buildGreetingHeader(),
+              ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) {
+                  return _buildGreetingHeader();
+                }
+              ),
               const SizedBox(height: 28),
               const SafetyScoreCard(),
               const SizedBox(height: 24),
@@ -101,7 +92,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  _userName,
+                  _controller.userName,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
@@ -121,9 +112,9 @@ class _HomeDashboardState extends State<HomeDashboard> {
             decoration: BoxDecoration(
               color: AppColors.primary,
               shape: BoxShape.circle,
-              image: _avatarUrl != null
+              image: _controller.avatarUrl != null
                   ? DecorationImage(
-                      image: NetworkImage(_avatarUrl!),
+                      image: NetworkImage(_controller.avatarUrl!),
                       fit: BoxFit.cover,
                     )
                   : null,
@@ -135,7 +126,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 ),
               ],
             ),
-            child: _avatarUrl == null
+            child: _controller.avatarUrl == null
                 ? const Icon(Icons.person_rounded, color: Colors.black, size: 24)
                 : null,
           ),

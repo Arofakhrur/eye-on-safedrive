@@ -16,17 +16,12 @@ class NativeFaceMeshPainter extends CustomPainter {
 
     final Color mainColor = isDrowsy ? Colors.redAccent : AppColors.primary;
 
-    final Paint eyePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..color = mainColor;
+
 
     final Paint boxPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0
-      ..color = mainColor.withOpacity(0.3);
+      ..color = mainColor.withValues(alpha: 0.3);
 
     // 1. Calculate Bounding Box
     double minX = double.infinity, minY = double.infinity;

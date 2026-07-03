@@ -49,7 +49,7 @@ class CameraUtils {
     // * nv21 for Android
     // * bgra8888 for iOS
     if (format == null ||
-        (Platform.isAndroid && format != InputImageFormat.nv21) ||
+        (Platform.isAndroid && format != InputImageFormat.nv21 && format != InputImageFormat.yuv_420_888) ||
         (Platform.isIOS && format != InputImageFormat.bgra8888)) {
       return null;
     }

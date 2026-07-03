@@ -235,16 +235,28 @@ class NativeCameraView(
                 val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
 
                 provider.unbindAll()
-                provider.bindToLifecycle(
-                    lifecycleOwner,
-                    cameraSelector,
-                    preview,
-                    imageAnalysis,
-                    videoCapture
-                )
+                try {
+                    provider.bindToLifecycle(
+                        lifecycleOwner,
+                        cameraSelector,
+                        preview,
+                        imageAnalysis,
+                        videoCapture
+                    )
+                    Log.d(TAG, "startCamera: ✅ Camera bound to lifecycle successfully (with VideoCapture)!")
+                } catch (e: Exception) {
+                    Log.w(TAG, "startCamera: Failed to bind 3 use cases (emulator/low-end device issue?). Retrying without VideoCapture...", e)
+                    provider.unbindAll()
+                    provider.bindToLifecycle(
+                        lifecycleOwner,
+                        cameraSelector,
+                        preview,
+                        imageAnalysis
+                    )
+                    Log.d(TAG, "startCamera: ✅ Camera bound to lifecycle successfully (without VideoCapture)!")
+                }
 
                 isCameraStarted = true
-                Log.d(TAG, "startCamera: ✅ Camera bound to lifecycle successfully!")
 
                 startRollingBuffer()
 
