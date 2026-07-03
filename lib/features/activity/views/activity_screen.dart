@@ -5,6 +5,8 @@ import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/constants/app_data.dart';
 import 'package:eyeon/core/widgets/eyeon_header.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:eyeon/core/utils/mock_data.dart';
 
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});
@@ -114,16 +116,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: SupabaseService().streamRideHistory(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
-
-          final logs = snapshot.data!;
+          final bool isLoading = !snapshot.hasData;
+          final logs = isLoading ? MockData.fakeRideLogs : snapshot.data!;
           _processData(logs);
 
-          return SingleChildScrollView(
+          return Skeletonizer(
+            enabled: isLoading,
+            child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -152,6 +151,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 const SizedBox(height: 100),
               ],
             ),
+          ),
           );
         },
       ),

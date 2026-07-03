@@ -23,7 +23,8 @@ serve(async (req) => {
 
     // Jika user mengirim command /start
     if (text === '/start') {
-      const replyText = `Sistem aktif! Chat ID Anda adalah: ${chatId}.\n\nSilakan berikan angka ini kepada pengendara untuk dimasukkan ke aplikasi EYE-ON!.`
+      // Gunakan tag <code> agar saat diketuk (tap), Chat ID otomatis disalin!
+      const replyText = `Sistem aktif! Chat ID Anda adalah:\n\n<code>${chatId}</code>\n\n<i>(Ketuk ID di atas untuk menyalin)</i>\n\nSilakan berikan angka ini kepada pengendara untuk dimasukkan ke aplikasi EYE-ON!.`
 
       // Kirim balik ke API Telegram
       const telegramApiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`
@@ -35,6 +36,7 @@ serve(async (req) => {
         body: JSON.stringify({
           chat_id: chatId,
           text: replyText,
+          parse_mode: 'HTML',
         }),
       })
 

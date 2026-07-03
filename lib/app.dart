@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 // Import Feature Views
 import 'package:eyeon/features/splash/views/splash_screen.dart';
@@ -31,6 +32,14 @@ class MyApp extends StatelessWidget {
         fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
         textTheme: GoogleFonts.plusJakartaSansTextTheme(),
         useMaterial3: true,
+        extensions: const [
+          SkeletonizerConfigData(
+            effect: SolidColorEffect(
+              color: Color(0xFFE0E0E0),
+            ),
+            ignoreContainers: true,
+          ),
+        ],
       ),
       initialRoute: AppRoutes.splash,
       routes: {

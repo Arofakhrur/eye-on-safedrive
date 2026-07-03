@@ -36,7 +36,7 @@
 - **Backend & Auth**: Supabase (Auth, PostgreSQL, Storage, Edge Functions)
 - **CV Engine**: Google ML Kit (Face Mesh)
 - **Media Processing**: FFmpeg Kit
-- **State Management**: Provider / ChangeNotifier
+- **State Management**: Provider  ChangeNotifi/er
 - **Maps & Geocoding**: OpenStreetMap / Nominatim (flutter_map)
 - **Local Storage**: SharedPreferences, Sqflite
 

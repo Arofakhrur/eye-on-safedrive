@@ -9,6 +9,8 @@ import 'package:eyeon/core/widgets/eyeon_header.dart';
 import 'package:eyeon/core/models/emergency_contact.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:eyeon/core/utils/mock_data.dart';
 
 class HomeDashboard extends StatefulWidget {
   final VoidCallback? onProfileTap;
@@ -157,13 +159,10 @@ class _HomeDashboardState extends State<HomeDashboard> {
     return FutureBuilder<List<EmergencyContact>>(
       future: SupabaseService().getEmergencyContacts(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-        }
+        final bool isLoading = snapshot.connectionState == ConnectionState.waiting;
+        final contacts = isLoading ? MockData.fakeContacts : (snapshot.data ?? []);
         
-        final contacts = snapshot.data ?? [];
-        
-        if (contacts.isEmpty) {
+        if (!isLoading && contacts.isEmpty) {
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -194,57 +193,60 @@ class _HomeDashboardState extends State<HomeDashboard> {
           );
         }
 
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: contacts.length,
-          itemBuilder: (context, index) {
-            final contact = contacts[index];
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-                border: Border.all(color: Colors.grey.shade100),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
+        return Skeletonizer(
+          enabled: isLoading,
+          child: ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: contacts.length,
+            itemBuilder: (context, index) {
+              final contact = contacts[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    child: const Icon(Icons.person, color: Colors.black87),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          contact.name,
-                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 15),
-                        ),
-                        Text(
-                          contact.phone,
-                          style: GoogleFonts.plusJakartaSans(color: Colors.black54, fontSize: 13),
-                        ),
-                      ],
+                  ],
+                  border: Border.all(color: Colors.grey.shade100),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.person, color: Colors.black87),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            contact.name,
+                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 15),
+                          ),
+                          Text(
+                            contact.phone,
+                            style: GoogleFonts.plusJakartaSans(color: Colors.black54, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -254,7 +256,10 @@ class _HomeDashboardState extends State<HomeDashboard> {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: SupabaseService().streamRideHistory(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        final bool isLoading = !snapshot.hasData;
+        final rides = isLoading ? MockData.fakeRideLogs : snapshot.data!;
+        
+        if (!isLoading && rides.isEmpty) {
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 32),
@@ -264,12 +269,11 @@ class _HomeDashboardState extends State<HomeDashboard> {
               border: Border.all(color: Colors.grey.shade200, width: 2),
             ),
             child: const Center(
-              child: Icon(Icons.check_box_outline_blank_rounded, color: Colors.black26, size: 36),
+              child: Icon(Icons.history_rounded, color: Colors.black26, size: 36),
             ),
           );
         }
 
-        final rides = snapshot.data!;
         int totalRides = rides.length;
         int totalAlerts = 0;
         int safeRides = 0;
@@ -281,7 +285,9 @@ class _HomeDashboardState extends State<HomeDashboard> {
           if (micro == 0 && accident == 0) safeRides++;
         }
 
-        return GestureDetector(
+        return Skeletonizer(
+          enabled: isLoading,
+          child: GestureDetector(
           onTap: widget.onHistoryTap,
           child: Container(
             width: double.infinity,
@@ -336,6 +342,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 const Icon(Icons.chevron_right_rounded, color: Colors.black26),
               ],
             ),
+          ),
           ),
         );
       },

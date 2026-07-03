@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/services/safety_score_service.dart';
-import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class SafetyScoreCard extends StatelessWidget {
   const SafetyScoreCard({super.key});
@@ -25,7 +25,9 @@ class SafetyScoreCard extends StatelessWidget {
       stream: SafetyScoreService().streamScoreBreakdown(),
       builder: (context, snapshot) {
         final isLoading = !snapshot.hasData;
-        final breakdown = snapshot.data ?? {};
+        final breakdown = isLoading 
+            ? {'score': 85, 'totalRides': 10, 'cleanRides': 8, 'totalMicrosleepAlerts': 2} 
+            : (snapshot.data ?? {});
         final int score = (breakdown['score'] ?? 0) as int;
         
         final scoreColor = _getScoreColor(score);
@@ -45,15 +47,10 @@ class SafetyScoreCard extends StatelessWidget {
               ),
             ],
           ),
-          child: isLoading
-              ? const SizedBox(
-                  height: 200,
-                  child: Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
-                )
-              : Column(
-                  children: [
+          child: Skeletonizer(
+            enabled: isLoading,
+            child: Column(
+              children: [
                     // Score circle with overlapping label
                     TweenAnimationBuilder<double>(
                       tween: Tween<double>(begin: 0, end: score.toDouble()),
@@ -155,6 +152,7 @@ class SafetyScoreCard extends StatelessWidget {
                     ),
                   ],
                 ),
+          ),
         );
       },
     );

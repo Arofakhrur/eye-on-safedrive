@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:eyeon/core/constants/app_data.dart';
 import 'package:eyeon/core/widgets/eyeon_header.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:eyeon/core/utils/mock_data.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -44,14 +46,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: SupabaseService().streamRideHistory(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  );
-                }
-
-                final logs = snapshot.data!;
-                final filteredLogs = logs.where((log) {
+                final bool isLoading = !snapshot.hasData;
+                final logs = isLoading ? MockData.fakeRideLogs : snapshot.data!;
+                
+                final filteredLogs = isLoading 
+                    ? logs
+                    : logs.where((log) {
                   if (_selectedCategory == 'Semua') return true;
                   if (_selectedCategory == 'Microsleep') {
                     return (log['microsleep_alerts'] ?? 0) > 0;
@@ -62,7 +62,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   return true;
                 }).toList();
 
-                if (filteredLogs.isEmpty) {
+                if (!isLoading && filteredLogs.isEmpty) {
                   return SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     child: Container(
@@ -73,12 +73,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   );
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(24),
-                  itemCount: filteredLogs.length,
-                  itemBuilder: (context, index) {
-                    return HistoryCard(log: filteredLogs[index]);
-                  },
+                return Skeletonizer(
+                  enabled: isLoading,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(24),
+                    itemCount: filteredLogs.length,
+                    itemBuilder: (context, index) {
+                      return HistoryCard(log: filteredLogs[index]);
+                    },
+                  ),
                 );
               },
             ),
