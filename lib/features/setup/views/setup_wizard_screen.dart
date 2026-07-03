@@ -11,6 +11,7 @@ import 'package:eyeon/core/widgets/eyeon_address_autocomplete.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:eyeon/core/utils/notification_helper.dart';
 
 class SetupWizardScreen extends StatefulWidget {
   const SetupWizardScreen({super.key});
@@ -88,8 +89,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving setup: $e')),
+        NotificationHelper.showTop(
+          context,
+          message: 'Error saving setup: $e',
+          type: NotificationType.error,
         );
       }
     } finally {
@@ -99,8 +102,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
   Future<void> _pickContact() async {
     if (_selectedContacts.length >= AppLimits.maxEmergencyContacts) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Maksimal ${AppLimits.maxEmergencyContacts} kontak darurat.')),
+      NotificationHelper.showTop(
+        context,
+        message: 'Maksimal ${AppLimits.maxEmergencyContacts} kontak darurat.',
+        type: NotificationType.warning,
       );
       return;
     }
@@ -122,7 +127,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
           if (!phone.startsWith('+')) {
             if (phone.startsWith('0')) {
-              phone = '+62${phone.substring(1)}';
+              phone = '+${EmergencyConfig.indonesianCountryCode}${phone.substring(1)}';
             } else {
               phone = '+$phone';
             }
@@ -190,8 +195,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   if (phone.isNotEmpty) {
                     _sendInviteLink(phone);
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Isi nomor HP terlebih dahulu')),
+                    NotificationHelper.showTop(
+                      context,
+                      message: 'Isi nomor HP terlebih dahulu',
+                      type: NotificationType.warning,
                     );
                   }
                 },
@@ -238,11 +245,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               final telegramId = telegramController.text.trim();
 
               if (name.isEmpty || phone.isEmpty || telegramId.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Nama, Nomor HP, dan Chat ID Telegram wajib diisi mutlak untuk sistem SOS!'),
-                    backgroundColor: Colors.redAccent,
-                  ),
+                NotificationHelper.showTop(
+                  context,
+                  message: 'Nama, Nomor HP, dan Chat ID Telegram wajib diisi mutlak untuk sistem SOS!',
+                  type: NotificationType.warning,
                 );
                 return;
               }
@@ -313,11 +319,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   }
 
   Future<void> _sendInviteLink(String phone) async {
-    const text =
-        'Halo! Saya menggunakan aplikasi keselamatan berkendara EYE-ON! dan menjadikanmu sebagai kontak darurat saya. Tolong klik link ini: https://t.me/EyeonEmergency_bot lalu tekan tombol START. Setelah itu, tolong kirimkan angka Chat ID balasan dari bot tersebut ke saya ya! Terima kasih.';
+    const text = AppUrls.telegramInviteMessage;
     final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
     final url = Uri.parse(
-      'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(text)}',
+      '${AppUrls.whatsAppUrl(cleanPhone)}?text=${Uri.encodeComponent(text)}',
     );
 
     if (await canLaunchUrl(url)) {
@@ -328,8 +333,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         await launchUrl(smsUrl);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak dapat membuka aplikasi pesan')),
+          NotificationHelper.showTop(
+            context,
+            message: 'Tidak dapat membuka aplikasi pesan',
+            type: NotificationType.error,
           );
         }
       }

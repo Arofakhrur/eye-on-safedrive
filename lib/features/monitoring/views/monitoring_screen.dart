@@ -17,6 +17,7 @@ import 'package:gal/gal.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
+import 'package:eyeon/core/utils/notification_helper.dart';
 
 enum ScreenMode { split, fullCamera, fullMap }
 
@@ -237,48 +238,24 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     
     if (mounted) {
       if (result['gallerySaved'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                const Expanded(child: Text('Video insiden berhasil disimpan ke Galeri!')),
-              ],
-            ),
-            backgroundColor: Colors.green.shade800,
-            behavior: SnackBarBehavior.floating,
-          ),
+        NotificationHelper.showTop(
+          context,
+          message: 'Video insiden berhasil disimpan ke Galeri!',
+          type: NotificationType.success,
         );
       }
 
       if (result['telegramSent'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.telegram_rounded, color: Colors.white),
-                const SizedBox(width: 12),
-                const Expanded(child: Text('SOS terkirim via Telegram!')),
-              ],
-            ),
-            backgroundColor: AppColors.telegramBlue,
-            behavior: SnackBarBehavior.floating,
-          ),
+        NotificationHelper.showTop(
+          context,
+          message: 'SOS terkirim via Telegram!',
+          type: NotificationType.info,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Gagal mengirim SOS: ${result['telegramError'] ?? 'Unknown error'}')),
-              ],
-            ),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
+        NotificationHelper.showTop(
+          context,
+          message: 'Gagal mengirim SOS: ${result['telegramError'] ?? 'Unknown error'}',
+          type: NotificationType.error,
         );
       }
     }

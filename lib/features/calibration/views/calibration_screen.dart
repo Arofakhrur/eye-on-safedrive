@@ -11,6 +11,7 @@ import 'package:eyeon/core/utils/math_utils.dart';
 import 'package:eyeon/core/utils/camera_utils.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
+import 'package:eyeon/core/utils/notification_helper.dart';
 
 /// ------------------------------------------------------------------
 /// CalibrationScreen
@@ -101,15 +102,10 @@ class _CalibrationScreenState extends State<CalibrationScreen>
   // ── Calibration logic ─────────────────────────────────────────────
   void _startCalibration() {
     if (!_isCameraReady) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Camera is not ready yet',
-              style: GoogleFonts.plusJakartaSans()),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+      NotificationHelper.showTop(
+        context,
+        message: 'Camera is not ready yet',
+        type: NotificationType.warning,
       );
       return;
     }

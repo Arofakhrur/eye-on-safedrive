@@ -9,6 +9,7 @@ import 'package:eyeon/core/widgets/eyeon_header.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:eyeon/core/utils/mock_data.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -610,7 +611,7 @@ class _HistoryCardState extends State<HistoryCard> {
   }
 
   Future<void> _openMap(double lat, double lng) async {
-    final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+    final url = AppUrls.googleMapsQueryUrl(lat, lng);
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
     }

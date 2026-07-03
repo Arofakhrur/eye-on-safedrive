@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/utils/validators.dart';
+import 'package:eyeon/core/utils/notification_helper.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -57,18 +58,10 @@ class _RegisterScreenState extends State<RegisterScreen>
   void _handleRegister() {
     if (_formKey.currentState!.validate()) {
       if (!_agreeToTerms) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Please agree to the Terms & Conditions',
-              style: GoogleFonts.plusJakartaSans(),
-            ),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+        NotificationHelper.showTop(
+          context,
+          message: 'Please agree to the Terms & Conditions',
+          type: NotificationType.warning,
         );
         return;
       }

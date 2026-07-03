@@ -83,6 +83,22 @@ class AppUrls {
   static const String googleMapsSearch =
       'https://www.google.com/maps/search/?api=1';
 
+  /// Google Maps query URL for a lat/lng pair.
+  static String googleMapsQueryUrl(double lat, double lng) =>
+      '$googleMapsSearch&query=$lat,$lng';
+
+  /// WhatsApp deep-link URL for a given E.164 phone number (digits only).
+  static String whatsAppUrl(String cleanPhone) =>
+      'https://wa.me/$cleanPhone';
+
+  /// Pesan undangan Telegram yang dikirim ke kontak darurat.
+  static const String telegramInviteMessage =
+      'Halo! Saya menggunakan aplikasi keselamatan berkendara EYE-ON! '
+      'dan menjadikanmu sebagai kontak darurat saya. '
+      'Tolong klik link ini: $telegramBotHttpsUrl lalu tekan tombol START. '
+      'Setelah itu, tolong kirimkan angka Chat ID balasan dari bot tersebut ke saya ya! '
+      'Terima kasih.';
+
   /// User-Agent header for HTTP requests.
   static const String userAgent = 'EyeOnSafeDrive/1.0';
 }

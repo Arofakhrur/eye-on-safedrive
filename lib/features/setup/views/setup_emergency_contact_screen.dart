@@ -10,6 +10,7 @@ import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:eyeon/core/utils/notification_helper.dart';
 
 class SetupEmergencyContactScreen extends StatefulWidget {
   const SetupEmergencyContactScreen({super.key});
@@ -41,11 +42,10 @@ class _SetupEmergencyContactScreenState
     } catch (e) {
       setState(() => _isInitialLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal memuat kontak. Periksa koneksi internet Anda.'),
-            backgroundColor: Colors.redAccent,
-          ),
+        NotificationHelper.showTop(
+          context,
+          message: 'Gagal memuat kontak. Periksa koneksi internet Anda.',
+          type: NotificationType.error,
         );
       }
     }
@@ -53,11 +53,10 @@ class _SetupEmergencyContactScreenState
 
   Future<void> _handleSave() async {
     if (_contacts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add at least one emergency contact.'),
-          backgroundColor: Colors.orange,
-        ),
+      NotificationHelper.showTop(
+        context,
+        message: 'Please add at least one emergency contact.',
+        type: NotificationType.warning,
       );
       return;
     }
@@ -79,11 +78,10 @@ class _SetupEmergencyContactScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save contacts: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
+        NotificationHelper.showTop(
+          context,
+          message: 'Failed to save contacts: $e',
+          type: NotificationType.error,
         );
       }
     } finally {
@@ -99,11 +97,10 @@ class _SetupEmergencyContactScreenState
 
   Future<void> _showAddContactSheet() async {
     if (_contacts.length >= AppLimits.maxEmergencyContacts) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Maksimal ${AppLimits.maxEmergencyContacts} kontak darurat.'),
-          backgroundColor: Colors.orange,
-        ),
+      NotificationHelper.showTop(
+        context,
+        message: 'Maksimal ${AppLimits.maxEmergencyContacts} kontak darurat.',
+        type: NotificationType.warning,
       );
       return;
     }
@@ -170,10 +167,10 @@ class _SetupEmergencyContactScreenState
                   if (phone.isNotEmpty) {
                     _sendInviteLink(phone);
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Isi nomor HP terlebih dahulu'),
-                      ),
+                    NotificationHelper.showTop(
+                      context,
+                      message: 'Isi nomor HP terlebih dahulu',
+                      type: NotificationType.warning,
                     );
                   }
                 },
@@ -223,11 +220,10 @@ class _SetupEmergencyContactScreenState
               final telegramId = telegramController.text.trim();
 
               if (name.isEmpty || phone.isEmpty || telegramId.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Nama, Nomor HP, dan Chat ID Telegram wajib diisi mutlak untuk sistem SOS!'),
-                    backgroundColor: Colors.redAccent,
-                  ),
+                NotificationHelper.showTop(
+                  context,
+                  message: 'Nama, Nomor HP, dan Chat ID Telegram wajib diisi mutlak untuk sistem SOS!',
+                  type: NotificationType.warning,
                 );
                 return;
               }
@@ -318,7 +314,7 @@ class _SetupEmergencyContactScreenState
 
           if (!phone.startsWith('+')) {
             if (phone.startsWith('0')) {
-              phone = '+62${phone.substring(1)}';
+              phone = '+${EmergencyConfig.indonesianCountryCode}${phone.substring(1)}';
             } else {
               phone = '+$phone';
             }
@@ -534,11 +530,10 @@ class _SetupEmergencyContactScreenState
   }
 
   Future<void> _sendInviteLink(String phone) async {
-    const text =
-        'Halo! Saya menggunakan aplikasi keselamatan berkendara EYE-ON! dan menjadikanmu sebagai kontak darurat saya. Tolong klik link ini: https://t.me/EyeonEmergency_bot lalu tekan tombol START. Setelah itu, tolong kirimkan angka Chat ID balasan dari bot tersebut ke saya ya! Terima kasih.';
+    const text = AppUrls.telegramInviteMessage;
     final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
     final url = Uri.parse(
-      'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(text)}',
+      '${AppUrls.whatsAppUrl(cleanPhone)}?text=${Uri.encodeComponent(text)}',
     );
 
     if (await canLaunchUrl(url)) {
@@ -550,8 +545,10 @@ class _SetupEmergencyContactScreenState
         await launchUrl(smsUrl);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak dapat membuka aplikasi pesan')),
+          NotificationHelper.showTop(
+            context,
+            message: 'Tidak dapat membuka aplikasi pesan',
+            type: NotificationType.error,
           );
         }
       }

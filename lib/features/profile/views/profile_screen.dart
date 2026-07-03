@@ -10,6 +10,7 @@ import 'package:eyeon/features/profile/widgets/personal_info_card.dart';
 import 'package:eyeon/features/profile/widgets/detection_settings_card.dart';
 import 'package:eyeon/core/widgets/eyeon_header.dart';
 import 'package:eyeon/core/widgets/eyeon_address_autocomplete.dart';
+import 'package:eyeon/core/utils/notification_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -462,35 +463,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: 'Sinkronisasi Data',
                 subtitle: 'Sync logs with Supabase cloud',
                 onTap: () async {
+                  // Capture context-sensitive values before the async gap
+                  final messenger = ScaffoldMessenger.of(context);
+                  final screenHeight = MediaQuery.of(context).size.height;
                   try {
                     final synced = await SupabaseService().syncOfflineData();
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            synced > 0
-                                ? '$synced data berhasil disinkronkan.'
-                                : 'Tidak ada data offline untuk disinkronkan.',
-                            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
-                          ),
-                          backgroundColor: Colors.black87,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
+                      NotificationHelper.showTopWithMessenger(
+                        messenger,
+                        screenHeight: screenHeight,
+                        message: synced > 0
+                            ? '$synced data berhasil disinkronkan.'
+                            : 'Tidak ada data offline untuk disinkronkan.',
+                        type: NotificationType.success,
                       );
                     }
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Gagal menyinkronkan data: $e',
-                            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
-                          ),
-                          backgroundColor: Colors.redAccent,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
+                      NotificationHelper.showTopWithMessenger(
+                        messenger,
+                        screenHeight: screenHeight,
+                        message: 'Gagal menyinkronkan data: $e',
+                        type: NotificationType.error,
                       );
                     }
                   }

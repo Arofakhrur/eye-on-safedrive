@@ -9,6 +9,7 @@ import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/features/monitoring/views/monitoring_screen.dart';
 import 'package:eyeon/features/monitoring/widgets/destination_search_sheet.dart';
+import 'package:eyeon/core/utils/notification_helper.dart';
 
 class RideSetupScreen extends StatefulWidget {
   const RideSetupScreen({super.key});
@@ -68,12 +69,10 @@ class _RideSetupScreenState extends State<RideSetupScreen> {
 
   Future<void> _reverseGeocode(double lat, double lon) async {
     try {
-      final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&addressdetails=1',
-      );
+      final url = Uri.parse(AppUrls.nominatimReverseUrl(lat, lon));
       final response = await http.get(
         url,
-        headers: {'User-Agent': 'EyeOnSafeDrive/1.0'},
+        headers: {'User-Agent': AppUrls.userAgent},
       );
 
       if (response.statusCode == 200 && mounted) {
@@ -112,20 +111,12 @@ class _RideSetupScreenState extends State<RideSetupScreen> {
 
   void _onMulai() {
     if (_destination == null || _currentLatLng == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _currentLatLng == null
-                ? 'Menunggu lokasi GPS...'
-                : 'Silakan tentukan titik akhir terlebih dahulu.',
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: const Color(0xFF1E1E1E),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+      NotificationHelper.showTop(
+        context,
+        message: _currentLatLng == null
+            ? 'Menunggu lokasi GPS...'
+            : 'Silakan tentukan titik akhir terlebih dahulu.',
+        type: NotificationType.warning,
       );
       return;
     }

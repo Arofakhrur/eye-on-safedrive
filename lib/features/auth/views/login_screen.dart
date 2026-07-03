@@ -5,6 +5,7 @@ import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/utils/validators.dart';
+import 'package:eyeon/core/utils/notification_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -193,31 +194,19 @@ class _LoginScreenState extends State<LoginScreen>
                             .resetPasswordForEmail(email);
                         if (ctx.mounted) Navigator.pop(ctx);
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Tautan reset password telah dikirim ke $email',
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              backgroundColor: Colors.black87,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
+                          NotificationHelper.showTop(
+                            context,
+                            message: 'Tautan reset password telah dikirim ke $email',
+                            type: NotificationType.info,
                           );
                         }
                       } catch (e) {
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Gagal mengirim: $e'),
-                              backgroundColor: AppColors.error,
-                            ),
-                          );
+                        NotificationHelper.showTop(
+                          context,
+                          message: 'Gagal mengirim: $e',
+                          type: NotificationType.error,
+                        );
                       } finally {
                         if (ctx.mounted) {
                           setDialogState(() => isSending = false);
@@ -656,12 +645,11 @@ class _LoginScreenState extends State<LoginScreen>
     } catch (e) {
       debugPrint('LoginScreen GoogleSignIn Error: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to sign in with Google: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+      NotificationHelper.showTop(
+        context,
+        message: 'Failed to sign in with Google: $e',
+        type: NotificationType.error,
+      );
     } finally {
       if (mounted) setState(() => _isLoadingGoogle = false);
     }
