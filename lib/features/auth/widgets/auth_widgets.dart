@@ -28,7 +28,7 @@ class AuthHeader extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 20,
             fontWeight: FontWeight.w800,
-            color: Colors.white,
+            color: AppColors.background,
           ),
         ),
       ],
@@ -70,10 +70,10 @@ class AuthTextField extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Colors.white70,
+            color: AppColors.textInverse.withValues(alpha: 0.7),
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         TextFormField(
           controller: controller,
           obscureText: isPassword && !isPasswordVisible,
@@ -81,17 +81,17 @@ class AuthTextField extends StatelessWidget {
           validator: validator,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
-            color: Colors.white,
+            color: AppColors.background,
           ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: GoogleFonts.plusJakartaSans(
               fontSize: 14,
-              color: Colors.white24,
+              color: AppColors.background.withValues(alpha: 0.24),
             ),
             prefixIcon: Icon(
               prefixIcon,
-              color: Colors.white38,
+              color: AppColors.background.withValues(alpha: 0.38),
               size: 20,
             ),
             suffixIcon: isPassword
@@ -101,7 +101,7 @@ class AuthTextField extends StatelessWidget {
                       isPasswordVisible
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.white38,
+                      color: AppColors.background.withValues(alpha: 0.38),
                       size: 20,
                     ),
                   )
@@ -118,7 +118,7 @@ class AuthTextField extends StatelessWidget {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
+              borderSide: BorderSide(
                 color: AppColors.authBorder,
                 width: 1,
               ),
@@ -175,7 +175,7 @@ class AuthDivider extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w400,
-              color: Colors.white38,
+              color: AppColors.background.withValues(alpha: 0.38),
             ),
           ),
         ),
@@ -232,14 +232,14 @@ class AuthSocialButton extends StatelessWidget {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: Colors.white70, size: 22),
-                  const SizedBox(width: 8),
+                  Icon(icon, color: AppColors.textInverse.withValues(alpha: 0.7), size: 22),
+                  SizedBox(width: 8),
                   Text(
                     label,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white70,
+                      color: AppColors.textInverse.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -280,7 +280,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 20,
           fontWeight: FontWeight.w800,
-          color: Colors.white,
+          color: AppColors.background,
         ),
       ),
       content: Column(
@@ -291,26 +291,26 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
             'Masukkan email Anda untuk menerima tautan reset password.',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
-              color: Colors.white54,
+              color: AppColors.textInverse.withValues(alpha: 0.5),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
-              color: Colors.white,
+              color: AppColors.background,
             ),
             decoration: InputDecoration(
               hintText: 'email@example.com',
               hintStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: Colors.white24,
+                color: AppColors.background.withValues(alpha: 0.24),
               ),
-              prefixIcon: const Icon(
+              prefixIcon: Icon(
                 Icons.email_outlined,
-                color: Colors.white38,
+                color: AppColors.background.withValues(alpha: 0.38),
                 size: 20,
               ),
               filled: true,
@@ -321,7 +321,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
+                borderSide: BorderSide(
                   color: AppColors.authBorder,
                 ),
               ),
@@ -343,7 +343,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
             'Batal',
             style: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.w600,
-              color: Colors.white54,
+              color: AppColors.textInverse.withValues(alpha: 0.5),
             ),
           ),
         ),
@@ -373,18 +373,18 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                 },
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            foregroundColor: Colors.black,
+            foregroundColor: AppColors.textPrimary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
           ),
           child: _isSending
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                 )
               : Text(
@@ -427,7 +427,7 @@ class RememberMeCheckbox extends StatelessWidget {
                 width: 1.5,
               ),
             ),
-            child: value ? const Icon(Icons.check, size: 14, color: Colors.black) : null,
+            child: value ? Icon(Icons.check, size: 14, color: AppColors.textPrimary) : null,
           ),
           const SizedBox(width: 8),
           Text(
@@ -435,7 +435,7 @@ class RememberMeCheckbox extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w400,
-              color: Colors.white54,
+              color: AppColors.textInverse.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -462,9 +462,9 @@ class AuthBackButton extends StatelessWidget {
             width: 1,
           ),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.arrow_back_ios_new,
-          color: Colors.white70,
+          color: AppColors.textInverse.withValues(alpha: 0.7),
           size: 18,
         ),
       ),
@@ -501,7 +501,7 @@ class AgreeTermsCheckbox extends StatelessWidget {
                 width: 1.5,
               ),
             ),
-            child: value ? const Icon(Icons.check, size: 14, color: Colors.black) : null,
+            child: value ? Icon(Icons.check, size: 14, color: AppColors.textPrimary) : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -511,7 +511,7 @@ class AgreeTermsCheckbox extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
-                  color: Colors.white54,
+                  color: AppColors.textInverse.withValues(alpha: 0.5),
                 ),
                 children: [
                   TextSpan(
@@ -531,4 +531,3 @@ class AgreeTermsCheckbox extends StatelessWidget {
     );
   }
 }
-

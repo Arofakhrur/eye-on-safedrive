@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -37,13 +38,13 @@ class SafetyScoreCard extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: AppColors.textPrimary.withValues(alpha: 0.05),
                 blurRadius: 24,
-                offset: const Offset(0, 8),
+                offset: Offset(0, 8),
               ),
             ],
           ),
@@ -79,7 +80,7 @@ class SafetyScoreCard extends StatelessWidget {
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 64,
                                           fontWeight: FontWeight.w800,
-                                          color: Colors.black,
+                                          color: AppColors.textPrimary,
                                           height: 1.0,
                                         ),
                                       ),
@@ -89,7 +90,7 @@ class SafetyScoreCard extends StatelessWidget {
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w800,
-                                          color: Colors.black38,
+                                          color: AppColors.textPrimary.withValues(alpha: 0.38),
                                           letterSpacing: 2.0,
                                         ),
                                       ),
@@ -113,7 +114,7 @@ class SafetyScoreCard extends StatelessWidget {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
-                                    color: Colors.white,
+                                    color: AppColors.background,
                                   ),
                                 ),
                               ),
@@ -122,7 +123,7 @@ class SafetyScoreCard extends StatelessWidget {
                         );
                       },
                     ),
-                    const SizedBox(height: 40),
+                    SizedBox(height: 40),
 
                     // Breakdown
                     Row(
@@ -168,14 +169,14 @@ class SafetyScoreCard extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 24,
             fontWeight: FontWeight.w800,
-            color: Colors.black,
+            color: AppColors.textPrimary,
           ),
         ),
         Text(
           label,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 11,
-            color: Colors.black38,
+            color: AppColors.textPrimary.withValues(alpha: 0.38),
             fontWeight: FontWeight.w600,
           ),
         ),

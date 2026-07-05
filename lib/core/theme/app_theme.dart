@@ -6,11 +6,13 @@ class AppColors {
 
   // Core
   static const Color primary = Color(0xFFD7F454);
-  static const Color background = Colors.white;
-  static const Color surface = Colors.white;
-  static const Color textPrimary = Colors.black;
-  static const Color textSecondary = Color(0x8A000000); // Colors.black54
-  static const Color navBarBg = Colors.black;
+  static const Color background = Color(0xFFFAFAFA); // Off-white
+  static const Color surface = Color(0xFFFFFFFF); // Pure white
+  static const Color textPrimary = Color(0xFF1A1D20); // Off-black
+  static const Color textSecondary = Color(0xFF6C757D); // Soft gray
+  static const Color textInverse = Color(0xFFF8F9FA); // Text on dark surfaces
+  static const Color navBarBg = Color(0xFF1A1D20);
+  static const Color border = Color(0xFFE9ECEF); // Light gray border
 
   // Semantic / Status
   static const Color telegramBlue = Color(0xFF0088CC);
@@ -33,7 +35,7 @@ class AppShadows {
     BoxShadow(
       color: Colors.black.withValues(alpha: 0.15),
       blurRadius: 12,
-      offset: const Offset(0, 4),
+      offset: Offset(0, 4),
     ),
   ];
 

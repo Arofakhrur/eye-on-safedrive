@@ -31,7 +31,7 @@ class RideSetupMap extends StatelessWidget {
               SizedBox(height: 12),
               Text(
                 'Mencari lokasi GPS...',
-                style: TextStyle(color: Colors.black54, fontSize: 13),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
               ),
             ],
           ),
@@ -82,12 +82,12 @@ class RideSetupMap extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black87, width: 2.5),
+                      border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.87), width: 2.5),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
+                          color: AppColors.textPrimary.withValues(alpha: 0.2),
                           blurRadius: 6,
-                          offset: const Offset(0, 2),
+                          offset: Offset(0, 2),
                         ),
                       ],
                     ),
@@ -150,19 +150,19 @@ class RideSetupBackButton extends StatelessWidget {
             BoxShadow(
               color: AppColors.primary.withValues(alpha: 0.35),
               blurRadius: 12,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.arrow_back_rounded, color: Colors.black, size: 18),
+            Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary, size: 18),
             const SizedBox(width: 6),
             Text(
               'Back',
               style: GoogleFonts.plusJakartaSans(
-                color: Colors.black,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -187,12 +187,12 @@ class RideSetupBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppColors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
+            color: AppColors.textPrimary.withValues(alpha: 0.12),
             blurRadius: 20,
             offset: Offset(0, -4),
           ),
@@ -213,7 +213,7 @@ class RideSetupBottomSheet extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
@@ -221,7 +221,7 @@ class RideSetupBottomSheet extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -232,11 +232,11 @@ class RideSetupBottomSheet extends StatelessWidget {
               'Lokasi Awal',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
-                color: Colors.black45,
+                color: AppColors.textPrimary.withValues(alpha: 0.45),
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: LocationField(
@@ -311,9 +311,9 @@ class LocationField extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: Colors.black87, size: 18),
+              child: Icon(icon, color: AppColors.textPrimary.withValues(alpha: 0.87), size: 18),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: isLoading
                   ? Row(
@@ -331,7 +331,7 @@ class LocationField extends StatelessWidget {
                           text,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
-                            color: Colors.black38,
+                            color: AppColors.textPrimary.withValues(alpha: 0.38),
                           ),
                         ),
                       ],
@@ -345,7 +345,7 @@ class LocationField extends StatelessWidget {
                         fontWeight: isPlaceholder
                             ? FontWeight.w400
                             : FontWeight.w600,
-                        color: isPlaceholder ? Colors.black38 : Colors.black87,
+                        color: isPlaceholder ? AppColors.textPrimary.withValues(alpha: 0.38) : AppColors.textPrimary.withValues(alpha: 0.87),
                       ),
                     ),
             ),
@@ -390,7 +390,7 @@ class MulaiButton extends StatelessWidget {
                   BoxShadow(
                     color: AppColors.primary.withValues(alpha: 0.35),
                     blurRadius: 16,
-                    offset: const Offset(0, 6),
+                    offset: Offset(0, 6),
                   ),
                 ]
               : [],
@@ -401,7 +401,7 @@ class MulaiButton extends StatelessWidget {
             Text(
               'Mulai Perjalanan',
               style: GoogleFonts.plusJakartaSans(
-                color: Colors.black,
+                color: AppColors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
               ),
@@ -410,12 +410,12 @@ class MulaiButton extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: AppColors.textPrimary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.arrow_forward_rounded,
-                color: Colors.black,
+                color: AppColors.textPrimary,
                 size: 18,
               ),
             ),

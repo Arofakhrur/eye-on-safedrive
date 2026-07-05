@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/widgets/eyeon_header.dart';
@@ -35,7 +36,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _controller.getRideHistoryStream(),
@@ -57,14 +58,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 24),
-                      const EyeOnHeader(),
+                      EyeOnHeader(),
                       const SizedBox(height: 16),
                       Text(
                         'Statistik Berkendara',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
-                          color: Colors.black,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -80,7 +81,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         totalIncidents: _controller.totalIncidents,
                       ),
                       const SizedBox(height: 32),
-                      const SectionHeader(
+                      SectionHeader(
                         title: 'Waktu Berkendara',
                         subtitle: 'Total jam berkendara minggu ini',
                       ),

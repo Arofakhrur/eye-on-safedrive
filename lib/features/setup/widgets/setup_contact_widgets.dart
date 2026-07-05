@@ -21,9 +21,9 @@ class ContactDialog {
 
     InputDecoration buildInputDecoration(IconData icon, String hint) {
       return InputDecoration(
-        prefixIcon: Icon(icon, size: 20, color: Colors.black45),
+        prefixIcon: Icon(icon, size: 20, color: AppColors.textPrimary.withValues(alpha: 0.45)),
         hintText: hint,
-        hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black26),
+        hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary.withValues(alpha: 0.26)),
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(
@@ -36,7 +36,7 @@ class ContactDialog {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       );
@@ -45,7 +45,7 @@ class ContactDialog {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           editIndex == null ? 'Tambah Kontak' : 'Edit Kontak',
@@ -60,7 +60,7 @@ class ContactDialog {
                 controller: nameController,
                 decoration: buildInputDecoration(Icons.person_rounded, 'Nama'),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: phoneController,
                 decoration: buildInputDecoration(Icons.phone_rounded, 'Nomor HP (contoh: +6281234567890)'),
@@ -119,7 +119,7 @@ class ContactDialog {
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.black87,
+                  foregroundColor: AppColors.textPrimary.withValues(alpha: 0.87),
                   side: BorderSide(color: Colors.grey.shade300),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -127,12 +127,12 @@ class ContactDialog {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 'Kirim tautan ke kontak ini. Minta mereka menekan START di bot, lalu tempelkan ID Chat balasannya ke kolom di atas.',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
-                  color: Colors.black54,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -143,7 +143,7 @@ class ContactDialog {
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Batal',
-              style: GoogleFonts.plusJakartaSans(color: Colors.black45),
+              style: GoogleFonts.plusJakartaSans(color: AppColors.textPrimary.withValues(alpha: 0.45)),
             ),
           ),
           ElevatedButton(
@@ -195,7 +195,7 @@ class ContactDialog {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              foregroundColor: Colors.black,
+              foregroundColor: AppColors.textPrimary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -244,7 +244,7 @@ class ContactCard extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.person, color: Colors.black87),
+            child: Icon(Icons.person, color: AppColors.textPrimary.withValues(alpha: 0.87)),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -257,7 +257,7 @@ class ContactCard extends StatelessWidget {
                 ),
                 Text(
                   phone,
-                  style: GoogleFonts.plusJakartaSans(color: Colors.black54, fontSize: 13),
+                  style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary, fontSize: 13),
                 ),
                 if (telegramChatId.isNotEmpty)
                   Text(

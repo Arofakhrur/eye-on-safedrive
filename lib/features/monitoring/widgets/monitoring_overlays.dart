@@ -12,10 +12,10 @@ class DrivingGuideCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.07),
+        color: AppColors.background.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: AppColors.background.withValues(alpha: 0.08),
           width: 1,
         ),
       ),
@@ -25,16 +25,16 @@ class DrivingGuideCard extends StatelessWidget {
           Text(
             'Ready to drive?',
             style: GoogleFonts.plusJakartaSans(
-              color: Colors.white70,
+              color: AppColors.textInverse.withValues(alpha: 0.7),
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             'PANDUAN SEBELUM BERKENDARA',
             style: GoogleFonts.plusJakartaSans(
-              color: Colors.white,
+              color: AppColors.background,
               fontSize: 14,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.2,
@@ -50,7 +50,7 @@ class DrivingGuideCard extends StatelessWidget {
           Text(
             'HATI-HATI DIJALAN',
             style: GoogleFonts.plusJakartaSans(
-              color: Colors.white,
+              color: AppColors.background,
               fontSize: 16,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.5,
@@ -60,7 +60,7 @@ class DrivingGuideCard extends StatelessWidget {
           Text(
             'TEXT AFIRMASI TAMBAHAN',
             style: GoogleFonts.plusJakartaSans(
-              color: Colors.white38,
+              color: AppColors.background.withValues(alpha: 0.38),
               fontSize: 12,
               fontWeight: FontWeight.w500,
               letterSpacing: 1.0,
@@ -85,12 +85,12 @@ class DrivingGuideCard extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Expanded(
             child: RichText(
               text: TextSpan(
                 style: GoogleFonts.plusJakartaSans(
-                  color: Colors.white,
+                  color: AppColors.background,
                   fontSize: 13,
                   height: 1.4,
                 ),
@@ -103,7 +103,7 @@ class DrivingGuideCard extends StatelessWidget {
                     text: description,
                     style: TextStyle(
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: AppColors.background.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -160,9 +160,9 @@ class _InteractiveSwipeButtonState extends State<InteractiveSwipeButton> {
             width: 80,
             height: 200,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: AppColors.background.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(40),
-              border: Border.all(color: Colors.white24),
+              border: Border.all(color: AppColors.background.withValues(alpha: 0.24)),
             ),
             child: Stack(
               alignment: Alignment.bottomCenter,
@@ -172,9 +172,9 @@ class _InteractiveSwipeButtonState extends State<InteractiveSwipeButton> {
                   child: Opacity(
                     opacity: 1.0 - (_dragOffset / _maxDrag),
                     child: Column(
-                      children: const [
-                        Icon(Icons.expand_less_rounded, color: Colors.white54, size: 32),
-                        Icon(Icons.expand_less_rounded, color: Colors.white24, size: 28),
+                      children: [
+                        Icon(Icons.expand_less_rounded, color: AppColors.textInverse.withValues(alpha: 0.5), size: 32),
+                        Icon(Icons.expand_less_rounded, color: AppColors.background.withValues(alpha: 0.24), size: 28),
                       ],
                     ),
                   ),
@@ -191,11 +191,11 @@ class _InteractiveSwipeButtonState extends State<InteractiveSwipeButton> {
                         BoxShadow(
                           color: AppColors.primary.withValues(alpha: 0.4),
                           blurRadius: 12,
-                          offset: const Offset(0, 4),
+                          offset: Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.navigation_rounded, color: Colors.black, size: 28),
+                    child: Icon(Icons.navigation_rounded, color: AppColors.textPrimary, size: 28),
                   ),
                 ),
               ],
@@ -206,7 +206,7 @@ class _InteractiveSwipeButtonState extends State<InteractiveSwipeButton> {
         Text(
           widget.label,
           style: GoogleFonts.plusJakartaSans(
-            color: Colors.white,
+            color: AppColors.background,
             fontSize: 12,
             fontWeight: FontWeight.w800,
             letterSpacing: 3.0,
@@ -319,18 +319,18 @@ class MonitoringStopButton extends StatelessWidget {
           BoxShadow(
             color: Colors.redAccent.withValues(alpha: 0.4),
             blurRadius: 16,
-            offset: const Offset(0, 8),
+            offset: Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.stop_rounded, color: Colors.white, size: 28),
+          Icon(Icons.stop_rounded, color: AppColors.background, size: 28),
           const SizedBox(width: 8),
           Text(
             'STOP RIDE',
-            style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+            style: GoogleFonts.plusJakartaSans(color: AppColors.background, fontSize: 16, fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -352,9 +352,9 @@ class ScreenToggleButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.black54,
+          color: AppColors.textSecondary,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white24),
+          border: Border.all(color: AppColors.background.withValues(alpha: 0.24)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -362,15 +362,15 @@ class ScreenToggleButton extends StatelessWidget {
             Text(
               isFull ? 'COLLAPSE SCREEN' : 'VIEW FULL SCREEN',
               style: GoogleFonts.plusJakartaSans(
-                color: Colors.white,
+                color: AppColors.background,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Icon(
               isFull ? Icons.close_fullscreen_rounded : Icons.open_in_full_rounded,
-              color: Colors.white,
+              color: AppColors.background,
               size: 14,
             ),
           ],
@@ -394,13 +394,13 @@ class NoFaceWarningOverlay extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.face_retouching_off, color: Colors.white, size: 22),
-          const SizedBox(width: 12),
+          Icon(Icons.face_retouching_off, color: AppColors.background, size: 22),
+          SizedBox(width: 12),
           Expanded(
             child: Text(
               'Wajah tidak terdeteksi',
               style: GoogleFonts.plusJakartaSans(
-                color: Colors.white,
+                color: AppColors.background,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -446,20 +446,20 @@ class AlertOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black87,
+      color: AppColors.textPrimary.withValues(alpha: 0.87),
       child: Center(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 24),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(24),
             boxShadow: AppShadows.card,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const BlinkingWarningLamp(),
+              BlinkingWarningLamp(),
               const SizedBox(height: 16),
               Text(
                 'INSIDEN TERDETEKSI!',
@@ -470,14 +470,14 @@ class AlertOverlay extends StatelessWidget {
               Text(
                 'Sistem mendeteksi guncangan keras (${currentMagnitude.toStringAsFixed(1)} rad/s).\nSedang mengirim SOS ke kontak darurat...',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(color: Colors.black87, fontSize: 14, height: 1.5),
+                style: GoogleFonts.plusJakartaSans(color: AppColors.textPrimary.withValues(alpha: 0.87), fontSize: 14, height: 1.5),
               ),
-              const SizedBox(height: 24),
-              const CircularProgressIndicator(color: AppColors.primary),
+              SizedBox(height: 24),
+              CircularProgressIndicator(color: AppColors.primary),
               const SizedBox(height: 16),
               Text(
                 'Memproses rekaman video...',
-                style: GoogleFonts.plusJakartaSans(color: Colors.black54, fontSize: 12),
+                style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary, fontSize: 12),
               ),
               const SizedBox(height: 32),
               SizedBox(
@@ -485,7 +485,7 @@ class AlertOverlay extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onResetAccident,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black87,
+                    foregroundColor: AppColors.textPrimary.withValues(alpha: 0.87),
                     side: BorderSide(color: Colors.grey.shade300),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -496,19 +496,19 @@ class AlertOverlay extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: onCallEmergency,
-                  icon: const Icon(Icons.call, color: Colors.white, size: 20),
+                  icon: Icon(Icons.call, color: AppColors.background, size: 20),
                   label: Text(
                     'Hubungi Kontak Darurat',
                     style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.background,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
@@ -535,12 +535,12 @@ class Level1Overlay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 80),
-            const SizedBox(height: 16),
+            Icon(Icons.warning_amber_rounded, color: AppColors.background, size: 80),
+            SizedBox(height: 16),
             Text(
               'PERHATIAN!\nAnda terdeteksi mengantuk',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800),
+              style: GoogleFonts.plusJakartaSans(color: AppColors.background, fontSize: 24, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 48),
             InteractiveSwipeButton(
@@ -566,12 +566,12 @@ class Level2Overlay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.dangerous_rounded, color: Colors.white, size: 100),
+            Icon(Icons.dangerous_rounded, color: AppColors.background, size: 100),
             const SizedBox(height: 16),
             Text(
               'BAHAYA!\nSegera Menepi!',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 2),
+              style: GoogleFonts.plusJakartaSans(color: AppColors.background, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 2),
             ),
             const SizedBox(height: 48),
             HoldToConfirmButton(
@@ -604,18 +604,18 @@ class Level3Overlay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.block_rounded, color: Colors.white, size: 100),
-            const SizedBox(height: 16),
+            Icon(Icons.block_rounded, color: AppColors.background, size: 100),
+            SizedBox(height: 16),
             Text(
               'SISTEM TERKUNCI\n(Level 3 Microsleep)',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1),
+              style: GoogleFonts.plusJakartaSans(color: AppColors.background, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1),
             ),
             const SizedBox(height: 16),
             Text(
               'Menunggu ${DetectionConfig.level3LockdownSeconds} detik...\nSistem mendeteksi Anda terlalu sering mengantuk.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 14),
+              style: GoogleFonts.plusJakartaSans(color: AppColors.textInverse.withValues(alpha: 0.7), fontSize: 14),
             ),
             const SizedBox(height: 48),
             if (canUnlock)
@@ -623,11 +623,11 @@ class Level3Overlay extends StatelessWidget {
                 onConfirm: onResume,
                 label: 'TAHAN UNTUK BUKA KUNCI',
                 duration: const Duration(milliseconds: 2000),
-                fillColor: Colors.white,
+                fillColor: AppColors.background,
                 textColor: Colors.red.shade900,
               )
             else
-              const CircularProgressIndicator(color: Colors.white),
+              CircularProgressIndicator(color: AppColors.background),
           ],
         ),
       ),
@@ -648,9 +648,9 @@ class HoldToConfirmButton extends StatefulWidget {
     required this.onConfirm,
     required this.label,
     this.duration = const Duration(milliseconds: 1500),
-    this.outlineColor = Colors.white,
-    this.fillColor = Colors.white,
-    this.textColor = Colors.black,
+    this.outlineColor = AppColors.background,
+    this.fillColor = AppColors.background,
+    this.textColor = AppColors.textPrimary,
   });
 
   @override
@@ -714,7 +714,7 @@ class _HoldToConfirmButtonState extends State<HoldToConfirmButton> with SingleTi
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
         decoration: BoxDecoration(
-          color: Color.lerp(Colors.black54, widget.fillColor, progress),
+          color: Color.lerp(AppColors.textSecondary, widget.fillColor, progress),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(color: widget.outlineColor, width: 2),
         ),
@@ -730,6 +730,5 @@ class _HoldToConfirmButtonState extends State<HoldToConfirmButton> with SingleTi
     );
   }
 }
-
 
 

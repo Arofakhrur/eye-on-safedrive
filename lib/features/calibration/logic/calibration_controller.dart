@@ -136,7 +136,7 @@ class CalibrationController extends ChangeNotifier {
       if (inputImage == null) {
         // Log setiap 60 frame agar tidak spam
         if (_noFaceFrames % 60 == 0) {
-          debugPrint('🔴 [Calibration] inputImage NULL — cek camera_utils (frame ${_noFaceFrames})');
+          debugPrint('🔴 [Calibration] inputImage NULL — cek camera_utils (frame $_noFaceFrames)');
         }
         _noFaceFrames++;
         _isProcessingFrame = false;
@@ -199,7 +199,7 @@ class CalibrationController extends ChangeNotifier {
       } else {
         _noFaceFrames++;
         if (_noFaceFrames % 60 == 0) {
-          debugPrint('🟡 [Calibration] No face detected (${_noFaceFrames} frames)');
+          debugPrint('🟡 [Calibration] No face detected ($_noFaceFrames frames)');
         }
         if (_noFaceFrames > _noFaceTimeout) {
           _statusText = '⚠️ Wajah tidak terdeteksi — hadap kamera';

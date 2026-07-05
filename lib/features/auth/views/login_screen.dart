@@ -135,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 40),
-                        const AuthHeader(),
+                        AuthHeader(),
                         const SizedBox(height: 40),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen>
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
+                                color: AppColors.background,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -154,12 +154,12 @@ class _LoginScreenState extends State<LoginScreen>
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w400,
-                                color: Colors.white54,
+                                color: AppColors.textInverse.withValues(alpha: 0.5),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 36),
+                        SizedBox(height: 36),
                         Form(
                           key: _formKey,
                           child: Column(
@@ -223,20 +223,20 @@ class _LoginScreenState extends State<LoginScreen>
                             onPressed: _authController.isLoading ? null : _handleLogin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.black,
+                              foregroundColor: AppColors.textPrimary,
                               elevation: 4,
-                              shadowColor: Colors.black.withValues(alpha: 0.5),
+                              shadowColor: AppColors.textPrimary.withValues(alpha: 0.5),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                             child: _authController.isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     height: 22,
                                     width: 22,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.5,
-                                      color: Colors.black,
+                                      color: AppColors.textPrimary,
                                     ),
                                   )
                                 : Text(
@@ -267,7 +267,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w400,
-                                  color: Colors.white54,
+                                  color: AppColors.textInverse.withValues(alpha: 0.5),
                                 ),
                                 children: [
                                   TextSpan(

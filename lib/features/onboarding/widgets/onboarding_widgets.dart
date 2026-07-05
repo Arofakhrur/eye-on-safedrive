@@ -33,7 +33,7 @@ class OnboardingTopBar extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -82,8 +82,8 @@ class OnboardingPageWidget extends StatelessWidget {
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Colors.white,
-                        Colors.white.withValues(alpha: 0.0),
+                        AppColors.background,
+                        AppColors.background.withValues(alpha: 0.0),
                       ],
                     ),
                   ),
@@ -109,7 +109,7 @@ class OnboardingPageWidget extends StatelessWidget {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.black,
+                                color: AppColors.textPrimary,
                                 height: 1.3,
                               ),
                             ),
@@ -129,7 +129,7 @@ class OnboardingPageWidget extends StatelessWidget {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.black,
+                                color: AppColors.textPrimary,
                                 height: 1.3,
                               ),
                             ),
@@ -142,18 +142,18 @@ class OnboardingPageWidget extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
-                          color: Colors.black,
+                          color: AppColors.textPrimary,
                           height: 1.3,
                         ),
                       ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Text(
                   data.subtitle,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
-                    color: Colors.black54,
+                    color: AppColors.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -190,9 +190,9 @@ class GetStartedButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
+              color: AppColors.textPrimary.withValues(alpha: 0.15),
               blurRadius: 10,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -204,7 +204,7 @@ class GetStartedButton extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(width: 8),
@@ -212,12 +212,12 @@ class GetStartedButton extends StatelessWidget {
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.black, width: 1.5),
+                border: Border.all(color: AppColors.textPrimary, width: 1.5),
               ),
               child: const Icon(
                 Icons.arrow_forward,
                 size: 14,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
             ),
           ],
@@ -283,11 +283,11 @@ class NextButton extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.4),
+                        color: AppColors.textPrimary.withValues(alpha: 0.4),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -295,7 +295,7 @@ class NextButton extends StatelessWidget {
                   ),
                   child: const Icon(
                     Icons.arrow_forward,
-                    color: Colors.white,
+                    color: AppColors.background,
                     size: 24,
                   ),
                 ),

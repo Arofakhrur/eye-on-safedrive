@@ -14,7 +14,7 @@ class _NominatimPlace {
   final double lat;
   final double lon;
 
-  const _NominatimPlace({
+  _NominatimPlace({
     required this.displayName,
     required this.shortName,
     required this.lat,
@@ -128,7 +128,7 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: const EdgeInsets.all(24),
@@ -152,7 +152,7 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -160,7 +160,7 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
             'Pilih destinasi Anda untuk pelacakan rute.',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
-              color: Colors.black54,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 24),
@@ -175,10 +175,10 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
             ),
             decoration: InputDecoration(
               hintText: 'Cari alamat, gedung, kota...',
-              hintStyle: GoogleFonts.plusJakartaSans(color: Colors.black38),
-              prefixIcon: const Icon(Icons.search_rounded, color: Colors.black54),
+              hintStyle: GoogleFonts.plusJakartaSans(color: AppColors.textPrimary.withValues(alpha: 0.38)),
+              prefixIcon: Icon(Icons.search_rounded, color: AppColors.textSecondary),
               suffixIcon: _isLoading
-                  ? const Padding(
+                  ? Padding(
                       padding: EdgeInsets.all(14),
                       child: SizedBox(
                         width: 18,
@@ -198,7 +198,7 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 16),
             ),
@@ -225,7 +225,7 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
                               ? 'Mulai ketik tujuan Anda'
                               : (_isLoading ? 'Mencari...' : 'Tidak ditemukan hasil'),
                           style: GoogleFonts.plusJakartaSans(
-                            color: Colors.black38,
+                            color: AppColors.textPrimary.withValues(alpha: 0.38),
                             fontSize: 14,
                           ),
                         ),
@@ -263,13 +263,13 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
                 color: AppColors.primary.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.location_on_rounded,
-                color: Colors.black87,
+                color: AppColors.textPrimary.withValues(alpha: 0.87),
                 size: 20,
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,17 +281,17 @@ class _DestinationSearchSheetState extends State<DestinationSearchSheet> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary.withValues(alpha: 0.87),
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     place.displayName,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
-                      color: Colors.black45,
+                      color: AppColors.textPrimary.withValues(alpha: 0.45),
                       height: 1.3,
                     ),
                   ),

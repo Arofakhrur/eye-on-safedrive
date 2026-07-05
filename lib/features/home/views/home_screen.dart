@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:eyeon/features/home/views/home_dashboard.dart';
 import 'package:eyeon/features/activity/views/activity_screen.dart';
@@ -47,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,

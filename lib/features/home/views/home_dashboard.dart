@@ -35,7 +35,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -43,7 +43,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-              const EyeOnHeader(),
+              EyeOnHeader(),
               ListenableBuilder(
                 listenable: _controller,
                 builder: (context, _) {
@@ -51,7 +51,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 }
               ),
               const SizedBox(height: 28),
-              const SafetyScoreCard(),
+              SafetyScoreCard(),
               const SizedBox(height: 24),
               _buildSectionHeader('Menu Cepat'),
               const SizedBox(height: 16),
@@ -84,7 +84,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 'Halo! 👋',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  color: Colors.black54,
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -96,7 +96,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -120,14 +120,14 @@ class _HomeDashboardState extends State<HomeDashboard> {
                   : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
+                  color: AppColors.textPrimary.withValues(alpha: 0.08),
                   blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
             child: _controller.avatarUrl == null
-                ? const Icon(Icons.person_rounded, color: Colors.black, size: 28)
+                ? Icon(Icons.person_rounded, color: AppColors.textPrimary, size: 28)
                 : null,
           ),
         ),
@@ -141,7 +141,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
       style: GoogleFonts.plusJakartaSans(
         fontSize: 16,
         fontWeight: FontWeight.w800,
-        color: Colors.black54,
+        color: AppColors.textSecondary,
       ),
     );
   }
@@ -164,20 +164,20 @@ class _HomeDashboardState extends State<HomeDashboard> {
             ),
             child: Column(
               children: [
-                const Icon(Icons.contact_phone_outlined, color: Colors.black26, size: 32),
-                const SizedBox(height: 12),
+                Icon(Icons.contact_phone_outlined, color: AppColors.textPrimary.withValues(alpha: 0.26), size: 32),
+                SizedBox(height: 12),
                 Text(
                   'Belum ada kontak darurat',
-                  style: GoogleFonts.plusJakartaSans(color: Colors.black45, fontWeight: FontWeight.w600),
+                  style: GoogleFonts.plusJakartaSans(color: AppColors.textPrimary.withValues(alpha: 0.45), fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: () => Navigator.pushNamed(context, AppRoutes.setup),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.primary),
+                    side: BorderSide(color: AppColors.primary),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text('Atur Kontak', style: GoogleFonts.plusJakartaSans(color: Colors.black87, fontWeight: FontWeight.w700)),
+                  child: Text('Atur Kontak', style: GoogleFonts.plusJakartaSans(color: AppColors.textPrimary.withValues(alpha: 0.87), fontWeight: FontWeight.w700)),
                 )
               ],
             ),
@@ -188,7 +188,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
           enabled: isLoading,
           child: ListView.builder(
             shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+            physics: NeverScrollableScrollPhysics(),
             itemCount: contacts.length,
             itemBuilder: (context, index) {
               final contact = contacts[index];
@@ -196,13 +196,13 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.background,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
+                      color: AppColors.textPrimary.withValues(alpha: 0.02),
                       blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      offset: Offset(0, 4),
                     ),
                   ],
                   border: Border.all(color: Colors.grey.shade100),
@@ -215,9 +215,9 @@ class _HomeDashboardState extends State<HomeDashboard> {
                         color: AppColors.primary.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.person, color: Colors.black87),
+                      child: Icon(Icons.person, color: AppColors.textPrimary.withValues(alpha: 0.87)),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,7 +228,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           ),
                           Text(
                             contact.phone,
-                            style: GoogleFonts.plusJakartaSans(color: Colors.black54, fontSize: 13),
+                            style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary, fontSize: 13),
                           ),
                         ],
                       ),
@@ -259,8 +259,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.grey.shade200, width: 2),
             ),
-            child: const Center(
-              child: Icon(Icons.history_rounded, color: Colors.black26, size: 36),
+            child: Center(
+              child: Icon(Icons.history_rounded, color: AppColors.textPrimary.withValues(alpha: 0.26), size: 36),
             ),
           );
         }
@@ -284,14 +284,14 @@ class _HomeDashboardState extends State<HomeDashboard> {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.background,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.grey.shade100),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
+                  color: AppColors.textPrimary.withValues(alpha: 0.02),
                   blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
@@ -303,7 +303,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                     color: AppColors.primary, // Neon green badge
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.route_rounded, color: Colors.black, size: 24),
+                  child: Icon(Icons.route_rounded, color: AppColors.textPrimary, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -315,22 +315,22 @@ class _HomeDashboardState extends State<HomeDashboard> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary.withValues(alpha: 0.87),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         '$safeRides Aman • $totalAlerts Peringatan',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
-                          color: Colors.black54,
+                          color: AppColors.textSecondary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded, color: Colors.black26),
+                Icon(Icons.chevron_right_rounded, color: AppColors.textPrimary.withValues(alpha: 0.26)),
               ],
             ),
           ),

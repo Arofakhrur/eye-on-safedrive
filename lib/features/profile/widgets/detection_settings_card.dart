@@ -108,24 +108,24 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
             ),
             tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-            leading: const Icon(Icons.settings_suggest_rounded, color: Colors.black87, size: 24),
+            leading: Icon(Icons.settings_suggest_rounded, color: AppColors.textPrimary.withValues(alpha: 0.87), size: 24),
             title: Text(
               'Pengaturan Deteksi',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: Colors.black87,
+                color: AppColors.textPrimary.withValues(alpha: 0.87),
               ),
             ),
             subtitle: Text(
               'Sesuaikan sensitivitas sensor keselamatan',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
-                color: Colors.black45,
+                color: AppColors.textPrimary.withValues(alpha: 0.45),
               ),
             ),
             children: [
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _buildSliderSection(
                 'Sensitivitas Kantuk (EAR)',
                 widget.earThreshold,
@@ -167,7 +167,7 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: labels.map((l) => Text(l, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: Colors.black38))).toList(),
+          children: labels.map((l) => Text(l, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: AppColors.textPrimary.withValues(alpha: 0.38)))).toList(),
         ),
       ],
     );
@@ -196,7 +196,7 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primary : Colors.white,
+                  color: isSelected ? AppColors.primary : AppColors.background,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected ? Colors.transparent : Colors.grey.shade200,
@@ -208,7 +208,7 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
                     Icon(
                       isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded,
                       size: 16,
-                      color: isSelected ? Colors.black : Colors.black54,
+                      color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -216,7 +216,7 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.black : Colors.black54,
+                        color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
                       ),
                     ),
                   ],

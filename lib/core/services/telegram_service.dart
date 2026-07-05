@@ -69,7 +69,7 @@ class TelegramService {
           'message': message,
           'lat': lat,
           'lng': lng,
-          if (videoUrl != null) 'videoUrl': videoUrl,
+          'videoUrl': ?videoUrl,
         },
       );
 

@@ -24,9 +24,9 @@ class SetupWizardProfileStep extends StatelessWidget {
 
   InputDecoration _buildInputDecoration(IconData icon, String hint) {
     return InputDecoration(
-      prefixIcon: Icon(icon, size: 20, color: Colors.black45),
+      prefixIcon: Icon(icon, size: 20, color: AppColors.textPrimary.withValues(alpha: 0.45)),
       hintText: hint,
-      hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black26),
+      hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textPrimary.withValues(alpha: 0.26)),
       filled: true,
       fillColor: Colors.grey.shade50,
       border: OutlineInputBorder(
@@ -39,7 +39,7 @@ class SetupWizardProfileStep extends StatelessWidget {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        borderSide: BorderSide(color: AppColors.primary, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
@@ -51,7 +51,7 @@ class SetupWizardProfileStep extends StatelessWidget {
       style: GoogleFonts.plusJakartaSans(
         fontSize: 14,
         fontWeight: FontWeight.w700,
-        color: Colors.black87,
+        color: AppColors.textPrimary.withValues(alpha: 0.87),
       ),
     );
   }
@@ -69,10 +69,10 @@ class SetupWizardProfileStep extends StatelessWidget {
               'Profil Pengendara',
               style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'Lengkapi data diri Anda untuk keselamatan berkendara.',
-              style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black54),
+              style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 24),
             Center(
@@ -81,7 +81,7 @@ class SetupWizardProfileStep extends StatelessWidget {
                 backgroundColor: AppColors.primary,
                 child: Text(
                   user?.email?.substring(0, 1).toUpperCase() ?? 'U',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.black),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                 ),
               ),
             ),
@@ -102,11 +102,11 @@ class SetupWizardProfileStep extends StatelessWidget {
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               initialValue: controller.selectedBloodType,
-              dropdownColor: Colors.white,
-              icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 28),
+              dropdownColor: AppColors.background,
+              icon: Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 28),
               items: AppData.bloodTypes.map((type) => DropdownMenuItem(
                 value: type,
-                child: Text(type, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+                child: Text(type, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary.withValues(alpha: 0.87))),
               )).toList(),
               onChanged: (val) {
                 if (val != null) {
@@ -114,15 +114,15 @@ class SetupWizardProfileStep extends StatelessWidget {
                 }
               },
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.bloodtype_rounded, color: Colors.black45),
+                prefixIcon: Icon(Icons.bloodtype_rounded, color: AppColors.textPrimary.withValues(alpha: 0.45)),
                 filled: true,
                 fillColor: Colors.grey.shade50,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade100)),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade100)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.primary, width: 2)),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
 
             // Address
             _buildFieldLabel('Alamat & Asal Daerah'),
@@ -140,9 +140,9 @@ class SetupWizardProfileStep extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '(Opsional)',
-              style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black38),
+              style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.textPrimary.withValues(alpha: 0.38)),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             TextField(
               controller: medicalNotesController,
               maxLines: 3,
@@ -187,7 +187,7 @@ class SetupWizardEmergencyStep extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Siapa yang harus kami hubungi saat terjadi kecelakaan? (Maks. ${AppLimits.maxEmergencyContacts} kontak)',
-              style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black54),
+              style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 24),
             if (controller.selectedContacts.isNotEmpty)
@@ -216,23 +216,23 @@ class SetupWizardEmergencyStep extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: onPickContact,
-                  icon: const Icon(Icons.contacts_rounded, color: Colors.black87),
+                  icon: Icon(Icons.contacts_rounded, color: AppColors.textPrimary.withValues(alpha: 0.87)),
                   label: Text(
                     'Pilih dari Kontak',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary.withValues(alpha: 0.87),
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: Colors.black26),
+                    side: BorderSide(color: AppColors.textPrimary.withValues(alpha: 0.26)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
               ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -276,7 +276,7 @@ class SetupWizardFinishStep extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 80),
+            child: Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 80),
           ),
           const SizedBox(height: 32),
           Text(
@@ -287,7 +287,7 @@ class SetupWizardFinishStep extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Data Anda telah tersimpan.\nSelanjutnya, mari kalibrasi deteksi wajah agar sistem mengenali kantuk Anda dengan akurat.',
-            style: GoogleFonts.plusJakartaSans(fontSize: 15, color: Colors.black54, height: 1.5),
+            style: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.textSecondary, height: 1.5),
             textAlign: TextAlign.center,
           ),
         ],

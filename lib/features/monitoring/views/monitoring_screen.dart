@@ -142,14 +142,14 @@ class _MonitoringScreenState extends State<MonitoringScreen>
 
   Widget _buildPreRideState() {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.textPrimary,
       body: Stack(
         children: [
           SafeArea(
             child: Column(
               children: [
                 const Spacer(flex: 1),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24),
                   child: DrivingGuideCard(),
                 ),
@@ -167,15 +167,15 @@ class _MonitoringScreenState extends State<MonitoringScreen>
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: AppColors.background.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: AppColors.background.withValues(alpha: 0.15),
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back_rounded,
-                  color: Colors.white,
+                  color: AppColors.background,
                   size: 22,
                 ),
               ),
@@ -202,7 +202,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.textPrimary,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -368,7 +368,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
             child: Center(
               child: GestureDetector(
                 onTap: _onStopRide,
-                child: const MonitoringStopButton(),
+                child: MonitoringStopButton(),
               ),
             ),
           ),

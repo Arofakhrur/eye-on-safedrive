@@ -39,7 +39,7 @@ class UserProfileCard extends StatelessWidget {
                   : null,
             ),
             child: avatarUrl == null
-                ? const Icon(Icons.person_rounded, color: Colors.black, size: 30)
+                ? Icon(Icons.person_rounded, color: AppColors.textPrimary, size: 30)
                 : null,
           ),
           const SizedBox(width: 16),
@@ -50,7 +50,7 @@ class UserProfileCard extends StatelessWidget {
                 Text(
                   userName,
                   style: GoogleFonts.plusJakartaSans(
-                    color: Colors.black87,
+                    color: AppColors.textPrimary.withValues(alpha: 0.87),
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -58,7 +58,7 @@ class UserProfileCard extends StatelessWidget {
                 Text(
                   email,
                   style: GoogleFonts.plusJakartaSans(
-                    color: Colors.black54,
+                    color: AppColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),

@@ -112,9 +112,9 @@ class _EyeonAddressAutocompleteState extends State<EyeonAddressAutocomplete> {
           alignment: Alignment.topLeft,
           child: Material(
             elevation: 8,
-            shadowColor: Colors.black12,
+            shadowColor: AppColors.textPrimary.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(16),
-            color: Colors.white,
+            color: AppColors.background,
             clipBehavior: Clip.antiAlias,
             child: ConstrainedBox(
               constraints: BoxConstraints(
@@ -141,14 +141,14 @@ class _EyeonAddressAutocompleteState extends State<EyeonAddressAutocomplete> {
                       child: Row(
                         children: [
                           Icon(Icons.location_city_rounded,
-                              size: 18, color: Colors.black38),
-                          const SizedBox(width: 12),
+                              size: 18, color: AppColors.textPrimary.withValues(alpha: 0.38)),
+                          SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               option,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
-                                color: Colors.black87,
+                                color: AppColors.textPrimary.withValues(alpha: 0.87),
                                 fontWeight: FontWeight.w500,
                               ),
                               maxLines: 2,
@@ -185,9 +185,9 @@ class _EyeonAddressAutocompleteState extends State<EyeonAddressAutocomplete> {
           decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
+                color: AppColors.textPrimary.withValues(alpha: 0.03),
                 blurRadius: 10,
-                offset: const Offset(0, 4),
+                offset: Offset(0, 4),
               ),
             ],
           ),
@@ -199,14 +199,14 @@ class _EyeonAddressAutocompleteState extends State<EyeonAddressAutocomplete> {
               fontWeight: FontWeight.w600,
             ),
             decoration: InputDecoration(
-              prefixIcon: Icon(widget.icon, size: 20, color: Colors.black45),
+              prefixIcon: Icon(widget.icon, size: 20, color: AppColors.textPrimary.withValues(alpha: 0.45)),
               hintText: widget.hintText,
               hintStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: Colors.black26,
+                color: AppColors.textPrimary.withValues(alpha: 0.26),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: AppColors.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(color: Colors.grey.shade200),
@@ -217,7 +217,7 @@ class _EyeonAddressAutocompleteState extends State<EyeonAddressAutocomplete> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,

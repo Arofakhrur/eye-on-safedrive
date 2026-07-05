@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -9,7 +10,7 @@ class NotificationHelper {
   static Color _backgroundColor(NotificationType type) {
     switch (type) {
       case NotificationType.success:
-        return const Color(0xFF1B5E20); // deep green
+        return Color(0xFF1B5E20); // deep green
       case NotificationType.error:
         return const Color(0xFFB71C1C); // deep red
       case NotificationType.warning:
@@ -32,7 +33,7 @@ class NotificationHelper {
       case NotificationType.info:
         return const Color(0xFF82B1FF); // light blue
       case NotificationType.telegram:
-        return Colors.white; // White for Telegram icon
+        return AppColors.background; // White for Telegram icon
     }
   }
 
@@ -180,7 +181,7 @@ class _CustomAnimatedToastState extends State<_CustomAnimatedToast> with SingleT
                   BoxShadow(
                     color: bgColor.withValues(alpha: 0.4),
                     blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    offset: Offset(0, 4),
                   ),
                 ],
                 border: Border.all(color: accentColor.withValues(alpha: 0.4), width: 1),
@@ -207,7 +208,7 @@ class _CustomAnimatedToastState extends State<_CustomAnimatedToast> with SingleT
                           child: Text(
                             widget.message,
                             style: GoogleFonts.plusJakartaSans(
-                              color: Colors.white,
+                              color: AppColors.background,
                               fontWeight: FontWeight.w600,
                               fontSize: 13.5,
                             ),

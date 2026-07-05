@@ -31,14 +31,14 @@ class ProfileSectionHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.edit_rounded, size: 12, color: Colors.black),
+                Icon(Icons.edit_rounded, size: 12, color: AppColors.textPrimary),
                 const SizedBox(width: 4),
                 Text(
                   'Edit',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -70,7 +70,7 @@ class ProfileSectionTitle extends StatelessWidget {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 11,
           fontWeight: FontWeight.w800,
-          color: Colors.black38,
+          color: AppColors.textPrimary.withValues(alpha: 0.38),
           letterSpacing: 1.2,
         ),
       ),
@@ -116,10 +116,10 @@ class ProfileMenuItem extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isDestructive ? Colors.redAccent : Colors.black87,
+              color: isDestructive ? Colors.redAccent : AppColors.textPrimary.withValues(alpha: 0.87),
               size: 24,
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +129,7 @@ class ProfileMenuItem extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: isDestructive ? Colors.redAccent : Colors.black87,
+                      color: isDestructive ? Colors.redAccent : AppColors.textPrimary.withValues(alpha: 0.87),
                     ),
                   ),
                   Text(
@@ -138,13 +138,13 @@ class ProfileMenuItem extends StatelessWidget {
                       fontSize: 12,
                       color: isDestructive
                           ? Colors.redAccent.withValues(alpha: 0.6)
-                          : Colors.black45,
+                          : AppColors.textPrimary.withValues(alpha: 0.45),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.black26),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textPrimary.withValues(alpha: 0.26)),
           ],
         ),
       ),
@@ -180,8 +180,8 @@ class ProfileToggleItem extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.black87, size: 24),
-          const SizedBox(width: 16),
+          Icon(icon, color: AppColors.textPrimary.withValues(alpha: 0.87), size: 24),
+          SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,14 +191,14 @@ class ProfileToggleItem extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary.withValues(alpha: 0.87),
                   ),
                 ),
                 Text(
                   subtitle,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: Colors.black45,
+                    color: AppColors.textPrimary.withValues(alpha: 0.45),
                   ),
                 ),
               ],

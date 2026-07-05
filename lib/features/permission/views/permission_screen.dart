@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -28,18 +29,18 @@ class _PermissionScreenState extends State<PermissionScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('$permName Permission Required', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 18)),
         content: Text('Harap izinkan akses $permName di Pengaturan untuk melanjutkan.', style: GoogleFonts.plusJakartaSans(fontSize: 14)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: Colors.black54))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary))),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               openAppSettings();
             },
-            child: Text('Open Settings', style: GoogleFonts.plusJakartaSans(color: Colors.black, fontWeight: FontWeight.w700)),
+            child: Text('Open Settings', style: GoogleFonts.plusJakartaSans(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -59,19 +60,19 @@ class _PermissionScreenState extends State<PermissionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
           builder: (context, _) {
             return Column(
               children: [
-                const PermissionTopBar(),
+                PermissionTopBar(),
                 const SizedBox(height: 20),
                 Text(
                   'Rider Privacy &\nPermission',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black, height: 1.2),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1.2),
                 ),
                 const SizedBox(height: 20),
                 Expanded(

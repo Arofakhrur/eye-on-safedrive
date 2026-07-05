@@ -35,13 +35,13 @@ class EyeonPrimaryButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (isLoading)
-                const SizedBox(
+                SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.black38),
+                        AlwaysStoppedAnimation<Color>(AppColors.textPrimary.withValues(alpha: 0.38)),
                   ),
                 )
               else ...[
@@ -50,12 +50,12 @@ class EyeonPrimaryButton extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 if (icon != null) ...[
                   const SizedBox(width: 12),
-                  Icon(icon, color: Colors.black, size: 28),
+                  Icon(icon, color: AppColors.textPrimary, size: 28),
                 ],
               ],
             ],

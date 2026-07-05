@@ -21,13 +21,13 @@ class EyeonBottomNavBar extends StatelessWidget {
       child: Container(
         height: 64,
         decoration: BoxDecoration(
-          color: Colors.black,
+          color: AppColors.textPrimary,
           borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
+              color: AppColors.textPrimary.withValues(alpha: 0.25),
               blurRadius: 20,
-              offset: const Offset(0, 8),
+              offset: Offset(0, 8),
             ),
           ],
         ),
@@ -77,9 +77,9 @@ class EyeonBottomNavBar extends StatelessWidget {
               size: 22,
               color: isSelected
                   ? AppColors.primary
-                  : Colors.white.withValues(alpha: 0.5),
+                  : AppColors.background.withValues(alpha: 0.5),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               label,
               style: GoogleFonts.plusJakartaSans(
@@ -87,7 +87,7 @@ class EyeonBottomNavBar extends StatelessWidget {
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                 color: isSelected
                     ? AppColors.primary
-                    : Colors.white.withValues(alpha: 0.5),
+                    : AppColors.background.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -116,13 +116,13 @@ class EyeonBottomNavBar extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.add_road, color: Colors.black, size: 24),
+            Icon(Icons.add_road, color: AppColors.textPrimary, size: 24),
             Text(
               'Ride',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 8,
                 fontWeight: FontWeight.w800,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
             ),
           ],

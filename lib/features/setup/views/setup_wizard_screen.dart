@@ -68,7 +68,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,

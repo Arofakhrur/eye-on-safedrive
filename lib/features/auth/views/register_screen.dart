@@ -143,9 +143,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 16),
-                        const AuthBackButton(),
+                        AuthBackButton(),
                         const SizedBox(height: 24),
-                        const AuthHeader(),
+                        AuthHeader(),
                         const SizedBox(height: 28),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,7 +155,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
+                                color: AppColors.background,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -164,12 +164,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w400,
-                                color: Colors.white54,
+                                color: AppColors.textInverse.withValues(alpha: 0.5),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 36),
+                        SizedBox(height: 36),
                         Form(
                           key: _formKey,
                           child: Column(
@@ -258,20 +258,20 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 _authController.isLoading ? null : _handleRegister,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.black,
+                              foregroundColor: AppColors.textPrimary,
                               elevation: 4,
-                              shadowColor: Colors.black.withValues(alpha: 0.5),
+                              shadowColor: AppColors.textPrimary.withValues(alpha: 0.5),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                             child: _authController.isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     height: 22,
                                     width: 22,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.5,
-                                      color: Colors.black,
+                                      color: AppColors.textPrimary,
                                     ),
                                   )
                                 : Text(
@@ -302,7 +302,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w400,
-                                  color: Colors.white54,
+                                  color: AppColors.textInverse.withValues(alpha: 0.5),
                                 ),
                                 children: [
                                   TextSpan(
@@ -318,7 +318,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                       ],
                     );
                   },
@@ -362,14 +362,14 @@ class _PasswordStrengthBar extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 4),
                 height: 4,
                 decoration: BoxDecoration(
-                  color: i < filled ? color : Colors.white12,
+                  color: i < filled ? color : AppColors.background.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
             );
           }),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(
           'Kekuatan password: $label',
           style: GoogleFonts.plusJakartaSans(
@@ -383,7 +383,7 @@ class _PasswordStrengthBar extends StatelessWidget {
           'Min. 8 karakter, 1 huruf kapital, 1 angka, 1 simbol',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 10,
-            color: Colors.white38,
+            color: AppColors.background.withValues(alpha: 0.38),
           ),
         ),
       ],

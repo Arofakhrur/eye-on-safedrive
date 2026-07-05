@@ -64,7 +64,7 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
@@ -88,7 +88,7 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
                           children: [
                             Text(
                               'Siapa yang harus kami hubungi saat terjadi kecelakaan? (Maks. ${AppLimits.maxEmergencyContacts} kontak)',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black54),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textSecondary),
                             ),
                             const SizedBox(height: 24),
                             if (_controller.contacts.isNotEmpty)
@@ -127,18 +127,18 @@ class _SetupEmergencyContactScreenState extends State<SetupEmergencyContactScree
                                       }
                                     });
                                   },
-                                  icon: const Icon(Icons.contacts_rounded, color: Colors.black87),
+                                  icon: Icon(Icons.contacts_rounded, color: AppColors.textPrimary.withValues(alpha: 0.87)),
                                   label: Text(
                                     'Pilih dari Kontak',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
-                                      color: Colors.black87,
+                                      color: AppColors.textPrimary.withValues(alpha: 0.87),
                                     ),
                                   ),
                                   style: OutlinedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(vertical: 16),
-                                    side: const BorderSide(color: Colors.black26),
+                                    side: BorderSide(color: AppColors.textPrimary.withValues(alpha: 0.26)),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                   ),
                                 ),

@@ -20,14 +20,14 @@ class SectionHeader extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: Colors.black,
+            color: AppColors.textPrimary,
           ),
         ),
         Text(
           subtitle,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
-            color: Colors.black38,
+            color: AppColors.textPrimary.withValues(alpha: 0.38),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -53,7 +53,7 @@ class CustomPillFilter extends StatelessWidget {
       height: 44,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColors.border.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(22),
       ),
       child: Row(
@@ -65,13 +65,13 @@ class CustomPillFilter extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white : Colors.transparent,
+                  color: isSelected ? AppColors.primary : Colors.transparent,
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 4,
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
                         ]
@@ -83,7 +83,7 @@ class CustomPillFilter extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                    color: isSelected ? Colors.black : Colors.black38,
+                    color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -123,12 +123,12 @@ class MetricCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: AppColors.background.withValues(alpha: 0.6),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 18, color: Colors.black87),
+            child: Icon(icon, size: 18, color: AppColors.textPrimary.withValues(alpha: 0.87)),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,7 +138,7 @@ class MetricCard extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -146,7 +146,7 @@ class MetricCard extends StatelessWidget {
                   label,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    color: Colors.black54,
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -248,9 +248,9 @@ class SmoothTrendChart extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: AppColors.textPrimary.withValues(alpha: 0.03),
             blurRadius: 20,
-            offset: const Offset(0, 10),
+            offset: Offset(0, 10),
           ),
         ],
       ),
@@ -272,8 +272,8 @@ class SmoothTrendChart extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
-                  const style = TextStyle(
-                    color: Colors.black38,
+                  final style = TextStyle(
+                    color: AppColors.textPrimary.withValues(alpha: 0.38),
                     fontWeight: FontWeight.bold,
                     fontSize: 10,
                   );
@@ -300,7 +300,7 @@ class SmoothTrendChart extends StatelessWidget {
           borderData: FlBorderData(show: false),
           lineBarsData: [
             LineChartBarData(
-              spots: chartSpots.isEmpty ? [const FlSpot(0, 0)] : chartSpots,
+              spots: chartSpots.isEmpty ? [FlSpot(0, 0)] : chartSpots,
               isCurved: true,
               gradient: const LinearGradient(
                 colors: [AppColors.primary, Color(0xFF81C784)],
@@ -370,7 +370,7 @@ class ModernAchievementCard extends StatelessWidget {
                   strokeCap: StrokeCap.round,
                 ),
               ),
-              const Icon(Icons.stars_rounded, color: Colors.black, size: 28),
+              Icon(Icons.stars_rounded, color: AppColors.textPrimary, size: 28),
             ],
           ),
           const SizedBox(width: 20),
@@ -383,7 +383,7 @@ class ModernAchievementCard extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 Text(
@@ -392,7 +392,7 @@ class ModernAchievementCard extends StatelessWidget {
                       : 'Waspada! Terdeteksi $totalMicrosleep microsleep. Tingkatkan waktu istirahat.',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: Colors.black54,
+                    color: AppColors.textSecondary,
                     height: 1.4,
                   ),
                 ),
@@ -406,7 +406,7 @@ class ModernAchievementCard extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: Colors.black,
+                          color: AppColors.textPrimary,
                           decoration: TextDecoration.underline,
                         ),
                       ),
@@ -414,7 +414,7 @@ class ModernAchievementCard extends StatelessWidget {
                       const Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: 10,
-                        color: Colors.black,
+                        color: AppColors.textPrimary,
                       ),
                     ],
                   ),
@@ -443,7 +443,7 @@ class MicrosleepInfoSheet extends StatelessWidget {
               color: color,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: Colors.black87, size: 24),
+            child: Icon(icon, color: AppColors.textPrimary.withValues(alpha: 0.87), size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -455,7 +455,7 @@ class MicrosleepInfoSheet extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -463,7 +463,7 @@ class MicrosleepInfoSheet extends StatelessWidget {
                   desc,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
-                    color: Colors.black54,
+                    color: AppColors.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -480,7 +480,7 @@ class MicrosleepInfoSheet extends StatelessWidget {
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: const EdgeInsets.all(32),
@@ -503,7 +503,7 @@ class MicrosleepInfoSheet extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
@@ -511,7 +511,7 @@ class MicrosleepInfoSheet extends StatelessWidget {
             'Informasi penting untuk keselamatan berkendara Anda.',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
-              color: Colors.black54,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 32),
@@ -554,7 +554,7 @@ class MicrosleepInfoSheet extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: Colors.black,
+                foregroundColor: AppColors.textPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),

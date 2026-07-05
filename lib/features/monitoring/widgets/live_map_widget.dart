@@ -131,7 +131,7 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
               SizedBox(height: 12),
               Text(
                 'Mencari sinyal GPS...',
-                style: TextStyle(color: Colors.black54, fontSize: 12),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
             ],
           ),
@@ -182,12 +182,12 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black87, width: 2),
+                      border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.87), width: 2),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
+                          color: AppColors.textPrimary.withValues(alpha: 0.2),
                           blurRadius: 4,
-                          offset: const Offset(0, 2),
+                          offset: Offset(0, 2),
                         ),
                       ],
                     ),

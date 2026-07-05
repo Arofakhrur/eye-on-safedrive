@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
@@ -35,7 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -46,7 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 24),
-                  const EyeOnHeader(),
+                  EyeOnHeader(),
                   Text(
                     'Profil & Pengaturan',
                     style: GoogleFonts.plusJakartaSans(
@@ -162,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () {
                       showModalBottomSheet(
                         context: context,
-                        backgroundColor: Colors.white,
+                        backgroundColor: AppColors.background,
                         shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                         ),

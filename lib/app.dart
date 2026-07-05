@@ -28,9 +28,14 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
           primary: AppColors.primary,
+          surface: AppColors.surface,
+          onSurface: AppColors.textPrimary,
         ),
         fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(),
+        textTheme: GoogleFonts.plusJakartaSansTextTheme().apply(
+          bodyColor: AppColors.textPrimary,
+          displayColor: AppColors.textPrimary,
+        ),
         useMaterial3: true,
         extensions: const [
           SkeletonizerConfigData(
@@ -51,10 +56,10 @@ class MyApp extends StatelessWidget {
       routes: {
         AppRoutes.splash: (context) => const SplashScreen(),
         AppRoutes.onboarding: (context) => const OnboardingScreen(),
-        AppRoutes.login: (context) => const LoginScreen(),
-        AppRoutes.register: (context) => const RegisterScreen(),
+        AppRoutes.login: (context) => LoginScreen(),
+        AppRoutes.register: (context) => RegisterScreen(),
         AppRoutes.setupWizard: (context) => const SetupWizardScreen(),
-        AppRoutes.setup: (context) => const SetupEmergencyContactScreen(),
+        AppRoutes.setup: (context) => SetupEmergencyContactScreen(),
         AppRoutes.permission: (context) => const PermissionScreen(),
         AppRoutes.calibration: (context) => const CalibrationScreen(),
         AppRoutes.home: (context) => const HomeScreen(),

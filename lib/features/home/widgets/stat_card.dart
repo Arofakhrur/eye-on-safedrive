@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -25,14 +26,14 @@ class StatCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, color: Colors.black54, size: 24),
+          Icon(icon, color: AppColors.textSecondary, size: 24),
           const SizedBox(height: 8),
           Text(
             value,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -40,7 +41,7 @@ class StatCard extends StatelessWidget {
             label,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
-              color: Colors.black54,
+              color: AppColors.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),

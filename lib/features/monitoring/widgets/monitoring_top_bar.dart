@@ -44,9 +44,9 @@ class MonitoringTopBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: AppColors.textPrimary.withValues(alpha: 0.3),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -68,11 +68,11 @@ class MonitoringTopBar extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             statusText,
             style: GoogleFonts.plusJakartaSans(
-              color: Colors.white,
+              color: AppColors.background,
               fontSize: 12,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.0,
@@ -97,12 +97,12 @@ class MonitoringTopBar extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: Colors.white54, size: 14),
+        Icon(icon, color: AppColors.textInverse.withValues(alpha: 0.5), size: 14),
         const SizedBox(width: 4),
         Text(
           value,
           style: GoogleFonts.plusJakartaSans(
-            color: Colors.white,
+            color: AppColors.background,
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),

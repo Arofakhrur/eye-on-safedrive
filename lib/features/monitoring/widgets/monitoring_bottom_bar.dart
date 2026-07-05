@@ -26,12 +26,12 @@ class MonitoringBottomBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF121212), // Deep dark background
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: AppColors.background.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
+            color: AppColors.textPrimary.withValues(alpha: 0.4),
             blurRadius: 15,
-            offset: const Offset(0, 5),
+            offset: Offset(0, 5),
           ),
         ],
       ),
@@ -41,7 +41,7 @@ class MonitoringBottomBar extends StatelessWidget {
           _buildMetric(
             Icons.speed_rounded, 
             '${currentSpeed.toStringAsFixed(0)} km/h',
-            Colors.white,
+            AppColors.background,
           ),
           _buildMetric(
             Icons.visibility_rounded, 

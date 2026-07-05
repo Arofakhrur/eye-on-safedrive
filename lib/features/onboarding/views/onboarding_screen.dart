@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:eyeon/features/onboarding/widgets/onboarding_widgets.dart';
 import 'package:eyeon/features/onboarding/logic/onboarding_controller.dart';
@@ -23,11 +24,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            const OnboardingTopBar(),
+            OnboardingTopBar(),
             Expanded(
               child: ListenableBuilder(
                 listenable: _controller,

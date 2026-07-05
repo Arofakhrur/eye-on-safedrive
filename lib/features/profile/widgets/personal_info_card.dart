@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -46,10 +47,10 @@ class PersonalInfoCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: Colors.black54, size: 18),
+          child: Icon(icon, color: AppColors.textSecondary, size: 18),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -60,7 +61,7 @@ class PersonalInfoCard extends StatelessWidget {
                 label,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
-                  color: Colors.black38,
+                  color: AppColors.textPrimary.withValues(alpha: 0.38),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -68,7 +69,7 @@ class PersonalInfoCard extends StatelessWidget {
                 value,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary.withValues(alpha: 0.87),
                   fontWeight: FontWeight.w600,
                 ),
               ),

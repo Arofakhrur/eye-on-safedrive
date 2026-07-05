@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:eyeon/features/calibration/logic/calibration_controller.dart';
 import 'package:eyeon/features/calibration/widgets/calibration_widgets.dart';
@@ -38,7 +39,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -53,7 +54,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
                     builder: (context, _) {
                       return Column(
                         children: [
-                          const CalibrationTopBar(),
+                          CalibrationTopBar(),
                           const Spacer(),
                           CalibrationViewfinder(
                             controller: _controller,

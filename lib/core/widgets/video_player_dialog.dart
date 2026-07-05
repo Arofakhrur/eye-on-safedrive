@@ -14,7 +14,7 @@ class VideoPlayerDialog extends StatefulWidget {
   static Future<void> show(BuildContext context, String videoUrl) {
     return showDialog(
       context: context,
-      barrierColor: Colors.black87,
+      barrierColor: AppColors.textPrimary.withValues(alpha: 0.87),
       builder: (context) => VideoPlayerDialog(videoUrl: videoUrl),
     );
   }
@@ -49,7 +49,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         _controller.play();
 
         // Auto-hide controls after 3 seconds
-        Future.delayed(const Duration(seconds: 3), () {
+        Future.delayed(Duration(seconds: 3), () {
           if (mounted) setState(() => _showControls = false);
         });
       }
@@ -88,7 +88,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: Container(
-          color: Colors.black,
+          color: AppColors.textPrimary,
           constraints: const BoxConstraints(maxHeight: 500),
           child: Stack(
             children: [
@@ -121,7 +121,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withValues(alpha: 0.7),
+                          AppColors.textPrimary.withValues(alpha: 0.7),
                           Colors.transparent,
                         ],
                       ),
@@ -130,13 +130,13 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                         horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
-                        const Icon(Icons.videocam_rounded,
-                            color: Colors.white54, size: 18),
-                        const SizedBox(width: 8),
+                        Icon(Icons.videocam_rounded,
+                            color: AppColors.textInverse.withValues(alpha: 0.5), size: 18),
+                        SizedBox(width: 8),
                         Text(
                           'Rekaman Insiden',
                           style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
+                            color: AppColors.background,
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                           ),
@@ -147,11 +147,11 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                           child: Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
+                              color: AppColors.background.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.close_rounded,
-                                color: Colors.white, size: 18),
+                            child: Icon(Icons.close_rounded,
+                                color: AppColors.background, size: 18),
                           ),
                         ),
                       ],
@@ -170,7 +170,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          Colors.black.withValues(alpha: 0.7),
+                          AppColors.textPrimary.withValues(alpha: 0.7),
                           Colors.transparent,
                         ],
                       ),
@@ -193,7 +193,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                                 SliderTheme(
                                   data: SliderThemeData(
                                     trackHeight: 3,
-                                    thumbShape: const RoundSliderThumbShape(
+                                    thumbShape: RoundSliderThumbShape(
                                         enabledThumbRadius: 6),
                                     overlayShape:
                                         const RoundSliderOverlayShape(
@@ -201,7 +201,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                                     activeTrackColor:
                                         AppColors.primary,
                                     inactiveTrackColor:
-                                        Colors.white.withValues(alpha: 0.2),
+                                        AppColors.background.withValues(alpha: 0.2),
                                     thumbColor: AppColors.primary,
                                   ),
                                   child: Slider(
@@ -227,14 +227,14 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                                       Text(
                                         _formatDuration(value.position),
                                         style: GoogleFonts.plusJakartaSans(
-                                          color: Colors.white54,
+                                          color: AppColors.textInverse.withValues(alpha: 0.5),
                                           fontSize: 11,
                                         ),
                                       ),
                                       Text(
                                         _formatDuration(value.duration),
                                         style: GoogleFonts.plusJakartaSans(
-                                          color: Colors.white54,
+                                          color: AppColors.textInverse.withValues(alpha: 0.5),
                                           fontSize: 11,
                                         ),
                                       ),
@@ -262,14 +262,14 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color:
-                                      Colors.white.withValues(alpha: 0.15),
+                                      AppColors.background.withValues(alpha: 0.15),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
                                   _controller.value.isPlaying
                                       ? Icons.pause_rounded
                                       : Icons.play_arrow_rounded,
-                                  color: Colors.white,
+                                  color: AppColors.background,
                                   size: 28,
                                 ),
                               ),
@@ -292,11 +292,11 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
+                        color: AppColors.textPrimary.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.close_rounded,
-                          color: Colors.white, size: 18),
+                      child: Icon(Icons.close_rounded,
+                          color: AppColors.background, size: 18),
                     ),
                   ),
                 ),
@@ -308,7 +308,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
   }
 
   Widget _buildLoadingState() {
-    return const SizedBox(
+    return SizedBox(
       height: 300,
       child: Center(
         child: Column(
@@ -318,7 +318,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
             SizedBox(height: 16),
             Text(
               'Memuat video…',
-              style: TextStyle(color: Colors.white54, fontSize: 13),
+              style: TextStyle(color: AppColors.textInverse.withValues(alpha: 0.5), fontSize: 13),
             ),
           ],
         ),
@@ -333,13 +333,13 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded,
+            Icon(Icons.error_outline_rounded,
                 color: Colors.redAccent, size: 48),
             const SizedBox(height: 16),
             Text(
               'Gagal memuat video',
               style: GoogleFonts.plusJakartaSans(
-                color: Colors.white,
+                color: AppColors.background,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -350,7 +350,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
               child: Text(
                 _errorMessage,
                 style: GoogleFonts.plusJakartaSans(
-                  color: Colors.white38,
+                  color: AppColors.background.withValues(alpha: 0.38),
                   fontSize: 11,
                 ),
                 textAlign: TextAlign.center,

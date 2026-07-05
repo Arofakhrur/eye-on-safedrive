@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:eyeon/features/ride_setup/logic/ride_setup_controller.dart';
@@ -31,7 +32,7 @@ class _RideSetupScreenState extends State<RideSetupScreen> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: false,
       body: ListenableBuilder(
         listenable: _controller,
@@ -50,7 +51,7 @@ class _RideSetupScreenState extends State<RideSetupScreen> {
               Positioned(
                 top: MediaQuery.of(context).padding.top + 16,
                 left: 16,
-                child: const RideSetupBackButton(),
+                child: RideSetupBackButton(),
               ),
 
               // ── Bottom Sheet ──

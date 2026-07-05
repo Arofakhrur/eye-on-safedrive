@@ -19,7 +19,7 @@ class PermissionTopBar extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -49,16 +49,16 @@ class PermissionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isGranted ? AppColors.primary.withValues(alpha: 0.5) : Colors.grey.shade100,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppColors.textPrimary.withValues(alpha: 0.05),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -70,9 +70,9 @@ class PermissionCard extends StatelessWidget {
               color: isGranted ? AppColors.primary : Colors.grey.shade200,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: isGranted ? Colors.black : Colors.black38, size: 20),
+            child: Icon(icon, color: isGranted ? AppColors.textPrimary : AppColors.textPrimary.withValues(alpha: 0.38), size: 20),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,14 +82,14 @@ class PermissionCard extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 Text(
                   subtitle,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    color: Colors.black54,
+                    color: AppColors.textSecondary,
                     height: 1.3,
                   ),
                 ),
@@ -99,9 +99,9 @@ class PermissionCard extends StatelessWidget {
           Switch(
             value: isGranted,
             onChanged: (_) => onToggle(),
-            activeThumbColor: Colors.white,
+            activeThumbColor: AppColors.background,
             activeTrackColor: AppColors.primary,
-            inactiveThumbColor: Colors.white,
+            inactiveThumbColor: AppColors.background,
             inactiveTrackColor: Colors.grey.shade200,
             trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
           ),
@@ -138,9 +138,9 @@ class PermissionGrantButton extends StatelessWidget {
             boxShadow: [
               if (!isRequesting)
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
+                  color: AppColors.textPrimary.withValues(alpha: 0.15),
                   blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  offset: Offset(0, 4),
                 ),
             ],
           ),
@@ -148,12 +148,12 @@ class PermissionGrantButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (isRequesting)
-                const SizedBox(
+                SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black38),
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.textPrimary.withValues(alpha: 0.38)),
                   ),
                 )
               else ...[
@@ -162,7 +162,7 @@ class PermissionGrantButton extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -170,7 +170,7 @@ class PermissionGrantButton extends StatelessWidget {
                   allGranted
                       ? Icons.arrow_circle_right_outlined
                       : Icons.security_rounded,
-                  color: Colors.black,
+                  color: AppColors.textPrimary,
                   size: 24,
                 ),
               ],

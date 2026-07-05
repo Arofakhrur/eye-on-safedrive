@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/widgets/eyeon_header.dart';
@@ -26,12 +27,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
         children: [
           const SizedBox(height: 24),
-          const EyeOnHeader(),
+          EyeOnHeader(),
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -40,7 +41,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
-                color: Colors.black,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -70,8 +71,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 if (!isLoading && filteredLogs.isEmpty) {
                   return RefreshIndicator(
                     onRefresh: _controller.refreshHistory,
-                    color: Colors.black,
-                    backgroundColor: Colors.white,
+                    color: AppColors.textPrimary,
+                    backgroundColor: AppColors.background,
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Container(
@@ -85,8 +86,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                 return RefreshIndicator(
                   onRefresh: _controller.refreshHistory,
-                  color: Colors.black,
-                  backgroundColor: Colors.white,
+                  color: AppColors.textPrimary,
+                  backgroundColor: AppColors.background,
                   child: Skeletonizer(
                     enabled: isLoading,
                     child: ListView.builder(

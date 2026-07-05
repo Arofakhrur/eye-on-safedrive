@@ -246,8 +246,8 @@ class SupabaseService {
       'latitude': lat,
       'longitude': lng,
       'magnitude': magnitude,
-      if (videoUrl != null) 'video_url': videoUrl,
-      if (rideId != null) 'ride_id': rideId,
+      'video_url': ?videoUrl,
+      'ride_id': ?rideId,
       'timestamp': DateTime.now().toIso8601String(),
     };
     try {
@@ -287,7 +287,7 @@ class SupabaseService {
         'microsleep_alerts': totalMicrosleepAlerts,
         'accident_alerts': totalAccidentAlerts,
         'distance': distance,
-        if (videoUrl != null) 'video_url': videoUrl,
+        'video_url': ?videoUrl,
       }).select('id').single();
       debugPrint('✅ Ride created with ID: ${result['id']}');
       return result['id']?.toString();

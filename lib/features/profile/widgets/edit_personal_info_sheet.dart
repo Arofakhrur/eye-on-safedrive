@@ -52,7 +52,7 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: Colors.black87,
+          color: AppColors.textPrimary.withValues(alpha: 0.87),
         ),
       ),
     );
@@ -60,11 +60,11 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
 
   InputDecoration _buildInputDecoration(IconData icon, String hint) {
     return InputDecoration(
-      prefixIcon: Icon(icon, size: 20, color: Colors.black45),
+      prefixIcon: Icon(icon, size: 20, color: AppColors.textPrimary.withValues(alpha: 0.45)),
       hintText: hint,
       hintStyle: GoogleFonts.plusJakartaSans(
         fontSize: 14,
-        color: Colors.black26,
+        color: AppColors.textPrimary.withValues(alpha: 0.26),
       ),
       filled: true,
       fillColor: Colors.grey.shade50,
@@ -78,7 +78,7 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        borderSide: BorderSide(color: AppColors.primary, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
@@ -91,8 +91,8 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppColors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
@@ -118,7 +118,7 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: Colors.black,
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -126,10 +126,10 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
                 'Perbarui detail profil pribadi Anda.',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
-                  color: Colors.black45,
+                  color: AppColors.textPrimary.withValues(alpha: 0.45),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // Name
               _buildSectionLabel('Nama Lengkap'),
@@ -161,8 +161,8 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
               _buildSectionLabel('Golongan Darah'),
               DropdownButtonFormField<String>(
                 initialValue: _selectedBloodType,
-                dropdownColor: Colors.white,
-                icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 28),
+                dropdownColor: AppColors.background,
+                icon: Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 28),
                 items: AppData.bloodTypes
                     .map(
                       (type) => DropdownMenuItem(
@@ -172,7 +172,7 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: AppColors.textPrimary.withValues(alpha: 0.87),
                           ),
                         ),
                       ),
@@ -189,7 +189,7 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Origin
               _buildSectionLabel('Asal Daerah'),
@@ -231,7 +231,7 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
                         'Batal',
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w700,
-                          color: Colors.black45,
+                          color: AppColors.textPrimary.withValues(alpha: 0.45),
                         ),
                       ),
                     ),
@@ -291,7 +291,7 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.black,
+                        foregroundColor: AppColors.textPrimary,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -304,7 +304,7 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.textSecondary),
                               ),
                             )
                           : Text(

@@ -17,13 +17,13 @@ class StatusCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: AppColors.textPrimary,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: AppColors.textPrimary.withValues(alpha: 0.1),
             blurRadius: 15,
-            offset: const Offset(0, 5),
+            offset: Offset(0, 5),
           ),
         ],
       ),
@@ -42,7 +42,7 @@ class StatusCard extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.shield_rounded,
-                        color: Colors.black, size: 16),
+                        color: AppColors.textPrimary, size: 16),
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -50,7 +50,7 @@ class StatusCard extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: AppColors.background,
                       letterSpacing: 1.0,
                     ),
                   ),
@@ -62,7 +62,7 @@ class StatusCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: AppColors.background.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -75,18 +75,18 @@ class StatusCard extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4),
                         Text(
                           isOnline ? 'Online' : 'Offline',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
-                            color: Colors.white60,
+                            color: AppColors.background.withValues(alpha: 0.60),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   // Ready badge
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -107,7 +107,7 @@ class StatusCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -120,16 +120,16 @@ class StatusCard extends StatelessWidget {
                       'Monitoring Status',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
-                        color: Colors.white54,
+                        color: AppColors.textInverse.withValues(alpha: 0.5),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       'System is active & ready',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
-                        color: Colors.white,
+                        color: AppColors.background,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -149,20 +149,20 @@ class StatusCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: AppColors.background.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.refresh_rounded, color: Colors.white, size: 14),
+                      Icon(Icons.refresh_rounded, color: AppColors.background, size: 14),
                       const SizedBox(width: 6),
                       Text(
                         'Re-calibrate',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: AppColors.background,
                         ),
                       ),
                     ],

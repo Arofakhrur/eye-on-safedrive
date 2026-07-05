@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/services/location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -281,8 +282,8 @@ class SOSService {
         context: context,
         backgroundColor: Colors.transparent,
         builder: (ctx) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppColors.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -306,7 +307,7 @@ class SOSService {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: Colors.black,
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -314,7 +315,7 @@ class SOSService {
                 (c) => ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Colors.redAccent,
-                    child: Icon(Icons.person, color: Colors.white),
+                    child: Icon(Icons.person, color: AppColors.background),
                   ),
                   title: Text(
                     c.name,
@@ -365,9 +366,9 @@ class SOSService {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.black87,
-                  child: Icon(Icons.local_hospital, color: Colors.white),
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.textPrimary.withValues(alpha: 0.87),
+                  child: Icon(Icons.local_hospital, color: AppColors.background),
                 ),
                 title: const Text(
                   'Layanan Darurat Nasional',

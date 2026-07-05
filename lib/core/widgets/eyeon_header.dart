@@ -1,3 +1,4 @@
+import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
@@ -20,7 +21,7 @@ class EyeOnHeader extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: Colors.black87,
+                color: AppColors.textPrimary.withValues(alpha: 0.87),
                 letterSpacing: 1.2,
               ),
             ),

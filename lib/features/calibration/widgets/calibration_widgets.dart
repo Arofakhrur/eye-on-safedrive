@@ -26,7 +26,7 @@ class CalibrationTopBar extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -103,7 +103,7 @@ class CalibrationViewfinder extends StatelessWidget {
                         child: Icon(
                           Icons.face_retouching_natural_rounded,
                           size: 100,
-                          color: Colors.black.withValues(alpha: 0.08),
+                          color: AppColors.textPrimary.withValues(alpha: 0.08),
                         ),
                       ),
               ),
@@ -137,7 +137,7 @@ class CalibrationViewfinder extends StatelessWidget {
                     : (controller.isCalibrationDone ? 1.0 : 0.0),
                 strokeWidth: 4,
                 strokeCap: StrokeCap.round,
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 backgroundColor: Colors.transparent,
               ),
             ),
@@ -151,11 +151,11 @@ class CalibrationViewfinder extends StatelessWidget {
                     BoxShadow(
                       color: AppColors.primary.withValues(alpha: 0.4),
                       blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
-                child: const Icon(Icons.check_rounded, color: Colors.black, size: 40),
+                child: Icon(Icons.check_rounded, color: AppColors.textPrimary, size: 40),
               ),
           ],
         );
@@ -194,7 +194,7 @@ class CalibrationStatusBadge extends StatelessWidget {
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.black.withValues(alpha: 0.5)),
+                        AppColors.textPrimary.withValues(alpha: 0.5)),
                   ),
                 ),
               ),
@@ -203,7 +203,7 @@ class CalibrationStatusBadge extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: controller.isCalibrationDone ? Colors.black87 : Colors.black54,
+                color: controller.isCalibrationDone ? AppColors.textPrimary.withValues(alpha: 0.87) : AppColors.textSecondary,
               ),
             ),
           ],
@@ -236,7 +236,7 @@ class CalibrationTitleSection extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: Colors.black,
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
@@ -261,7 +261,7 @@ class CalibrationTitleSection extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      color: Colors.black54,
+                      color: AppColors.textSecondary,
                       height: 1.5,
                     ),
                   ),
@@ -280,7 +280,7 @@ class CalibrationTitleSection extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.check_circle_rounded,
+                        Icon(Icons.check_circle_rounded,
                             color: Color(0xFF4CAF50), size: 16),
                         const SizedBox(width: 6),
                         Text(
@@ -288,18 +288,18 @@ class CalibrationTitleSection extends StatelessWidget {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: AppColors.textPrimary.withValues(alpha: 0.87),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       'Baseline EAR: ${(controller.earSamples.isNotEmpty ? controller.earSamples.reduce((a, b) => a + b) / controller.earSamples.length : 0.0).toStringAsFixed(3)}  •  '
                       'Threshold: ${controller.calibratedThreshold.toStringAsFixed(3)}',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
-                        color: Colors.black54,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -349,9 +349,9 @@ class CalibrationActionButton extends StatelessWidget {
             boxShadow: [
               if (!controller.isCalibrating)
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
+                  color: AppColors.textPrimary.withValues(alpha: 0.15),
                   blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  offset: Offset(0, 4),
                 ),
             ],
           ),
@@ -367,15 +367,15 @@ class CalibrationActionButton extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: controller.isCalibrating ? Colors.black38 : Colors.black,
+                  color: controller.isCalibrating ? AppColors.textPrimary.withValues(alpha: 0.38) : AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
                 controller.isCalibrationDone
-                    ? const Icon(Icons.check_circle_outline_rounded, color: Colors.black, size: 28)
+                    ? Icon(Icons.check_circle_outline_rounded, color: AppColors.textPrimary, size: 28)
                     : (controller.isCalibrating
-                        ? const RotatingHourglass(color: Colors.black38, size: 28)
-                        : const Icon(Icons.play_circle_outline_rounded, color: Colors.black, size: 28)),
+                        ? RotatingHourglass(color: AppColors.textPrimary.withValues(alpha: 0.38), size: 28)
+                        : Icon(Icons.play_circle_outline_rounded, color: AppColors.textPrimary, size: 28)),
             ],
           ),
         ),
