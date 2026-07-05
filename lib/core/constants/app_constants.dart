@@ -183,6 +183,9 @@ class DetectionConfig {
 
   // ── Level 3 Lock ──
 
+  /// Default lockdown duration (seconds) when Level 3 is triggered.
+  static const int level3LockdownSeconds = 120;
+
   /// Speed below which Level 3 lock can be dismissed (km/h).
   static const double level3UnlockSpeedKmH = 1.0;
 }

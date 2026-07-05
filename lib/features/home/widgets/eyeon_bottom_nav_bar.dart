@@ -17,12 +17,12 @@ class EyeonBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+      padding: const EdgeInsets.only(bottom: 12, left: 20, right: 20),
       child: Container(
-        height: 80,
+        height: 64,
         decoration: BoxDecoration(
           color: Colors.black,
-          borderRadius: BorderRadius.circular(40),
+          borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.25),
@@ -68,13 +68,13 @@ class EyeonBottomNavBar extends StatelessWidget {
       onTap: () => onTabTapped(index),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 60,
+        width: 52,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 24,
+              size: 22,
               color: isSelected
                   ? AppColors.primary
                   : Colors.white.withValues(alpha: 0.5),
@@ -100,9 +100,8 @@ class EyeonBottomNavBar extends StatelessWidget {
     return GestureDetector(
       onTap: onStartRide,
       child: Container(
-        width: 68,
-        height: 68,
-        margin: const EdgeInsets.only(bottom: 4),
+        width: 54,
+        height: 54,
         decoration: BoxDecoration(
           color: AppColors.primary,
           shape: BoxShape.circle,
@@ -117,11 +116,11 @@ class EyeonBottomNavBar extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.add_road, color: Colors.black, size: 28),
+            const Icon(Icons.add_road, color: Colors.black, size: 24),
             Text(
               'Ride',
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 9,
+                fontSize: 8,
                 fontWeight: FontWeight.w800,
                 color: Colors.black,
               ),

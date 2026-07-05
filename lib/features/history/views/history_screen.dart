@@ -57,44 +57,50 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _controller.getRideHistoryStream(),
-              builder: (context, snapshot) {
-                final bool isLoading = !snapshot.hasData;
-                final logs = isLoading ? MockData.fakeRideLogs : snapshot.data!;
+            child: ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                final bool isLoading = _controller.isLoading;
+                final logs = isLoading ? MockData.fakeRideLogs : _controller.rideLogs;
                 
-                return ListenableBuilder(
-                  listenable: _controller,
-                  builder: (context, _) {
-                    final filteredLogs = isLoading 
-                        ? logs
-                        : _controller.filterLogs(logs);
+                final filteredLogs = isLoading 
+                    ? logs
+                    : _controller.filterLogs(logs);
 
-                    if (!isLoading && filteredLogs.isEmpty) {
-                      return SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: Container(
-                          height: MediaQuery.of(context).size.height * 0.7,
-                          alignment: Alignment.center,
-                          child: const HistoryEmptyState(),
-                        ),
-                      );
-                    }
-
-                    return Skeletonizer(
-                      enabled: isLoading,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(24),
-                        itemCount: filteredLogs.length,
-                        itemBuilder: (context, index) {
-                          return HistoryCard(
-                            log: filteredLogs[index],
-                            loadIncidents: _controller.loadIncidentsForRide,
-                          );
-                        },
+                if (!isLoading && filteredLogs.isEmpty) {
+                  return RefreshIndicator(
+                    onRefresh: _controller.refreshHistory,
+                    color: Colors.black,
+                    backgroundColor: Colors.white,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Container(
+                        height: MediaQuery.of(context).size.height * 0.7,
+                        alignment: Alignment.center,
+                        child: const HistoryEmptyState(),
                       ),
-                    );
-                  }
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: _controller.refreshHistory,
+                  color: Colors.black,
+                  backgroundColor: Colors.white,
+                  child: Skeletonizer(
+                    enabled: isLoading,
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(24),
+                      itemCount: filteredLogs.length,
+                      itemBuilder: (context, index) {
+                        return HistoryCard(
+                          log: filteredLogs[index],
+                          loadIncidents: _controller.loadIncidentsForRide,
+                        );
+                      },
+                    ),
+                  ),
                 );
               },
             ),

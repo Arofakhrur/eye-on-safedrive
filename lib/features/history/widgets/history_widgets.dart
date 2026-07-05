@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/constants/app_data.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
@@ -94,6 +95,7 @@ class _HistoryCardState extends State<HistoryCard> {
   bool _isExpanded = false;
   List<Map<String, dynamic>>? _incidents;
   bool _isLoadingIncidents = false;
+  String? _incidentVideoUrl; // video dari incident_logs
 
   Future<void> _handleLoadIncidents() async {
     final rideId = widget.log['id']?.toString();
@@ -103,9 +105,15 @@ class _HistoryCardState extends State<HistoryCard> {
     try {
       final incidents = await widget.loadIncidents(rideId);
       if (mounted) {
+        // Ambil video_url dari incident pertama yang ada videonya
+        final videoIncident = incidents?.firstWhere(
+          (i) => i['video_url'] != null && i['video_url'].toString().isNotEmpty,
+          orElse: () => {},
+        );
         setState(() {
           _incidents = incidents;
           _isLoadingIncidents = false;
+          _incidentVideoUrl = videoIncident?['video_url']?.toString();
         });
       }
     } catch (e) {
@@ -311,9 +319,10 @@ class _HistoryCardState extends State<HistoryCard> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  // Thumbnail video — klik untuk putar
                   GestureDetector(
-                    onTap: log['video_url'] != null
-                        ? () => _playVideo(context, log['video_url'])
+                    onTap: _incidentVideoUrl != null
+                        ? () => _playVideo(context, _incidentVideoUrl!)
                         : null,
                     child: Container(
                       height: 160,
@@ -321,34 +330,56 @@ class _HistoryCardState extends State<HistoryCard> {
                         color: Colors.black,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: log['video_url'] != null
-                          ? const Center(
-                              child: Icon(
-                                Icons.play_circle_fill_rounded,
-                                color: Colors.white,
-                                size: 48,
-                              ),
-                            )
-                          : Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: _incidentVideoUrl != null
+                            ? Stack(
+                                alignment: Alignment.center,
                                 children: [
-                                  const Icon(
-                                    Icons.videocam_off_rounded,
-                                    color: Colors.white24,
-                                    size: 40,
+                                  _VideoThumbnail(videoUrl: _incidentVideoUrl!),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.35),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Video Tidak Tersedia',
-                                    style: GoogleFonts.plusJakartaSans(
+                                  Container(
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: const BoxDecoration(
                                       color: Colors.white24,
-                                      fontSize: 12,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.play_arrow_rounded,
+                                      color: Colors.white,
+                                      size: 36,
                                     ),
                                   ),
                                 ],
+                              )
+                            : Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.videocam_off_rounded,
+                                      color: Colors.white.withValues(alpha: 0.3),
+                                      size: 40,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _isLoadingIncidents
+                                          ? 'Memuat video…'
+                                          : 'Video Tidak Tersedia',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white30,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -357,9 +388,10 @@ class _HistoryCardState extends State<HistoryCard> {
                       Expanded(
                         child: _buildActionButton(
                           icon: Icons.play_arrow_rounded,
-                          label: 'Video',
-                          onTap: log['video_url'] != null
-                              ? () => _playVideo(context, log['video_url'])
+                          label: 'Putar Video',
+                          enabled: _incidentVideoUrl != null,
+                          onTap: _incidentVideoUrl != null
+                              ? () => _playVideo(context, _incidentVideoUrl!)
                               : () {},
                         ),
                       ),
@@ -368,10 +400,14 @@ class _HistoryCardState extends State<HistoryCard> {
                         child: _buildActionButton(
                           icon: Icons.map_rounded,
                           label: 'Peta',
-                          onTap: () => _openMap(
-                            log['latitude'] ?? 0.0,
-                            log['longitude'] ?? 0.0,
-                          ),
+                          enabled: true,
+                          onTap: () {
+                            final incident = _incidents?.firstOrNull;
+                            _openMap(
+                              incident?['latitude'] ?? log['latitude'] ?? 0.0,
+                              incident?['longitude'] ?? log['longitude'] ?? 0.0,
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -524,17 +560,20 @@ class _HistoryCardState extends State<HistoryCard> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    bool enabled = true,
   }) {
     return ElevatedButton.icon(
-      onPressed: onTap,
+      onPressed: enabled ? onTap : null,
       icon: Icon(icon, size: 14),
       label: Text(
         label,
         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: enabled ? Colors.black : Colors.grey.shade300,
+        foregroundColor: enabled ? Colors.white : Colors.black38,
+        disabledBackgroundColor: Colors.grey.shade300,
+        disabledForegroundColor: Colors.black38,
         elevation: 0,
         padding: const EdgeInsets.symmetric(vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -551,5 +590,82 @@ class _HistoryCardState extends State<HistoryCard> {
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
     }
+  }
+}
+
+/// Widget thumbnail video: inisialisasi player, ambil frame pertama,
+/// lalu dispose — tidak auto-play, hanya preview static.
+class _VideoThumbnail extends StatefulWidget {
+  final String videoUrl;
+  const _VideoThumbnail({required this.videoUrl});
+
+  @override
+  State<_VideoThumbnail> createState() => _VideoThumbnailState();
+}
+
+class _VideoThumbnailState extends State<_VideoThumbnail> {
+  VideoPlayerController? _controller;
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      final ctrl = VideoPlayerController.networkUrl(
+        Uri.parse(widget.videoUrl),
+      );
+      await ctrl.initialize();
+      // Seek ke frame pertama dan pause langsung
+      await ctrl.seekTo(Duration.zero);
+      if (mounted) {
+        setState(() {
+          _controller = ctrl;
+          _ready = true;
+        });
+      } else {
+        await ctrl.dispose();
+      }
+    } catch (_) {
+      // Gagal load thumbnail — tampilkan placeholder
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready || _controller == null) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white30,
+            ),
+          ),
+        ),
+      );
+    }
+    return SizedBox.expand(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: _controller!.value.size.width,
+          height: _controller!.value.size.height,
+          child: VideoPlayer(_controller!),
+        ),
+      ),
+    );
   }
 }

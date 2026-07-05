@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
 
 // ── Driving Guide Card ──
 class DrivingGuideCard extends StatelessWidget {
@@ -573,20 +574,10 @@ class Level2Overlay extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 2),
             ),
             const SizedBox(height: 48),
-            GestureDetector(
-              onLongPress: onResume,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: Text(
-                  'TAHAN LAMA UNTUK LANJUT',
-                  style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-              ),
+            HoldToConfirmButton(
+              onConfirm: onResume,
+              label: 'TAHAN UNTUK LANJUT',
+              duration: const Duration(milliseconds: 1500),
             ),
           ],
         ),
@@ -608,45 +599,137 @@ class Level3Overlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black87,
+      color: Colors.red.shade900.withValues(alpha: 0.95),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lock_rounded, color: Colors.redAccent, size: 100),
+            const Icon(Icons.block_rounded, color: Colors.white, size: 100),
             const SizedBox(height: 16),
             Text(
-              'SISTEM TERKUNCI\nWajib Istirahat',
+              'SISTEM TERKUNCI\n(Level 3 Microsleep)',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900),
+              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
-              canUnlock
-                  ? 'Kecepatan 0 km/h.\nKetuk untuk melanjutkan.'
-                  : 'Berhentikan kendaraan Anda\nuntuk membuka kunci.',
+              'Menunggu ${DetectionConfig.level3LockdownSeconds} detik...\nSistem mendeteksi Anda terlalu sering mengantuk.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 16),
+              style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 48),
             if (canUnlock)
-              ElevatedButton(
-                onPressed: onResume,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                ),
-                child: Text(
-                  'LANJUTKAN PERJALANAN',
-                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
-                ),
-              ),
+              HoldToConfirmButton(
+                onConfirm: onResume,
+                label: 'TAHAN UNTUK BUKA KUNCI',
+                duration: const Duration(milliseconds: 2000),
+                fillColor: Colors.white,
+                textColor: Colors.red.shade900,
+              )
+            else
+              const CircularProgressIndicator(color: Colors.white),
           ],
         ),
       ),
     );
   }
 }
+
+class HoldToConfirmButton extends StatefulWidget {
+  final VoidCallback onConfirm;
+  final String label;
+  final Duration duration;
+  final Color outlineColor;
+  final Color fillColor;
+  final Color textColor;
+
+  const HoldToConfirmButton({
+    super.key,
+    required this.onConfirm,
+    required this.label,
+    this.duration = const Duration(milliseconds: 1500),
+    this.outlineColor = Colors.white,
+    this.fillColor = Colors.white,
+    this.textColor = Colors.black,
+  });
+
+  @override
+  State<HoldToConfirmButton> createState() => _HoldToConfirmButtonState();
+}
+
+class _HoldToConfirmButtonState extends State<HoldToConfirmButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  bool _isConfirmed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+    _controller.addListener(() {
+      setState(() {});
+    });
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed && !_isConfirmed) {
+        _isConfirmed = true;
+        widget.onConfirm();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    if (!_isConfirmed) {
+      _controller.forward();
+    }
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    if (!_isConfirmed) {
+      _controller.reverse();
+    }
+  }
+
+  void _handleTapCancel() {
+    if (!_isConfirmed) {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = _controller.value;
+    
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+        decoration: BoxDecoration(
+          color: Color.lerp(Colors.black54, widget.fillColor, progress),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: widget.outlineColor, width: 2),
+        ),
+        child: Text(
+          widget.label,
+          style: GoogleFonts.plusJakartaSans(
+            color: Color.lerp(widget.outlineColor, widget.textColor, progress),
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
 

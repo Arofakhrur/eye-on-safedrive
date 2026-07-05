@@ -12,8 +12,26 @@ class HistoryController extends ChangeNotifier {
     }
   }
 
-  Stream<List<Map<String, dynamic>>> getRideHistoryStream() {
-    return SupabaseService().streamRideHistory();
+  bool _isLoading = true;
+  bool get isLoading => _isLoading;
+
+  List<Map<String, dynamic>> _rideLogs = [];
+  List<Map<String, dynamic>> get rideLogs => _rideLogs;
+
+  HistoryController() {
+    refreshHistory();
+  }
+
+  Future<void> refreshHistory() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      _rideLogs = await SupabaseService().getRideHistory();
+    } catch (e) {
+      _rideLogs = [];
+    }
+    _isLoading = false;
+    notifyListeners();
   }
 
   List<Map<String, dynamic>> filterLogs(List<Map<String, dynamic>> logs) {

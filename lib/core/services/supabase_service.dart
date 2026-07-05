@@ -289,9 +289,10 @@ class SupabaseService {
         'distance': distance,
         if (videoUrl != null) 'video_url': videoUrl,
       }).select('id').single();
+      debugPrint('✅ Ride created with ID: ${result['id']}');
       return result['id']?.toString();
     } catch (e) {
-      debugPrint('Log Ride Error: $e');
+      debugPrint('❌ logRide failed (check RLS INSERT policy on ride_logs): $e');
       return null;
     }
   }
@@ -401,15 +402,12 @@ class SupabaseService {
   /// Create or update the user's profile in the profiles table.
   Future<void> updateProfile(Map<String, dynamic> data) async {
     if (currentUser == null) return;
-    try {
-      await client.from(SupabaseConfig.tableProfiles).upsert({
-        'id': currentUser!.id,
-        ...data,
-        'updated_at': DateTime.now().toIso8601String(),
-      });
-    } catch (e) {
-      debugPrint('Update profile error: $e');
-    }
+    // Note: errors are intentionally rethrown so callers can show feedback to user
+    await client.from(SupabaseConfig.tableProfiles).upsert({
+      'id': currentUser!.id,
+      ...data,
+      'updated_at': DateTime.now().toIso8601String(),
+    });
   }
 
   /// Legacy metadata update — kept for backward compatibility.

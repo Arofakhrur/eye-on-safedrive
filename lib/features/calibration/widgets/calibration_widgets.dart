@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
@@ -36,7 +37,7 @@ class CalibrationTopBar extends StatelessWidget {
 
 class CalibrationViewfinder extends StatelessWidget {
   final CalibrationController controller;
-  final Animation<double> pulseAnimation;
+  final Animation<double> pulseAnimation; // Now ranges from -1.0 to 1.0
 
   const CalibrationViewfinder({
     super.key,
@@ -44,109 +45,119 @@ class CalibrationViewfinder extends StatelessWidget {
     required this.pulseAnimation,
   });
 
+  String _getScanningText(double progress) {
+    if (progress < 0.3) return "Mendeteksi wajah...";
+    if (progress < 0.6) return "Memetakan titik mata...";
+    if (progress < 0.9) return "Menganalisis pola kedipan...";
+    return "Mengunci profil...";
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: pulseAnimation,
       builder: (context, child) {
-        final scale = controller.isCalibrating ? pulseAnimation.value : 1.0;
-        return Transform.scale(
-          scale: scale,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 290,
-                height: 290,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: controller.isCalibrationDone
-                        ? AppColors.primary
-                        : Colors.grey.shade200,
-                    width: 3,
-                  ),
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 290,
+              height: 290,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: controller.isCalibrationDone
+                      ? AppColors.primary
+                      : Colors.grey.shade200,
+                  width: 3,
                 ),
               ),
-              ClipOval(
-                child: SizedBox(
-                  width: 270,
-                  height: 270,
-                  child: controller.isCameraReady && controller.cameraController != null
-                      ? FittedBox(
-                          fit: BoxFit.cover,
-                          child: SizedBox(
-                            width: controller.cameraController!.value.previewSize?.height ?? 480,
-                            height: controller.cameraController!.value.previewSize?.width ?? 640,
-                            child: CameraPreview(controller.cameraController!),
-                          ),
-                        )
-                      : Container(
-                          color: Colors.grey.shade100,
-                          child: Icon(
-                            Icons.face_retouching_natural_rounded,
-                            size: 100,
-                            color: Colors.black.withValues(alpha: 0.08),
+            ),
+            ClipOval(
+              child: SizedBox(
+                width: 270,
+                height: 270,
+                child: controller.isCameraReady && controller.cameraController != null
+                    ? FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: controller.cameraController!.value.previewSize?.height ?? 480,
+                          height: controller.cameraController!.value.previewSize?.width ?? 640,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              CameraPreview(controller.cameraController!),
+                              if (controller.isCalibrating && controller.eyePoints.isNotEmpty)
+                                CustomPaint(
+                                  painter: EyeLandmarkPainter(
+                                    eyePoints: controller.eyePoints,
+                                    isFrontCamera: true, // Assuming front camera for calibration
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                ),
-              ),
-              SizedBox(
-                width: 290,
-                height: 290,
-                child: CircularProgressIndicator(
-                  value: controller.isCalibrating
-                      ? controller.progress
-                      : (controller.isCalibrationDone ? 1.0 : 0.0),
-                  strokeWidth: 4,
-                  strokeCap: StrokeCap.round,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  backgroundColor: Colors.transparent,
-                ),
-              ),
-              if (controller.isCalibrating)
-                Positioned(
-                  bottom: 24,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${(controller.progress * 100).toInt()}%',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                      )
+                    : Container(
+                        color: Colors.grey.shade100,
+                        child: Icon(
+                          Icons.face_retouching_natural_rounded,
+                          size: 100,
+                          color: Colors.black.withValues(alpha: 0.08),
                         ),
-                        if (controller.currentEAR > 0)
-                          Text(
-                            'EAR: ${controller.currentEAR.toStringAsFixed(3)}',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              color: Colors.white70,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              if (controller.isCalibrationDone)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(
+                      ),
+              ),
+            ),
+            // Glowing Scanning Line
+            if (controller.isCalibrating)
+              Positioned(
+                top: 145 + (135 * pulseAnimation.value) - 2, // 135 to stay within inner circle
+                left: 10,
+                right: 10,
+                child: Container(
+                  height: 3,
+                  decoration: BoxDecoration(
                     color: AppColors.primary,
-                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.8),
+                        blurRadius: 16,
+                        spreadRadius: 4,
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.check_rounded, color: Colors.black, size: 32),
                 ),
-            ],
-          ),
+              ),
+            SizedBox(
+              width: 290,
+              height: 290,
+              child: CircularProgressIndicator(
+                value: controller.isCalibrating
+                    ? controller.progress
+                    : (controller.isCalibrationDone ? 1.0 : 0.0),
+                strokeWidth: 4,
+                strokeCap: StrokeCap.round,
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                backgroundColor: Colors.transparent,
+              ),
+            ),
+            if (controller.isCalibrationDone)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.check_rounded, color: Colors.black, size: 40),
+              ),
+          ],
         );
       },
     );
@@ -207,6 +218,13 @@ class CalibrationTitleSection extends StatelessWidget {
 
   const CalibrationTitleSection({super.key, required this.controller});
 
+  String _getScanningText(double progress) {
+    if (progress < 0.3) return "Mendeteksi wajah...";
+    if (progress < 0.6) return "Memetakan titik mata...";
+    if (progress < 0.9) return "Menganalisis pola kedipan...";
+    return "Mengunci profil...";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -222,17 +240,31 @@ class CalibrationTitleSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            'Posisikan wajah Anda di dalam lingkaran dan tatap lurus ke '
-            'depan. Hal ini membantu EYE-ON! mempelajari pola dasar mata '
-            'Anda untuk deteksi kantuk yang akurat.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              color: Colors.black54,
-              height: 1.5,
-            ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: controller.isCalibrating
+                ? Text(
+                    '${(controller.progress * 100).toInt()}% — ${_getScanningText(controller.progress)}',
+                    key: ValueKey(controller.progress),
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  )
+                : Text(
+                    'Posisikan wajah Anda di dalam lingkaran dan tatap lurus ke '
+                    'depan. Hal ini membantu EYE-ON! mempelajari pola dasar mata '
+                    'Anda untuk deteksi kantuk yang akurat.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black54,
+                      height: 1.5,
+                    ),
+                  ),
           ),
           if (controller.isCalibrationDone)
             Padding(
@@ -339,19 +371,95 @@ class CalibrationActionButton extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Icon(
                 controller.isCalibrationDone
-                    ? Icons.check_circle_outline_rounded
+                    ? const Icon(Icons.check_circle_outline_rounded, color: Colors.black, size: 28)
                     : (controller.isCalibrating
-                        ? Icons.hourglass_top_rounded
-                        : Icons.play_circle_outline_rounded),
-                color: controller.isCalibrating ? Colors.black38 : Colors.black,
-                size: 28,
-              ),
+                        ? const RotatingHourglass(color: Colors.black38, size: 28)
+                        : const Icon(Icons.play_circle_outline_rounded, color: Colors.black, size: 28)),
             ],
           ),
         ),
       ),
     );
+  }
+}
+
+class RotatingHourglass extends StatefulWidget {
+  final Color color;
+  final double size;
+  
+  const RotatingHourglass({super.key, required this.color, required this.size});
+
+  @override
+  State<RotatingHourglass> createState() => _RotatingHourglassState();
+}
+
+class _RotatingHourglassState extends State<RotatingHourglass> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        // Rotates 180 degrees repeatedly (1.0 = full 360, so 0.5 = 180)
+        return Transform.rotate(
+          angle: _controller.value * 3.14159, // Pi radians = 180 degrees
+          child: Icon(
+            Icons.hourglass_bottom_rounded,
+            color: widget.color,
+            size: widget.size,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class EyeLandmarkPainter extends CustomPainter {
+  final List<Point<int>> eyePoints;
+  final bool isFrontCamera;
+
+  EyeLandmarkPainter({required this.eyePoints, this.isFrontCamera = true});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (eyePoints.isEmpty) return;
+
+    final paint = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.fill;
+
+    for (final point in eyePoints) {
+      double x = point.x.toDouble();
+      double y = point.y.toDouble();
+      
+      // Mirror X for front camera to match CameraPreview
+      if (isFrontCamera) {
+        x = size.width - x;
+      }
+      
+      canvas.drawCircle(Offset(x, y), 2.5, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant EyeLandmarkPainter oldDelegate) {
+    return oldDelegate.eyePoints != eyePoints;
   }
 }

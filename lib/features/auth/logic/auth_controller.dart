@@ -94,10 +94,6 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  // ---------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------
-
   Future<void> checkUserSetup(Function() navigate) async {
     try {
       final prefs = PreferenceService();

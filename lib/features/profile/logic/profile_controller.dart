@@ -87,6 +87,9 @@ class ProfileController extends ChangeNotifier {
     }
   }
 
+  bool _isSaving = false;
+  bool get isSaving => _isSaving;
+
   Future<void> updatePersonalInfo({
     required String name,
     required String address,
@@ -94,31 +97,46 @@ class ProfileController extends ChangeNotifier {
     required String origin,
     required String medicalNotes,
   }) async {
-    // Save to profiles table
-    await SupabaseService().updateProfile({
-      'full_name': name,
-      'address': address,
-      'blood_type': bloodType,
-      'origin': origin,
-      'emergency_medical_notes': medicalNotes,
-    });
-
-    // Also update auth metadata
-    await SupabaseService().updateUserMetadata({
-      'full_name': name,
-      'address': address,
-      'blood_type': bloodType,
-      'origin': origin,
-    });
-
-    _userName = name;
-    _address = address;
-    _bloodType = bloodType;
-    _origin = origin;
-    _medicalNotes = medicalNotes;
+    _isSaving = true;
     notifyListeners();
 
-    await loadUserProfile();
+    try {
+      // Save to profiles table — error is rethrown by SupabaseService
+      await SupabaseService().updateProfile({
+        'full_name': name,
+        'address': address,
+        'blood_type': bloodType,
+        'origin': origin,
+        'emergency_medical_notes': medicalNotes,
+      });
+
+      // Also update auth metadata (best-effort, do not block if this fails)
+      try {
+        await SupabaseService().updateUserMetadata({
+          'full_name': name,
+          'address': address,
+          'blood_type': bloodType,
+          'origin': origin,
+        });
+      } catch (e) {
+        debugPrint('Auth metadata update failed (non-critical): $e');
+      }
+
+      _userName = name;
+      _address = address;
+      _bloodType = bloodType;
+      _origin = origin;
+      _medicalNotes = medicalNotes;
+      notifyListeners();
+
+      await loadUserProfile();
+    } catch (e) {
+      debugPrint('updatePersonalInfo error: $e');
+      rethrow; // let UI show a Snackbar
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
   }
 
   Future<void> updateDetectionSettings({

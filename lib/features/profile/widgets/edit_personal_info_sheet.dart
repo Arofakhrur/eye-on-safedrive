@@ -224,7 +224,9 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: widget.controller.isSaving
+                          ? null
+                          : () => Navigator.pop(context),
                       child: Text(
                         'Batal',
                         style: GoogleFonts.plusJakartaSans(
@@ -238,16 +240,55 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
                   Expanded(
                     flex: 2,
                     child: ElevatedButton(
-                      onPressed: () async {
-                        await widget.controller.updatePersonalInfo(
-                          name: _nameController.text,
-                          address: _addressController.text,
-                          bloodType: _selectedBloodType,
-                          origin: _originController.text,
-                          medicalNotes: _medicalNotesController.text,
-                        );
-                        if (context.mounted) Navigator.pop(context);
-                      },
+                      onPressed: widget.controller.isSaving
+                          ? null
+                          : () async {
+                              try {
+                                await widget.controller.updatePersonalInfo(
+                                  name: _nameController.text.trim(),
+                                  address: _addressController.text.trim(),
+                                  bloodType: _selectedBloodType,
+                                  origin: _originController.text.trim(),
+                                  medicalNotes: _medicalNotesController.text.trim(),
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Informasi berhasil disimpan!',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      backgroundColor: const Color(0xFF4CAF50),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  );
+                                  Navigator.pop(context);
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Gagal menyimpan: ${e.toString().replaceFirst('Exception: ', '')}',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      backgroundColor: Colors.red.shade600,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.black,
@@ -257,12 +298,21 @@ class _EditPersonalInfoSheetState extends State<EditPersonalInfoSheet> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: Text(
-                        'Simpan Perubahan',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                      child: widget.controller.isSaving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
+                              ),
+                            )
+                          : Text(
+                              'Simpan Perubahan',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                     ),
                   ),
                 ],

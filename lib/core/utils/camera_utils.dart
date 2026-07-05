@@ -11,30 +11,28 @@ class CameraUtils {
     DeviceOrientation.landscapeRight: 270,
   };
 
+  /// Convert a CameraImage frame to InputImage for ML Kit processing.
   static InputImage? inputImageFromCameraImage(
     CameraImage image,
     CameraController? controller,
   ) {
     if (controller == null) return null;
+    if (image.planes.isEmpty) return null;
 
-    // Get image rotation
-    // it is used in android to convert the InputImage from Dart to Java: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/android/src/main/java/com/google_mlkit_commons/InputImageConverter.java
-    // `rotation` is not used in iOS to convert the InputImage from Dart to Obj-C: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/google_mlkit_commons/ios/Classes/MLKVisionImage%2BFlutterPlugin.m
-    // in both platforms `rotation` and `camera.lensDirection` can be used to compensate `x` and `y` coordinates on a canvas: https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/packages/example/lib/vision_detector_views/painters/coordinates_translator.dart
     final camera = controller.description;
     final sensorOrientation = camera.sensorOrientation;
-    
+
     InputImageRotation? rotation;
     if (Platform.isIOS) {
       rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
     } else if (Platform.isAndroid) {
-      var rotationCompensation = _orientations[controller.value.deviceOrientation];
+      var rotationCompensation =
+          _orientations[controller.value.deviceOrientation];
       if (rotationCompensation == null) return null;
+
       if (camera.lensDirection == CameraLensDirection.front) {
-        // front-facing
         rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
       } else {
-        // back-facing
         rotationCompensation =
             (sensorOrientation - rotationCompensation + 360) % 360;
       }
@@ -42,39 +40,100 @@ class CameraUtils {
     }
     if (rotation == null) return null;
 
-    // Get image format
     final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    // validate format depending on platform
-    // only supported formats:
-    // * nv21 for Android
-    // * bgra8888 for iOS
-    if (format == null ||
-        (Platform.isAndroid && format != InputImageFormat.nv21 && format != InputImageFormat.yuv_420_888) ||
-        (Platform.isIOS && format != InputImageFormat.bgra8888)) {
-      return null;
+    if (format == null) return null;
+
+    // ── Android: Use NV21 format directly ──────────────────────────
+    if (Platform.isAndroid) {
+      if (format != InputImageFormat.nv21) {
+        if (format == InputImageFormat.yuv_420_888) {
+           return _processYuv420(image, rotation);
+        }
+        return null;
+      }
+
+      // NV21 is passed efficiently without manual conversions
+      final bytes = image.planes.length == 1 
+          ? image.planes[0].bytes 
+          : _concatenatePlanes(image.planes); // Safeguard if plugin separates Y and UV
+
+      return InputImage.fromBytes(
+        bytes: bytes,
+        metadata: InputImageMetadata(
+          size: Size(image.width.toDouble(), image.height.toDouble()),
+          rotation: rotation,
+          format: format,
+          bytesPerRow: image.planes[0].bytesPerRow,
+        ),
+      );
     }
 
-    // Since format is valid, we can be confident planes has at least one element.
-    // However, on Android, it might be safer to merge planes if necessary.
-    // For NV21 we only need a single byte array with YUV combined, but often camera provides 3 planes.
-    // We will just pass planes to InputImageMetadata and let MLKit handle it.
-    
-    if (image.planes.isEmpty) return null;
-
-    final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in image.planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
-    final bytes = allBytes.done().buffer.asUint8List();
+    // ── iOS: BGRA8888 ────────────────────────────────────────────────
+    if (format != InputImageFormat.bgra8888) return null;
 
     return InputImage.fromBytes(
-      bytes: bytes,
+      bytes: image.planes[0].bytes,
       metadata: InputImageMetadata(
         size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation, // used only in Android
-        format: format, // used only in iOS
-        bytesPerRow: image.planes[0].bytesPerRow, // used only in iOS
+        rotation: rotation,
+        format: format,
+        bytesPerRow: image.planes[0].bytesPerRow,
       ),
     );
+  }
+  
+  static Uint8List _concatenatePlanes(List<Plane> planes) {
+    final WriteBuffer allBytes = WriteBuffer();
+    for (final Plane plane in planes) {
+      allBytes.putUint8List(plane.bytes);
+    }
+    return allBytes.done().buffer.asUint8List();
+  }
+  
+  static InputImage? _processYuv420(CameraImage image, InputImageRotation rotation) {
+     try {
+       final int width = image.width;
+       final int height = image.height;
+       final int uvRowStride = image.planes[1].bytesPerRow;
+       final int uvPixelStride = image.planes[1].bytesPerPixel ?? 1;
+
+       final nv21 = Uint8List(width * height + (width * height ~/ 2));
+
+       final yPlane = image.planes[0].bytes;
+       final int yRowStride = image.planes[0].bytesPerRow;
+       for (int row = 0; row < height; row++) {
+         final srcStart = row * yRowStride;
+         final dstStart = row * width;
+         nv21.setRange(dstStart, dstStart + width, yPlane, srcStart);
+       }
+
+       final uPlane = image.planes[1].bytes;
+       final vPlane = image.planes[2].bytes;
+       int uvIndex = width * height;
+       final int uvHeight = height ~/ 2;
+       final int uvWidth = width ~/ 2;
+
+       for (int row = 0; row < uvHeight; row++) {
+         for (int col = 0; col < uvWidth; col++) {
+           final int uvOffset = row * uvRowStride + col * uvPixelStride;
+           if (uvIndex + 1 < nv21.length) {
+             nv21[uvIndex++] = vPlane[uvOffset];
+             nv21[uvIndex++] = uPlane[uvOffset];
+           }
+         }
+       }
+
+       return InputImage.fromBytes(
+         bytes: nv21,
+         metadata: InputImageMetadata(
+           size: Size(image.width.toDouble(), image.height.toDouble()),
+           rotation: rotation,
+           format: InputImageFormat.nv21,
+           bytesPerRow: width,
+         ),
+       );
+     } catch (_) {
+       return null;
+     }
   }
 }

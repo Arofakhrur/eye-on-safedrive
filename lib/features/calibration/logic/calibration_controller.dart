@@ -34,16 +34,21 @@ class CalibrationController extends ChangeNotifier {
     option: FaceMeshDetectorOptions.faceMesh,
   );
   bool _isProcessingFrame = false;
+  bool _isStreamingActive = false;
 
   // ── EAR Calibration Data ──────────────────────────────────────────
   final List<double> _earSamples = [];
   static const int _targetSamples = DetectionConfig.calibrationTargetSamples;
   double _currentEAR = 0.0;
+  double get currentEAR => _currentEAR;
+
+  List<Point<int>> _eyePoints = [];
+  List<Point<int>> get eyePoints => _eyePoints;
+
   double _calibratedThreshold = 0.0;
   int _noFaceFrames = 0;
   static const int _noFaceTimeout = DetectionConfig.noFaceTimeoutFrames;
 
-  double get currentEAR => _currentEAR;
   double get calibratedThreshold => _calibratedThreshold;
   List<double> get earSamples => _earSamples;
 
@@ -67,7 +72,7 @@ class CalibrationController extends ChangeNotifier {
         ResolutionPreset.medium,
         enableAudio: false,
         imageFormatGroup: Platform.isAndroid
-            ? ImageFormatGroup.yuv420
+            ? ImageFormatGroup.nv21
             : ImageFormatGroup.bgra8888,
       );
 
@@ -86,22 +91,41 @@ class CalibrationController extends ChangeNotifier {
       return;
     }
 
+    // Stop any existing stream before restarting
+    if (_isStreamingActive) {
+      try {
+        _cameraController!.stopImageStream();
+      } catch (_) {}
+      _isStreamingActive = false;
+    }
+
+    // Reset all calibration state (including done flag for re-calibration)
     _isCalibrating = true;
+    _isCalibrationDone = false;
     _progress = 0.0;
     _earSamples.clear();
     _noFaceFrames = 0;
-    _statusText = 'Keep your eyes open and look straight ahead…';
+    _isProcessingFrame = false;
+    _statusText = 'Tatap lurus ke depan dan buka mata lebar…';
     notifyListeners();
 
     // Start processing camera frames for EAR measurement
-    _cameraController!.startImageStream((CameraImage image) {
-      _processCalibrationFrame(image);
-    });
+    try {
+      _cameraController!.startImageStream((CameraImage image) {
+        _processCalibrationFrame(image);
+      });
+      _isStreamingActive = true;
+    } catch (e) {
+      debugPrint('startImageStream error: $e');
+      _isCalibrating = false;
+      _statusText = 'Gagal memulai kamera. Coba lagi.';
+      notifyListeners();
+    }
   }
 
   /// Process a single camera frame during calibration.
   Future<void> _processCalibrationFrame(CameraImage image) async {
-    if (_isProcessingFrame || _isCalibrationDone) return;
+    if (_isProcessingFrame || _isCalibrationDone || !_isCalibrating) return;
     _isProcessingFrame = true;
 
     try {
@@ -110,6 +134,11 @@ class CalibrationController extends ChangeNotifier {
         _cameraController,
       );
       if (inputImage == null) {
+        // Log setiap 60 frame agar tidak spam
+        if (_noFaceFrames % 60 == 0) {
+          debugPrint('🔴 [Calibration] inputImage NULL — cek camera_utils (frame ${_noFaceFrames})');
+        }
+        _noFaceFrames++;
         _isProcessingFrame = false;
         return;
       }
@@ -121,31 +150,45 @@ class CalibrationController extends ChangeNotifier {
         final faceMesh = meshes.first;
 
         // Calculate EAR using the same logic as MicrosleepController
+        final rightEyeIndices = [33, 160, 158, 133, 153, 144];
+        final leftEyeIndices = [362, 385, 387, 263, 373, 380];
+
         final rightEAR = _calculateEyeEAR(
           faceMesh.points,
-          [33, 160, 158, 133, 153, 144],
+          rightEyeIndices,
         );
         final leftEAR = _calculateEyeEAR(
           faceMesh.points,
-          [362, 385, 387, 263, 373, 380],
+          leftEyeIndices,
         );
 
         final avgEAR = (rightEAR + leftEAR) / 2.0;
 
+        // Expose points for UI
+        _eyePoints = [
+          ...rightEyeIndices.map((i) => Point<int>(faceMesh.points[i].x.toInt(), faceMesh.points[i].y.toInt())),
+          ...leftEyeIndices.map((i) => Point<int>(faceMesh.points[i].x.toInt(), faceMesh.points[i].y.toInt())),
+        ];
+
+        debugPrint('👁️ [Calibration] L=$leftEAR R=$rightEAR avg=$avgEAR samples=${_earSamples.length}');
+
         // Only accept reasonable EAR values (filter noise)
+        // earSampleMin = 0.05, earSampleMax = 0.5
         if (avgEAR > DetectionConfig.earSampleMin && avgEAR < DetectionConfig.earSampleMax) {
           _earSamples.add(avgEAR);
           _currentEAR = avgEAR;
+        } else {
+          debugPrint('⚠️ [Calibration] EAR $avgEAR out of range [${DetectionConfig.earSampleMin}, ${DetectionConfig.earSampleMax}] — discarded');
         }
 
         _progress = (_earSamples.length / _targetSamples).clamp(0.0, 1.0);
 
         if (_progress < 0.3) {
-          _statusText = 'Scanning eye position…';
+          _statusText = 'Scanning posisi mata…';
         } else if (_progress < 0.6) {
-          _statusText = 'Collecting baseline data…';
+          _statusText = 'Mengumpulkan data baseline…';
         } else if (_progress < 0.9) {
-          _statusText = 'Almost done…';
+          _statusText = 'Hampir selesai…';
         }
         notifyListeners();
 
@@ -155,13 +198,17 @@ class CalibrationController extends ChangeNotifier {
         }
       } else {
         _noFaceFrames++;
+        if (_noFaceFrames % 60 == 0) {
+          debugPrint('🟡 [Calibration] No face detected (${_noFaceFrames} frames)');
+        }
         if (_noFaceFrames > _noFaceTimeout) {
-          _statusText = '⚠️ No face detected — look at the camera';
+          _statusText = '⚠️ Wajah tidak terdeteksi — hadap kamera';
+          _eyePoints.clear();
           notifyListeners();
         }
       }
     } catch (e) {
-      debugPrint('Calibration frame error: $e');
+      debugPrint('🔴 [Calibration] Frame error: $e');
     } finally {
       _isProcessingFrame = false;
     }
@@ -204,9 +251,12 @@ class CalibrationController extends ChangeNotifier {
   /// Compute the personal EAR threshold and save it.
   Future<void> _finishCalibration() async {
     // Stop the camera stream
-    try {
-      _cameraController?.stopImageStream();
-    } catch (_) {}
+    if (_isStreamingActive) {
+      try {
+        _cameraController?.stopImageStream();
+      } catch (_) {}
+      _isStreamingActive = false;
+    }
 
     if (_earSamples.isEmpty) return;
 
@@ -260,9 +310,12 @@ class CalibrationController extends ChangeNotifier {
 
   @override
   void dispose() {
-    try {
-      _cameraController?.stopImageStream();
-    } catch (_) {}
+    if (_isStreamingActive) {
+      try {
+        _cameraController?.stopImageStream();
+      } catch (_) {}
+      _isStreamingActive = false;
+    }
     _cameraController?.dispose();
     _meshDetector.close();
     super.dispose();
