@@ -27,22 +27,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          'Riwayat Perjalanan',
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w800,
-            color: Colors.black,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-      ),
-      body: Column(
+      body: SafeArea(
+        child: Column(
         children: [
           const SizedBox(height: 24),
           const EyeOnHeader(),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              'Riwayat Perjalanan',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           
           ListenableBuilder(
             listenable: _controller,
@@ -98,6 +100,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

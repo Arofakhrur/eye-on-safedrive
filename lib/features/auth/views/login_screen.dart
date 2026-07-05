@@ -57,13 +57,22 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      await _authController.checkUserSetup(() {
+    if (!_formKey.currentState!.validate()) return;
+
+    await _authController.signInWithEmail(
+      _emailController.text.trim(),
+      _passwordController.text,
+      () {
         if (mounted) {
           Navigator.of(context).pushReplacementNamed(AppRoutes.setupWizard);
         }
-      });
-    }
+      },
+      (errorMsg) {
+        if (mounted) {
+          NotificationHelper.showTop(context, message: errorMsg, type: NotificationType.error);
+        }
+      },
+    );
   }
 
   Future<void> _handleGoogleSignIn() async {
@@ -211,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen>
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: _handleLogin,
+                            onPressed: _authController.isLoading ? null : _handleLogin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.black,
@@ -221,13 +230,22 @@ class _LoginScreenState extends State<LoginScreen>
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            child: Text(
-                              'Sign In',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: _authController.isLoading
+                                ? const SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.black,
+                                    ),
+                                  )
+                                : Text(
+                                    'Sign In',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 24),

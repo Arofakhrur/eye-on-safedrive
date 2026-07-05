@@ -30,6 +30,9 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
     }
 
     buildTypes {
@@ -40,20 +43,6 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
-    }
-
-    applicationVariants.all {
-        val variant = this
-        outputs.all {
-            val outputImpl = this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            if (outputImpl != null) {
-                val versionName = variant.versionName ?: "1.0.0"
-                val abiFilter = (this as? com.android.build.gradle.internal.api.ApkVariantOutputImpl)
-                    ?.getFilter(com.android.build.VariantOutput.FilterType.ABI)
-                val abiSuffix = if (abiFilter != null) "-$abiFilter" else ""
-                outputImpl.outputFileName = "EYE-ON-v${versionName}${abiSuffix}-${variant.name}.apk"
-            }
         }
     }
 }

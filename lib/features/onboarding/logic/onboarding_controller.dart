@@ -10,7 +10,7 @@ class OnboardingController extends ChangeNotifier {
   final List<OnboardingData> pages = [
     OnboardingData(
       image: 'assets/images/onboarding-slide1.webp',
-      title: 'Welcome To The\nEYE-ON!',
+      title: 'Selamat Datang di\nEYE-ON!',
       subtitle:
           'Your Active Eye & Awareness Monitoring\nCompanion for a Safer Ride.',
       isFirstPage: true,

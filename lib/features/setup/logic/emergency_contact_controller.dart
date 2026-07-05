@@ -35,7 +35,7 @@ class EmergencyContactController extends ChangeNotifier {
 
   Future<void> saveContacts(VoidCallback onSuccess) async {
     if (_contacts.isEmpty) {
-      throw Exception('Please add at least one emergency contact.');
+      throw Exception('Harap tambahkan setidaknya satu kontak darurat.');
     }
 
     _isLoading = true;
@@ -124,7 +124,22 @@ class EmergencyContactController extends ChangeNotifier {
 
   Future<void> sendInviteLink(String phone, Function(String) onError) async {
     const text = AppUrls.telegramInviteMessage;
-    final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+
+    // Normalize: keep only digits (strip +, spaces, dashes, parens)
+    // wa.me expects digits only WITH country code, no leading +
+    String cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+
+    // If the original had +, cleanPhone already has the full country code.
+    // If not and it starts with 0, convert to Indonesian country code.
+    if (!phone.startsWith('+') && cleanPhone.startsWith('0')) {
+      cleanPhone = '${EmergencyConfig.indonesianCountryCode}${cleanPhone.substring(1)}';
+    }
+
+    if (cleanPhone.isEmpty) {
+      onError('Nomor HP tidak valid');
+      return;
+    }
+
     final url = Uri.parse(
       '${AppUrls.whatsAppUrl(cleanPhone)}?text=${Uri.encodeComponent(text)}',
     );

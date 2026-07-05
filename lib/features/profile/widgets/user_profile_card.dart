@@ -19,15 +19,9 @@ class UserProfileCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Row(
         children: [
@@ -56,7 +50,7 @@ class UserProfileCard extends StatelessWidget {
                 Text(
                   userName,
                   style: GoogleFonts.plusJakartaSans(
-                    color: Colors.white,
+                    color: Colors.black87,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -64,7 +58,7 @@ class UserProfileCard extends StatelessWidget {
                 Text(
                   email,
                   style: GoogleFonts.plusJakartaSans(
-                    color: Colors.white54,
+                    color: Colors.black54,
                     fontSize: 13,
                   ),
                 ),

@@ -32,6 +32,7 @@ class _RideSetupScreenState extends State<RideSetupScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
       body: ListenableBuilder(
         listenable: _controller,
         builder: (context, _) {

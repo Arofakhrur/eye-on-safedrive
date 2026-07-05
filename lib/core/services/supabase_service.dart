@@ -20,10 +20,6 @@ class SupabaseService {
 
   static SupabaseClient get client => Supabase.instance.client;
 
-  // ================================================================
-  // SQLite Offline Queue
-  // ================================================================
-
   Database? _db;
 
   Future<Database> _getDb() async {
@@ -161,10 +157,6 @@ class SupabaseService {
     }
   }
 
-  // ================================================================
-  // Emergency Contacts — Per-individu CRUD (Task 7)
-  // ================================================================
-
   /// Add a single emergency contact. Enforces max 5 per user.
   Future<void> addEmergencyContact(EmergencyContact contact) async {
     if (currentUser == null) return;
@@ -241,10 +233,6 @@ class SupabaseService {
     return (response as List).map((json) => EmergencyContact.fromJson(json)).toList();
   }
 
-  // ================================================================
-  // Incident Logs — with ride_id FK (Task 8)
-  // ================================================================
-
   Future<void> logIncident({
     required double lat,
     required double lng,
@@ -280,10 +268,6 @@ class SupabaseService {
         .order('timestamp');
     return List<Map<String, dynamic>>.from(response);
   }
-
-  // ================================================================
-  // Ride Logs — returns ride UUID (Task 8)
-  // ================================================================
 
   /// Log a ride and return its UUID for incident linking.
   Future<String?> logRide({
@@ -398,10 +382,6 @@ class SupabaseService {
     });
   }
 
-  // ================================================================
-  // Profiles Table — Isolated Medical Info (Task 9)
-  // ================================================================
-
   /// Get the current user's public profile.
   Future<Map<String, dynamic>?> getProfile() async {
     if (currentUser == null) return null;
@@ -436,10 +416,6 @@ class SupabaseService {
   Future<void> updateUserMetadata(Map<String, dynamic> metadata) async {
     await client.auth.updateUser(UserAttributes(data: metadata));
   }
-
-  // ================================================================
-  // Video Upload (kept as optional backup)
-  // ================================================================
 
   Future<String?> uploadIncidentVideo(String filePath, [String? rideId]) async {
     if (currentUser == null) return null;

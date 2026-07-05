@@ -16,6 +16,8 @@ class RideSetupController extends ChangeNotifier {
   String? destinationName;
 
   bool isMapReady = false;
+  List<LatLng> osrmRoute = [];
+  bool isFetchingRoute = false;
 
   void setMapReady(bool ready) {
     isMapReady = ready;
@@ -25,7 +27,42 @@ class RideSetupController extends ChangeNotifier {
   void setDestination(LatLng? dest, String? name) {
     destination = dest;
     destinationName = name;
+    osrmRoute = [];
     notifyListeners();
+
+    if (dest != null && currentLatLng != null) {
+      _fetchOsrmRoute(currentLatLng!, dest);
+    }
+  }
+
+  Future<void> _fetchOsrmRoute(LatLng start, LatLng dest) async {
+    if (isFetchingRoute) return;
+    isFetchingRoute = true;
+    notifyListeners();
+
+    try {
+      final url = Uri.parse(
+          'http://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${dest.longitude},${dest.latitude}?overview=full&geometries=geojson');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final routes = data['routes'] as List;
+        if (routes.isNotEmpty) {
+          final geometry = routes[0]['geometry'];
+          final coordinates = geometry['coordinates'] as List;
+
+          osrmRoute = coordinates
+              .map((coord) => LatLng(coord[1] as double, coord[0] as double))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching OSRM route: $e');
+    } finally {
+      isFetchingRoute = false;
+      notifyListeners();
+    }
   }
 
   Future<void> fetchCurrentLocation() async {

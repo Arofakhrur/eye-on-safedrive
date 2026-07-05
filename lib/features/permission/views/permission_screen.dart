@@ -31,7 +31,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('$permName Permission Required', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 18)),
-        content: Text('Please enable $permName permission in Settings to continue.', style: GoogleFonts.plusJakartaSans(fontSize: 14)),
+        content: Text('Harap izinkan akses $permName di Pengaturan untuk melanjutkan.', style: GoogleFonts.plusJakartaSans(fontSize: 14)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: Colors.black54))),
           TextButton(

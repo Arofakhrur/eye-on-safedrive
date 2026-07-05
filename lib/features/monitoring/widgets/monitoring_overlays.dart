@@ -122,7 +122,7 @@ class InteractiveSwipeButton extends StatefulWidget {
   const InteractiveSwipeButton({
     super.key,
     required this.onStarted,
-    this.label = 'SWIPE UP TO START',
+    this.label = 'GESER KE ATAS UNTUK MEMULAI',
   });
 
   @override
@@ -244,6 +244,59 @@ class _BlinkingOverlayState extends State<BlinkingOverlay> with SingleTickerProv
         return Container(
           color: Colors.red.withValues(alpha: 0.6 + (_controller.value * 0.4)),
           child: widget.child,
+        );
+      },
+    );
+  }
+}
+
+// ── Blinking Warning Lamp ──
+class BlinkingWarningLamp extends StatefulWidget {
+  const BlinkingWarningLamp({super.key});
+  @override
+  State<BlinkingWarningLamp> createState() => _BlinkingWarningLampState();
+}
+
+class _BlinkingWarningLampState extends State<BlinkingWarningLamp> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Color?> _colorAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this, 
+      duration: const Duration(milliseconds: 350)
+    )..repeat(reverse: true);
+    
+    _colorAnimation = ColorTween(
+      begin: Colors.grey.shade400, 
+      end: Colors.red,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _colorAnimation.value?.withValues(alpha: 0.15),
+          ),
+          child: Icon(
+            Icons.error_rounded, // Using error_rounded (circle with '!') as siren lamp
+            color: _colorAnimation.value,
+            size: 80,
+          ),
         );
       },
     );
@@ -405,9 +458,7 @@ class AlertOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              BlinkingOverlay(
-                child: const Icon(Icons.emergency_rounded, color: Colors.red, size: 80),
-              ),
+              const BlinkingWarningLamp(),
               const SizedBox(height: 16),
               Text(
                 'INSIDEN TERDETEKSI!',

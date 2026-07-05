@@ -53,15 +53,15 @@ class _HomeDashboardState extends State<HomeDashboard> {
               const SizedBox(height: 28),
               const SafetyScoreCard(),
               const SizedBox(height: 24),
-              _buildSectionHeader('Quick Tiles'),
+              _buildSectionHeader('Menu Cepat'),
               const SizedBox(height: 16),
               SOSButton(onTap: () => SOSService().showEmergencyContactSheet(context)),
               const SizedBox(height: 24),
-              _buildSectionHeader('Emergency Contact'),
+              _buildSectionHeader('Kontak Darurat'),
               const SizedBox(height: 16),
               _buildEmergencyContacts(),
               const SizedBox(height: 24),
-              _buildSectionHeader('Recent Activity'),
+              _buildSectionHeader('Riwayat Perjalanan'),
               const SizedBox(height: 16),
               _buildDynamicRecentActivityCard(),
               const SizedBox(height: 100),
@@ -81,7 +81,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome Back 👋',
+                'Halo! 👋',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   color: Colors.black54,
@@ -107,8 +107,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
         GestureDetector(
           onTap: widget.onProfileTap,
           child: Container(
-            width: 48,
-            height: 48,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
               color: AppColors.primary,
               shape: BoxShape.circle,
@@ -127,7 +127,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
               ],
             ),
             child: _controller.avatarUrl == null
-                ? const Icon(Icons.person_rounded, color: Colors.black, size: 24)
+                ? const Icon(Icons.person_rounded, color: Colors.black, size: 28)
                 : null,
           ),
         ),
@@ -320,7 +320,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$safeRides aman • $totalAlerts Peringatan',
+                        '$safeRides Aman • $totalAlerts Peringatan',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           color: Colors.black54,

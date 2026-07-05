@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:eyeon/core/constants/app_constants.dart';
 
 class EyeOnHeader extends StatelessWidget {
   const EyeOnHeader({super.key});
@@ -12,11 +13,10 @@ class EyeOnHeader extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Assuming there is an icon or just text.
-            const Icon(Icons.remove_red_eye_rounded, size: 20, color: Colors.black87),
+            Image.asset(AppAssets.logo, height: 20, width: 20),
             const SizedBox(width: 8),
             Text(
-              'EYE-ON! (아이온)',
+              'EYE-ON!',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,

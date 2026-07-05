@@ -39,6 +39,14 @@ class MicrosleepController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void testMicrosleep(int level) {
+    _isDrowsy = true;
+    _drowsyCount = level;
+    _isPaused = true;
+    _triggerAlarm();
+    notifyListeners();
+  }
+
   /// Map alarm sound preference name to the actual asset file path.
   static const Map<String, String> _alarmSoundFiles = AppAssets.alarmSoundFiles;
 

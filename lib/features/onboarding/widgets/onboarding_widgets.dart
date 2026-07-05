@@ -105,7 +105,7 @@ class OnboardingPageWidget extends StatelessWidget {
                         text: TextSpan(
                           children: [
                             TextSpan(
-                              text: 'Welcome To The\n',
+                              text: 'Selamat Datang di\n',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
@@ -200,7 +200,7 @@ class GetStartedButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Get Started',
+              'Mulai',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,

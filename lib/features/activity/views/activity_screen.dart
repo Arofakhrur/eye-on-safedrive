@@ -36,20 +36,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          'Statistik Berkendara',
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w800,
-            color: Colors.black,
-            fontSize: 22,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-      ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
+      body: SafeArea(
+        child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _controller.getRideHistoryStream(),
         builder: (context, snapshot) {
           final bool isLoading = !snapshot.hasData;
@@ -70,7 +58,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     children: [
                       const SizedBox(height: 24),
                       const EyeOnHeader(),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Statistik Berkendara',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       CustomPillFilter(
                         selectedPeriod: _controller.selectedPeriod,
                         onPeriodSelected: _controller.setSelectedPeriod,
@@ -107,6 +104,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             },
           );
         },
+      ),
       ),
     );
   }

@@ -10,6 +10,7 @@ import 'package:eyeon/features/profile/widgets/personal_info_card.dart';
 import 'package:eyeon/features/profile/widgets/detection_settings_card.dart';
 import 'package:eyeon/features/profile/widgets/profile_menu_items.dart';
 import 'package:eyeon/features/profile/widgets/edit_personal_info_sheet.dart';
+import 'package:eyeon/features/monitoring/widgets/monitoring_overlays.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -73,17 +74,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
 
                   const SizedBox(height: 24),
-                  const ProfileSectionTitle(title: 'PENGATURAN KESELAMATAN'),
+                  const ProfileSectionTitle(title: 'KEAMANAN & DETEKSI'),
                   ProfileMenuItem(
                     icon: Icons.camera_front_rounded,
                     title: 'Kalibrasi Ulang Kamera',
-                    subtitle: 'Setup ulang posisi wajah Anda',
+                    subtitle: 'Atur ulang posisi wajah Anda',
                     onTap: () => Navigator.of(context).pushNamed(AppRoutes.calibration),
                   ),
                   ProfileMenuItem(
                     icon: Icons.contact_phone_rounded,
                     title: 'Kontak Darurat',
-                    subtitle: 'Manage recipients for SOS alerts',
+                    subtitle: 'Kelola penerima pesan SOS',
                     onTap: () => Navigator.of(context).pushNamed(AppRoutes.setup),
                   ),
                   DetectionSettingsCard(
@@ -129,14 +130,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'Sinkronisasi Data',
                     subtitle: 'Sync logs with Supabase cloud',
                     onTap: () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final screenHeight = MediaQuery.of(context).size.height;
                       try {
                         final synced = await _controller.syncOfflineData();
-                        if (mounted) {
-                          NotificationHelper.showTopWithMessenger(
-                            messenger,
-                            screenHeight: screenHeight,
+                        if (context.mounted) {
+                          NotificationHelper.showTop(
+                            context,
                             message: synced > 0
                                 ? '$synced data berhasil disinkronkan.'
                                 : 'Tidak ada data offline untuk disinkronkan.',
@@ -144,10 +142,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           );
                         }
                       } catch (e) {
-                        if (mounted) {
-                          NotificationHelper.showTopWithMessenger(
-                            messenger,
-                            screenHeight: screenHeight,
+                        if (context.mounted) {
+                          NotificationHelper.showTop(
+                            context,
                             message: 'Gagal menyinkronkan data: $e',
                             type: NotificationType.error,
                           );
@@ -157,11 +154,144 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
 
                   const SizedBox(height: 24),
+                  const ProfileSectionTitle(title: 'OPSI DEVELOPER'),
+                  ProfileMenuItem(
+                    icon: Icons.bug_report_rounded,
+                    title: 'Simulasi Peringatan UI',
+                    subtitle: 'Test tampilan overlay (Crash & Microsleep)',
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        builder: (ctx) {
+                          return SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Test Overlay UI',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ListTile(
+                                    leading: const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                                    title: const Text('Test Accident Alert (Crash)'),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      showDialog(
+                                        context: context,
+                                        useSafeArea: false,
+                                        barrierDismissible: false,
+                                        builder: (_) => AlertOverlay(
+                                          currentMagnitude: 99.9,
+                                          onResetAccident: () => Navigator.pop(context),
+                                          onCallEmergency: () => Navigator.pop(context),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.bedtime_rounded, color: Colors.orange),
+                                    title: const Text('Test Microsleep Level 1'),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      showDialog(
+                                        context: context,
+                                        useSafeArea: false,
+                                        barrierDismissible: false,
+                                        builder: (_) => Level1Overlay(onResume: () => Navigator.pop(context)),
+                                      );
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.bedtime_rounded, color: Colors.deepOrange),
+                                    title: const Text('Test Microsleep Level 2'),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      showDialog(
+                                        context: context,
+                                        useSafeArea: false,
+                                        barrierDismissible: false,
+                                        builder: (_) => Level2Overlay(onResume: () => Navigator.pop(context)),
+                                      );
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.bedtime_rounded, color: Colors.red),
+                                    title: const Text('Test Microsleep Level 3'),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      showDialog(
+                                        context: context,
+                                        useSafeArea: false,
+                                        barrierDismissible: false,
+                                        builder: (_) => Level3Overlay(
+                                          onResume: () => Navigator.pop(context),
+                                          canUnlock: true,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  const Divider(),
+                                  ListTile(
+                                    leading: const Icon(Icons.telegram, color: Colors.blue),
+                                    title: const Text('Test Snackbar (Telegram)'),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      NotificationHelper.showTop(
+                                        context,
+                                        message: 'Pesan darurat berhasil dikirim ke Telegram.',
+                                        type: NotificationType.telegram,
+                                      );
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.error_rounded, color: Colors.red),
+                                    title: const Text('Test Snackbar (Gagal)'),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      NotificationHelper.showTop(
+                                        context,
+                                        message: 'Gagal mengirim pesan ke kontak darurat.',
+                                        type: NotificationType.error,
+                                      );
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                                    title: const Text('Test Snackbar (Peringatan)'),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      NotificationHelper.showTop(
+                                        context,
+                                        message: 'Koneksi internet lambat, pesan tertunda.',
+                                        type: NotificationType.warning,
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
                   const ProfileSectionTitle(title: 'AKUN'),
                   ProfileMenuItem(
                     icon: Icons.logout_rounded,
-                    title: 'Logout',
-                    subtitle: 'Safely exit your account',
+                    title: 'Keluar (Logout)',
+                    subtitle: 'Keluar dari akun Anda',
                     isDestructive: true,
                     onTap: () async {
                       await _controller.signOut();

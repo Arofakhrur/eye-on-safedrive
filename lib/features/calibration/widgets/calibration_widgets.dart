@@ -214,7 +214,7 @@ class CalibrationTitleSection extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Face Calibration',
+            'Kalibrasi Wajah',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 28,
               fontWeight: FontWeight.w800,
@@ -223,9 +223,9 @@ class CalibrationTitleSection extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Align your face within the circle and look straight '
-            'ahead. This helps EYE-ON! learn your baseline eye '
-            'pattern for accurate drowsiness detection.',
+            'Posisikan wajah Anda di dalam lingkaran dan tatap lurus ke '
+            'depan. Hal ini membantu EYE-ON! mempelajari pola dasar mata '
+            'Anda untuk deteksi kantuk yang akurat.',
             textAlign: TextAlign.center,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
@@ -330,8 +330,8 @@ class CalibrationActionButton extends StatelessWidget {
                 controller.isCalibrating
                     ? 'Calibrating…'
                     : (controller.isCalibrationDone
-                        ? 'Finish Calibration'
-                        : 'Start Calibration'),
+                        ? 'Selesai Kalibrasi'
+                        : 'Mulai Kalibrasi'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,

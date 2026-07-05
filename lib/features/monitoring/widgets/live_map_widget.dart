@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
 
@@ -29,6 +32,9 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
   StreamSubscription<Position>? _positionSub;
   LatLng? _currentLatLng;
   bool _isMapReady = false;
+  final List<LatLng> _routeHistory = [];
+  List<LatLng> _osrmRoute = [];
+  bool _isFetchingRoute = false;
 
   @override
   void initState() {
@@ -38,6 +44,9 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
         widget.initialPosition!.latitude,
         widget.initialPosition!.longitude,
       );
+      if (widget.destination != null && _currentLatLng != null) {
+        _fetchRoute(_currentLatLng!, widget.destination!);
+      }
     }
     
     _positionSub = widget.positionStream.listen((Position position) {
@@ -45,11 +54,62 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
       final newLatLng = LatLng(position.latitude, position.longitude);
       setState(() {
         _currentLatLng = newLatLng;
+        _routeHistory.add(newLatLng);
       });
       if (_isMapReady) {
         _mapController.move(newLatLng, 16.0);
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(LiveMapWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.destination != oldWidget.destination &&
+        widget.destination != null &&
+        _currentLatLng != null) {
+      _fetchRoute(_currentLatLng!, widget.destination!);
+    } else if (widget.destination == null) {
+      setState(() {
+        _osrmRoute = [];
+      });
+    }
+  }
+
+  Future<void> _fetchRoute(LatLng start, LatLng dest) async {
+    if (_isFetchingRoute) return;
+    setState(() => _isFetchingRoute = true);
+    
+    try {
+      final url = Uri.parse(
+          'http://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${dest.longitude},${dest.latitude}?overview=full&geometries=geojson');
+      final response = await http.get(url);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final routes = data['routes'] as List;
+        if (routes.isNotEmpty) {
+          final geometry = routes[0]['geometry'];
+          final coordinates = geometry['coordinates'] as List;
+          
+          final List<LatLng> polylinePoints = coordinates
+              .map((coord) => LatLng(coord[1] as double, coord[0] as double))
+              .toList();
+              
+          if (mounted) {
+            setState(() {
+              _osrmRoute = polylinePoints;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching OSRM route: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isFetchingRoute = false);
+      }
+    }
   }
 
   @override
@@ -97,6 +157,7 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
           urlTemplate: AppUrls.osmTileUrl,
           userAgentPackageName: 'com.eyeon.safedrive',
           maxZoom: 19,
+          tileProvider: CancellableNetworkTileProvider(),
         ),
         MarkerLayer(
           markers: [
@@ -143,13 +204,34 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
               ),
           ],
         ),
-        if (widget.destination != null && _currentLatLng != null)
+        if (_routeHistory.length > 1)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _routeHistory,
+                color: AppColors.primary,
+                strokeWidth: 4.0,
+              ),
+            ],
+          ),
+        if (widget.destination != null && _osrmRoute.isNotEmpty)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _osrmRoute,
+                color: Colors.blue.withValues(alpha: 0.7),
+                strokeWidth: 4.0,
+              ),
+            ],
+          )
+        else if (widget.destination != null && _currentLatLng != null)
           PolylineLayer(
             polylines: [
               Polyline(
                 points: [_currentLatLng!, widget.destination!],
                 color: Colors.blue.withValues(alpha: 0.7),
                 strokeWidth: 4.0,
+                pattern: const StrokePattern.dotted(),
               ),
             ],
           ),

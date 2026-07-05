@@ -22,11 +22,7 @@ class MonitoringScreen extends StatefulWidget {
   final LatLng? destination;
   final String? destinationName;
 
-  const MonitoringScreen({
-    super.key,
-    this.destination,
-    this.destinationName,
-  });
+  const MonitoringScreen({super.key, this.destination, this.destinationName});
 
   @override
   State<MonitoringScreen> createState() => _MonitoringScreenState();
@@ -34,7 +30,6 @@ class MonitoringScreen extends StatefulWidget {
 
 class _MonitoringScreenState extends State<MonitoringScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  
   final MonitoringController _controller = MonitoringController();
 
   ScreenMode _currentMode = ScreenMode.split;
@@ -117,7 +112,8 @@ class _MonitoringScreenState extends State<MonitoringScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
       _controller.saveRideDataOnExit();
     }
   }
@@ -173,9 +169,15 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.15),
+                  ),
                 ),
-                child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
             ),
           ),
@@ -226,17 +228,23 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                             width: size.width,
                             height: size.width * (4.0 / 3.0),
                             child: CustomPaint(
-                              foregroundPainter: _controller.facePoints != null && _controller.facePoints!.isNotEmpty
+                              foregroundPainter:
+                                  _controller.facePoints != null &&
+                                      _controller.facePoints!.isNotEmpty
                                   ? NativeFaceMeshPainter(
                                       _controller.facePoints!,
-                                      Size(_controller.imageWidth.toDouble(), _controller.imageHeight.toDouble()),
+                                      Size(
+                                        _controller.imageWidth.toDouble(),
+                                        _controller.imageHeight.toDouble(),
+                                      ),
                                       _controller.imageRotation,
                                       _controller.microsleepController.isDrowsy,
                                     )
                                   : null,
                               child: AndroidView(
                                 viewType: 'eyeon_native_camera',
-                                creationParamsCodec: const StandardMessageCodec(),
+                                creationParamsCodec:
+                                    const StandardMessageCodec(),
                                 onPlatformViewCreated: (id) async {
                                   _controller.initializeCameraEvents();
                                   await _controller.startNativeCamera();
@@ -248,7 +256,11 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                       ),
                     )
                   else
-                    const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -298,7 +310,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                       destination: widget.destination,
                     ),
                   ),
-                  
+
                   // Toggle Fullscreen Map
                   Positioned(
                     top: 16,
@@ -365,7 +377,9 @@ class _MonitoringScreenState extends State<MonitoringScreen>
           _buildAlertOverlay(),
 
           // No-face warning overlay
-          if (_controller.noFaceWarning && _controller.isRideStarted && !_showRevealOverlay)
+          if (_controller.noFaceWarning &&
+              _controller.isRideStarted &&
+              !_showRevealOverlay)
             Positioned(
               top: MediaQuery.of(context).padding.top + 80,
               left: 24,
@@ -374,8 +388,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
             ),
 
           // Circular Reveal Overlay
-          if (_showRevealOverlay)
-            _buildCircularRevealOverlay(),
+          if (_showRevealOverlay) _buildCircularRevealOverlay(),
         ],
       ),
     );
@@ -385,17 +398,27 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     if (_controller.accidentController.isAccidentDetected) {
       return AlertOverlay(
         currentMagnitude: _controller.accidentController.currentMagnitude,
-        onResetAccident: () => _controller.accidentController.resetAccidentState(),
+        onResetAccident: () =>
+            _controller.accidentController.resetAccidentState(),
         onCallEmergency: () => SOSService().showEmergencyContactSheet(context),
       );
     }
 
     if (_controller.microsleepController.isPaused) {
       int count = _controller.microsleepController.drowsyCount;
-      if (count == 1) return Level1Overlay(onResume: () => _controller.microsleepController.resumeMonitoring());
-      if (count == 2) return Level2Overlay(onResume: () => _controller.microsleepController.resumeMonitoring());
+      if (count == 1) {
+        return Level1Overlay(
+          onResume: () => _controller.microsleepController.resumeMonitoring(),
+        );
+      }
+      if (count == 2) {
+        return Level2Overlay(
+          onResume: () => _controller.microsleepController.resumeMonitoring(),
+        );
+      }
       if (count >= 3) {
-        bool canUnlock = _controller.currentSpeed < DetectionConfig.level3UnlockSpeedKmH;
+        bool canUnlock =
+            _controller.currentSpeed < DetectionConfig.level3UnlockSpeedKmH;
         return Level3Overlay(
           canUnlock: canUnlock,
           onResume: () {
@@ -416,7 +439,8 @@ class _MonitoringScreenState extends State<MonitoringScreen>
       animation: _revealAnimation,
       builder: (context, child) {
         final currentRadius = _revealAnimation.value * maxRadius;
-        final fadeValue = _fadeController.isAnimating || _fadeController.isCompleted
+        final fadeValue =
+            _fadeController.isAnimating || _fadeController.isCompleted
             ? (1.0 - _fadeAnimation.value)
             : 1.0;
 
@@ -428,9 +452,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                 center: Offset(size.width / 2, size.height - 140),
                 radius: currentRadius,
               ),
-              child: Container(
-                color: AppColors.primary,
-              ),
+              child: Container(color: AppColors.primary),
             ),
           ),
         );

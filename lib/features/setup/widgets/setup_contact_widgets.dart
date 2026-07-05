@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:eyeon/core/utils/validators.dart';
 import 'package:eyeon/core/utils/notification_helper.dart';
 
 class ContactDialog {
@@ -61,8 +63,9 @@ class ContactDialog {
               const SizedBox(height: 12),
               TextField(
                 controller: phoneController,
-                decoration: buildInputDecoration(Icons.phone_rounded, 'Nomor HP'),
+                decoration: buildInputDecoration(Icons.phone_rounded, 'Nomor HP (contoh: +6281234567890)'),
                 keyboardType: TextInputType.phone,
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d+]'))],
               ),
               const SizedBox(height: 12),
               TextField(
@@ -77,23 +80,35 @@ class ContactDialog {
               OutlinedButton.icon(
                 onPressed: () {
                   final phone = phoneController.text.trim();
-                  if (phone.isNotEmpty) {
-                    onSendInvite(phone, (errorMsg) {
-                      if (ctx.mounted) {
-                        NotificationHelper.showTop(
-                          ctx,
-                          message: errorMsg,
-                          type: NotificationType.error,
-                        );
-                      }
-                    });
-                  } else {
+
+                  if (phone.isEmpty) {
                     NotificationHelper.showTop(
                       ctx,
                       message: 'Isi nomor HP terlebih dahulu',
                       type: NotificationType.warning,
                     );
+                    return;
                   }
+
+                  final phoneError = AppValidators.validatePhone(phone);
+                  if (phoneError != null) {
+                    NotificationHelper.showTop(
+                      ctx,
+                      message: phoneError,
+                      type: NotificationType.warning,
+                    );
+                    return;
+                  }
+
+                  onSendInvite(phone, (errorMsg) {
+                    if (ctx.mounted) {
+                      NotificationHelper.showTop(
+                        ctx,
+                        message: errorMsg,
+                        type: NotificationType.error,
+                      );
+                    }
+                  });
                 },
                 icon: const Icon(Icons.share_rounded, size: 14),
                 label: Text(
@@ -114,7 +129,7 @@ class ContactDialog {
               ),
               const SizedBox(height: 4),
               Text(
-                'Kirim link ke kontak ini. Minta mereka klik START di bot, lalu tempelkan angka balasannya ke kolom di atas.',
+                'Kirim tautan ke kontak ini. Minta mereka menekan START di bot, lalu tempelkan ID Chat balasannya ke kolom di atas.',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
                   color: Colors.black54,
@@ -137,10 +152,39 @@ class ContactDialog {
               final phone = phoneController.text.trim();
               final telegramId = telegramController.text.trim();
 
-              if (name.isEmpty || phone.isEmpty || telegramId.isEmpty) {
+              // Per-field validation — show only the first missing/invalid field
+              if (name.isEmpty) {
                 NotificationHelper.showTop(
                   ctx,
-                  message: 'Nama, Nomor HP, dan Chat ID Telegram wajib diisi mutlak untuk sistem SOS!',
+                  message: 'Nama kontak wajib diisi',
+                  type: NotificationType.warning,
+                );
+                return;
+              }
+
+              if (phone.isEmpty) {
+                NotificationHelper.showTop(
+                  ctx,
+                  message: 'Nomor HP wajib diisi',
+                  type: NotificationType.warning,
+                );
+                return;
+              }
+
+              final phoneError = AppValidators.validatePhone(phone);
+              if (phoneError != null) {
+                NotificationHelper.showTop(
+                  ctx,
+                  message: phoneError,
+                  type: NotificationType.warning,
+                );
+                return;
+              }
+
+              if (telegramId.isEmpty) {
+                NotificationHelper.showTop(
+                  ctx,
+                  message: 'Chat ID Telegram wajib diisi untuk sistem SOS',
                   type: NotificationType.warning,
                 );
                 return;

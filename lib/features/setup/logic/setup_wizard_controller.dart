@@ -151,7 +151,21 @@ class SetupWizardController extends ChangeNotifier {
 
   Future<void> sendInviteLink(String phone, Function(String) onError) async {
     const text = AppUrls.telegramInviteMessage;
-    final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+
+    // Normalize: keep only digits (strip +, spaces, dashes, parens)
+    // wa.me expects digits only WITH country code, no leading +
+    String cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+
+    // If not already with country code (starts with 0), convert to +62
+    if (!phone.startsWith('+') && cleanPhone.startsWith('0')) {
+      cleanPhone = '${EmergencyConfig.indonesianCountryCode}${cleanPhone.substring(1)}';
+    }
+
+    if (cleanPhone.isEmpty) {
+      onError('Nomor HP tidak valid');
+      return;
+    }
+
     final url = Uri.parse(
       '${AppUrls.whatsAppUrl(cleanPhone)}?text=${Uri.encodeComponent(text)}',
     );

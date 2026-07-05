@@ -15,7 +15,7 @@ class CalibrationController extends ChangeNotifier {
   bool _isCalibrating = false;
   bool _isCalibrationDone = false;
   double _progress = 0.0;
-  String _statusText = 'Position your face inside the circle';
+  String _statusText = 'Posisikan wajah Anda di dalam lingkaran';
 
   bool get isCalibrating => _isCalibrating;
   bool get isCalibrationDone => _isCalibrationDone;

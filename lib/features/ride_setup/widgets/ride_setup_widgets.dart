@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
@@ -56,6 +57,7 @@ class RideSetupMap extends StatelessWidget {
           urlTemplate: AppUrls.osmTileUrl,
           userAgentPackageName: AppUrls.userAgent,
           maxZoom: 19,
+          tileProvider: CancellableNetworkTileProvider(),
         ),
         MarkerLayer(
           markers: [
@@ -106,13 +108,24 @@ class RideSetupMap extends StatelessWidget {
               ),
           ],
         ),
-        if (controller.destination != null && controller.currentLatLng != null)
+        if (controller.osrmRoute.isNotEmpty)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: controller.osrmRoute,
+                color: AppColors.primary.withValues(alpha: 0.7),
+                strokeWidth: 4.0,
+              ),
+            ],
+          )
+        else if (controller.destination != null && controller.currentLatLng != null)
           PolylineLayer(
             polylines: [
               Polyline(
                 points: [controller.currentLatLng!, controller.destination!],
                 color: AppColors.primary.withValues(alpha: 0.7),
                 strokeWidth: 4.0,
+                pattern: const StrokePattern.dotted(),
               ),
             ],
           ),
@@ -204,7 +217,7 @@ class RideSetupBottomSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
-              'Setup Perjalanan mu dulu!',
+              'Mau kemana hari ini?',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
@@ -216,7 +229,7 @@ class RideSetupBottomSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
-              'Lokasi awal',
+              'Lokasi Awal',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 color: Colors.black45,
@@ -239,7 +252,7 @@ class RideSetupBottomSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: LocationField(
               icon: Icons.search_rounded,
-              text: controller.destinationName ?? 'Titik Akhir',
+              text: controller.destinationName ?? 'Pilih Tujuan',
               isPlaceholder: controller.destinationName == null,
               onTap: () {
                 DestinationSearchSheet.show(
@@ -386,7 +399,7 @@ class MulaiButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Mulai',
+              'Mulai Perjalanan',
               style: GoogleFonts.plusJakartaSans(
                 color: Colors.black,
                 fontSize: 16,

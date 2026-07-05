@@ -196,6 +196,13 @@ class AccidentController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void testCrash() {
+    _isAccidentDetected = true;
+    _peakMagnitude = 99.9;
+    _triggerAccidentResponse();
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _accelSubscription?.cancel();

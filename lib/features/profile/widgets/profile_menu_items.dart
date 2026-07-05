@@ -14,10 +14,13 @@ class ProfileSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        ProfileSectionTitle(title: title),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+        ProfileSectionTitle(title: title, bottomPadding: 0),
         GestureDetector(
           onTap: onEdit,
           child: Container(
@@ -43,19 +46,25 @@ class ProfileSectionHeader extends StatelessWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }
 
 class ProfileSectionTitle extends StatelessWidget {
   final String title;
+  final double bottomPadding;
 
-  const ProfileSectionTitle({super.key, required this.title});
+  const ProfileSectionTitle({
+    super.key,
+    required this.title,
+    this.bottomPadding = 12.0,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      padding: EdgeInsets.only(left: 4, bottom: bottomPadding),
       child: Text(
         title,
         style: GoogleFonts.plusJakartaSans(

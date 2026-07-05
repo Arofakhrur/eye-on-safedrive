@@ -26,6 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _agreeToTerms = false;
+  PasswordStrength _passwordStrength = PasswordStrength.empty;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -48,10 +49,21 @@ class _RegisterScreenState extends State<RegisterScreen>
       CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
     );
     _animController.forward();
+
+    _passwordController.addListener(_onPasswordChanged);
+  }
+
+  void _onPasswordChanged() {
+    final strength =
+        AppValidators.getPasswordStrength(_passwordController.text);
+    if (strength != _passwordStrength) {
+      setState(() => _passwordStrength = strength);
+    }
   }
 
   @override
   void dispose() {
+    _passwordController.removeListener(_onPasswordChanged);
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -61,18 +73,37 @@ class _RegisterScreenState extends State<RegisterScreen>
     super.dispose();
   }
 
-  void _handleRegister() {
-    if (_formKey.currentState!.validate()) {
-      if (!_agreeToTerms) {
-        NotificationHelper.showTop(
-          context,
-          message: 'Please agree to the Terms & Conditions',
-          type: NotificationType.warning,
-        );
-        return;
-      }
-      Navigator.of(context).pushReplacementNamed(AppRoutes.permission);
+  Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!_agreeToTerms) {
+      NotificationHelper.showTop(
+        context,
+        message: 'Kamu harus menyetujui Syarat & Ketentuan terlebih dahulu',
+        type: NotificationType.warning,
+      );
+      return;
     }
+
+    await _authController.signUpWithEmail(
+      _emailController.text.trim(),
+      _passwordController.text,
+      _nameController.text.trim(),
+      () {
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed(AppRoutes.permission);
+        }
+      },
+      (errorMsg) {
+        if (mounted) {
+          NotificationHelper.showTop(
+            context,
+            message: errorMsg,
+            type: NotificationType.error,
+          );
+        }
+      },
+    );
   }
 
   Future<void> _handleGoogleSignup() async {
@@ -82,7 +113,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       }
     }, (errorMsg) {
       if (mounted) {
-        NotificationHelper.showTop(context, message: errorMsg, type: NotificationType.error);
+        NotificationHelper.showTop(
+            context, message: errorMsg, type: NotificationType.error);
       }
     });
   }
@@ -147,8 +179,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 label: 'Full Name',
                                 hint: 'Enter your name',
                                 prefixIcon: Icons.person_outline,
-                                validator: (value) =>
-                                    value == null || value.isEmpty ? 'Name is required' : null,
+                                validator: AppValidators.validateName,
                               ),
                               const SizedBox(height: 16),
                               AuthTextField(
@@ -174,6 +205,14 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 },
                                 validator: AppValidators.validatePassword,
                               ),
+                              // ── Password Strength Indicator ──────────────
+                              if (_passwordStrength != PasswordStrength.empty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: _PasswordStrengthBar(
+                                    strength: _passwordStrength,
+                                  ),
+                                ),
                               const SizedBox(height: 16),
                               AuthTextField(
                                 controller: _confirmPasswordController,
@@ -184,12 +223,16 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 isPasswordVisible: _isConfirmPasswordVisible,
                                 onVisibilityToggle: () {
                                   setState(() {
-                                    _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                                    _isConfirmPasswordVisible =
+                                        !_isConfirmPasswordVisible;
                                   });
                                 },
                                 validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Konfirmasi password wajib diisi';
+                                  }
                                   if (value != _passwordController.text) {
-                                    return 'Passwords do not match';
+                                    return 'Password tidak sama';
                                   }
                                   return null;
                                 },
@@ -211,7 +254,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: _handleRegister,
+                            onPressed:
+                                _authController.isLoading ? null : _handleRegister,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.black,
@@ -221,13 +265,22 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            child: Text(
-                              'Sign Up',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: _authController.isLoading
+                                ? const SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.black,
+                                    ),
+                                  )
+                                : Text(
+                                    'Sign Up',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -245,7 +298,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                             onTap: _navigateToLogin,
                             child: RichText(
                               text: TextSpan(
-                                text: 'Already have an account? ',
+                                text: 'Sudah punya akun? ',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w400,
@@ -268,13 +321,72 @@ class _RegisterScreenState extends State<RegisterScreen>
                         const SizedBox(height: 24),
                       ],
                     );
-                  }
+                  },
                 ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Password Strength Bar Widget
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PasswordStrengthBar extends StatelessWidget {
+  final PasswordStrength strength;
+
+  const _PasswordStrengthBar({required this.strength});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color, filled) = switch (strength) {
+      PasswordStrength.weak => ('Lemah', const Color(0xFFE53E3E), 1),
+      PasswordStrength.fair => ('Cukup', const Color(0xFFED8936), 2),
+      PasswordStrength.good => ('Bagus', const Color(0xFF38A169), 3),
+      PasswordStrength.strong => ('Kuat 🔒', const Color(0xFF2B6CB0), 4),
+      PasswordStrength.empty => ('', Colors.transparent, 0),
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: List.generate(4, (i) {
+            return Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.only(right: 4),
+                height: 4,
+                decoration: BoxDecoration(
+                  color: i < filled ? color : Colors.white12,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Kekuatan password: $label',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Min. 8 karakter, 1 huruf kapital, 1 angka, 1 simbol',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 10,
+            color: Colors.white38,
+          ),
+        ),
+      ],
     );
   }
 }

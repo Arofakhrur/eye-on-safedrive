@@ -32,6 +32,7 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _playingSound;
   Timer? _stopTimer;
+  bool _isExpanded = false;
 
   @override
   void initState() {
@@ -84,35 +85,69 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.shade100),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSliderSection(
-            'Sensitivitas Microsleep (EAR)',
-            widget.earThreshold,
-            0.15,
-            0.35,
-            widget.onEarChanged,
-            ['Sangat Sensitif', 'Normal', 'Kurang Sensitif'],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            initiallyExpanded: _isExpanded,
+            onExpansionChanged: (expanded) {
+              setState(() => _isExpanded = expanded);
+            },
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            collapsedShape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+            leading: const Icon(Icons.settings_suggest_rounded, color: Colors.black87, size: 24),
+            title: Text(
+              'Pengaturan Deteksi',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+            subtitle: Text(
+              'Sesuaikan sensitivitas sensor keselamatan',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                color: Colors.black45,
+              ),
+            ),
+            children: [
+              const SizedBox(height: 8),
+              _buildSliderSection(
+                'Sensitivitas Kantuk (EAR)',
+                widget.earThreshold,
+                0.15,
+                0.35,
+                widget.onEarChanged,
+                ['Sangat Sensitif', 'Normal', 'Kurang Sensitif'],
+              ),
+              const Divider(height: 24),
+              _buildSliderSection(
+                'Sensitivitas Guncangan',
+                widget.shockSensitivity,
+                10.0,
+                50.0,
+                widget.onShockChanged,
+                ['Rendah', 'Normal', 'Tinggi'],
+              ),
+              const Divider(height: 24),
+              _buildSoundPicker(),
+            ],
           ),
-          const Divider(height: 32),
-          _buildSliderSection(
-            'Sensitivitas Guncangan',
-            widget.shockSensitivity,
-            10.0,
-            50.0,
-            widget.onShockChanged,
-            ['Rendah', 'Normal', 'Tinggi'],
-          ),
-          const Divider(height: 32),
-          _buildSoundPicker(),
-        ],
+        ),
       ),
     );
   }
@@ -142,7 +177,7 @@ class _DetectionSettingsCardState extends State<DetectionSettingsCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Suara Alarm', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700)),
+        Text('Suara Peringatan', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,

@@ -40,6 +40,12 @@ class MyApp extends StatelessWidget {
             ignoreContainers: true,
           ),
         ],
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: SlideUpPageTransitionsBuilder(),
+            TargetPlatform.iOS: SlideUpPageTransitionsBuilder(),
+          },
+        ),
       ),
       initialRoute: AppRoutes.splash,
       routes: {
@@ -53,6 +59,27 @@ class MyApp extends StatelessWidget {
         AppRoutes.calibration: (context) => const CalibrationScreen(),
         AppRoutes.home: (context) => const HomeScreen(),
       },
+    );
+  }
+}
+
+class SlideUpPageTransitionsBuilder extends PageTransitionsBuilder {
+  const SlideUpPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    var tween = Tween(begin: const Offset(0.0, 1.0), end: Offset.zero)
+        .chain(CurveTween(curve: Curves.easeOutCubic));
+
+    return SlideTransition(
+      position: animation.drive(tween),
+      child: child,
     );
   }
 }
