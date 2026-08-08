@@ -48,16 +48,31 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
         _fetchRoute(_currentLatLng!, widget.destination!);
       }
     }
-    
+
     _positionSub = widget.positionStream.listen((Position position) {
       if (!mounted) return;
       final newLatLng = LatLng(position.latitude, position.longitude);
+
+      bool shouldFetchRoute = false;
+      if (_currentLatLng == null &&
+          widget.destination != null &&
+          _osrmRoute.isEmpty) {
+        shouldFetchRoute = true;
+      }
+
       setState(() {
         _currentLatLng = newLatLng;
         _routeHistory.add(newLatLng);
       });
       if (_isMapReady) {
         _mapController.move(newLatLng, 16.0);
+        if (position.speed > 0.5 && position.heading >= 0) {
+          _mapController.rotate(360.0 - position.heading);
+        }
+      }
+
+      if (shouldFetchRoute) {
+        _fetchRoute(newLatLng, widget.destination!);
       }
     });
   }
@@ -79,23 +94,24 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
   Future<void> _fetchRoute(LatLng start, LatLng dest) async {
     if (_isFetchingRoute) return;
     setState(() => _isFetchingRoute = true);
-    
+
     try {
       final url = Uri.parse(
-          'http://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${dest.longitude},${dest.latitude}?overview=full&geometries=geojson');
+        'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${dest.longitude},${dest.latitude}?overview=full&geometries=geojson',
+      );
       final response = await http.get(url);
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final routes = data['routes'] as List;
         if (routes.isNotEmpty) {
           final geometry = routes[0]['geometry'];
           final coordinates = geometry['coordinates'] as List;
-          
+
           final List<LatLng> polylinePoints = coordinates
               .map((coord) => LatLng(coord[1] as double, coord[0] as double))
               .toList();
-              
+
           if (mounted) {
             setState(() {
               _osrmRoute = polylinePoints;
@@ -159,51 +175,6 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
           maxZoom: 19,
           tileProvider: CancellableNetworkTileProvider(),
         ),
-        MarkerLayer(
-          markers: [
-            Marker(
-              point: _currentLatLng!,
-              width: 40,
-              height: 40,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.textPrimary.withValues(alpha: 0.87), width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.textPrimary.withValues(alpha: 0.2),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (widget.destination != null)
-              Marker(
-                point: widget.destination!,
-                width: 40,
-                height: 40,
-                child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-              ),
-          ],
-        ),
         if (_routeHistory.length > 1)
           PolylineLayer(
             polylines: [
@@ -235,6 +206,58 @@ class _LiveMapWidgetState extends State<LiveMapWidget> {
               ),
             ],
           ),
+        MarkerLayer(
+          markers: [
+            Marker(
+              point: _currentLatLng!,
+              width: 40,
+              height: 40,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.textPrimary.withValues(alpha: 0.87),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.textPrimary.withValues(alpha: 0.2),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (widget.destination != null)
+              Marker(
+                point: widget.destination!,
+                width: 40,
+                height: 40,
+                child: const Icon(
+                  Icons.location_on,
+                  color: Colors.red,
+                  size: 40,
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }

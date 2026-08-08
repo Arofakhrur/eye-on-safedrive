@@ -84,8 +84,8 @@ class ActivityController extends ChangeNotifier {
     for (var log in currentWeekLogs) {
       final start = DateTime.parse(log['start_time']);
       final end = DateTime.parse(log['end_time']);
-      final durationHours = end.difference(start).inSeconds / 3600.0;
-      dailyDuration[start.weekday] = (dailyDuration[start.weekday] ?? 0) + durationHours;
+      final durationMinutes = end.difference(start).inSeconds / 60.0;
+      dailyDuration[start.weekday] = (dailyDuration[start.weekday] ?? 0) + durationMinutes;
     }
 
     _chartSpots = [];

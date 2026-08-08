@@ -8,10 +8,15 @@ import 'package:eyeon/core/services/sos_service.dart';
 import 'package:eyeon/features/monitoring/logic/microsleep_controller.dart';
 import 'package:eyeon/features/monitoring/logic/accident_controller.dart';
 import 'package:eyeon/core/utils/notification_helper.dart';
+import 'package:eyeon/core/services/preference_service.dart';
+import 'package:eyeon/research/realtime_logger/services/research_logger_service.dart';
 
 class MonitoringController extends ChangeNotifier {
   final MicrosleepController microsleepController = MicrosleepController();
   final AccidentController accidentController = AccidentController();
+
+  /// Research logger — aktif setiap sesi monitoring, mencatat TP/FP/TN/FN.
+  final ResearchLoggerService researchLogger = ResearchLoggerService();
 
   final MethodChannel _cameraChannel = const MethodChannel('eyeon_native_camera_control');
   final EventChannel _cameraEventChannel = const EventChannel('eyeon_native_camera_events');
@@ -30,6 +35,9 @@ class MonitoringController extends ChangeNotifier {
 
   bool _isRideStarted = false;
   bool get isRideStarted => _isRideStarted;
+
+  bool _showFaceMesh = PreferenceService().showFaceMesh;
+  bool get showFaceMesh => _showFaceMesh;
 
   bool _wasDrowsy = false;
   bool _wasAccident = false;
@@ -55,6 +63,13 @@ class MonitoringController extends ChangeNotifier {
   double get totalDistance => _totalDistance;
   double get currentSpeed => _currentSpeed;
 
+  // Jeda darurat (Emergency Countdown)
+  Timer? _emergencySosTimer;
+  bool _isEmergencySOSPending = false;
+  int _emergencyCountdown = 10;
+  bool get isEmergencySOSPending => _isEmergencySOSPending;
+  int get emergencyCountdown => _emergencyCountdown;
+
   final StreamController<Position> _positionStreamController = StreamController<Position>.broadcast();
   Stream<Position> get positionStream => _positionStreamController.stream;
   StreamSubscription<Position>? _positionSubscription;
@@ -64,6 +79,7 @@ class MonitoringController extends ChangeNotifier {
   MonitoringController() {
     microsleepController.addListener(_onUpdate);
     accidentController.addListener(_onUpdate);
+    accidentController.onSpeedGateRejected = _onSpeedGateRejected;
   }
 
   void startRide() {
@@ -107,23 +123,73 @@ class MonitoringController extends ChangeNotifier {
     if (microsleepController.isDrowsy && !_wasDrowsy) {
       _microsleepAlertsCount++;
       _cameraChannel.invokeMethod('setDrowsyState', {'isDrowsy': true});
+      // Notifikasi research logger: alarm dipicu
+      researchLogger.onAlarmTriggered();
     } else if (!microsleepController.isDrowsy && _wasDrowsy) {
       _cameraChannel.invokeMethod('setDrowsyState', {'isDrowsy': false});
+      // Notifikasi research logger: alarm berhenti
+      researchLogger.onAlarmStopped();
     }
     _wasDrowsy = microsleepController.isDrowsy;
 
     if (accidentController.isAccidentDetected && !_wasAccident) {
       _accidentAlertsCount++;
-      _triggerSOS();
+      _startEmergencyCountdown();
     }
     _wasAccident = accidentController.isAccidentDetected;
 
     notifyListeners();
   }
 
+  void _onSpeedGateRejected(double magnitude, double speedKmH) {
+    researchLogger.onSpeedGateRejected(magnitude, speedKmH);
+  }
+
+  void toggleFaceMesh() {
+    _showFaceMesh = !_showFaceMesh;
+    PreferenceService().setShowFaceMesh(_showFaceMesh);
+    updateNativeFacePointsState(_showFaceMesh);
+    notifyListeners();
+  }
+
+  Future<void> updateNativeFacePointsState(bool shouldSend) async {
+    try {
+      await _cameraChannel.invokeMethod('setSendFacePoints', {'send': shouldSend});
+    } catch (e) {
+      debugPrint('Failed to setSendFacePoints: $e');
+    }
+  }
+
   // A callback for UI to handle notification
   void Function(BuildContext, String, NotificationType)? onNotification;
   BuildContext? currentContext;
+
+  void _startEmergencyCountdown() {
+    _isEmergencySOSPending = true;
+    _emergencyCountdown = 10; // 10 detik jeda
+    
+    _emergencySosTimer?.cancel();
+    _emergencySosTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_emergencyCountdown > 1) {
+        _emergencyCountdown--;
+        notifyListeners();
+      } else {
+        timer.cancel();
+        _isEmergencySOSPending = false;
+        notifyListeners();
+        _triggerSOS();
+      }
+    });
+    notifyListeners();
+  }
+
+  void cancelEmergencySOS() {
+    _emergencySosTimer?.cancel();
+    _isEmergencySOSPending = false;
+    accidentController.resetAccidentState();
+    researchLogger.onFalseEmergencyTriggered();
+    notifyListeners();
+  }
 
   Future<void> _triggerSOS() async {
     String? videoPath;
@@ -173,6 +239,8 @@ class MonitoringController extends ChangeNotifier {
             int rotation = event['rotation'] ?? 0;
 
             microsleepController.updateEAR(ear);
+            // Research logger: otomatis deteksi blink vs sustained close dari EAR
+            researchLogger.updateEAR(ear);
             
             _facePoints = points;
             _imageWidth = width;
@@ -204,6 +272,16 @@ class MonitoringController extends ChangeNotifier {
         totalAccidentAlerts: 0,
         distance: 0,
       );
+      // Mulai sesi research logger setelah ride ID tersedia
+      // Gunakan threshold EAR yang sama dengan MicrosleepController
+      if (_currentRideId != null) {
+        researchLogger.startSession(
+          _currentRideId!,
+          _rideStartTime,
+          earThreshold: PreferenceService().earThreshold,
+        );
+        debugPrint('🔬 [MonitoringController] Research logger started with threshold=${PreferenceService().earThreshold}');
+      }
     } catch (e) {
       debugPrint('Failed to create ride ID: $e');
     }
@@ -226,6 +304,11 @@ class MonitoringController extends ChangeNotifier {
     _cameraEventSubscription?.cancel();
     _cameraEventSubscription = null;
     accidentController.stopMonitoring();
+
+    // Simpan data penelitian ke Supabase sebelum menutup sesi
+    if (_currentRideId != null) {
+      await researchLogger.saveToDatabase();
+    }
 
     if (_currentRideId != null) {
       try {
@@ -253,6 +336,8 @@ class MonitoringController extends ChangeNotifier {
   Future<void> startNativeCamera() async {
     try {
       await _cameraChannel.invokeMethod('startCamera');
+      // Set initial state for face points streaming based on preference
+      await updateNativeFacePointsState(_showFaceMesh);
     } catch (e) {
       debugPrint('Failed to start native camera: $e');
     }
@@ -267,6 +352,7 @@ class MonitoringController extends ChangeNotifier {
     _cameraEventSubscription?.cancel();
     accidentController.dispose();
     microsleepController.dispose();
+    researchLogger.dispose();
     super.dispose();
   }
 }

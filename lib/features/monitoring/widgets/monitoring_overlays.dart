@@ -48,7 +48,7 @@ class DrivingGuideCard extends StatelessWidget {
           _guideItem('5', 'SIM & STNK', 'Pastikan dokumen berkendara terbawa.'),
           const SizedBox(height: 16),
           Text(
-            'HATI-HATI DIJALAN',
+            'HATI-HATI DI JALAN',
             style: GoogleFonts.plusJakartaSans(
               color: AppColors.background,
               fontSize: 16,
@@ -58,12 +58,12 @@ class DrivingGuideCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'TEXT AFIRMASI TAMBAHAN',
+            'Keselamatan Anda adalah prioritas utama kami.',
             style: GoogleFonts.plusJakartaSans(
               color: AppColors.background.withValues(alpha: 0.38),
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              letterSpacing: 1.0,
+              letterSpacing: 0.5,
             ),
           ),
         ],
@@ -433,12 +433,14 @@ class CircularRevealClipper extends CustomClipper<Path> {
 // ── Alert Overlays ──
 class AlertOverlay extends StatelessWidget {
   final double currentMagnitude;
+  final int countdown;
   final VoidCallback onResetAccident;
   final VoidCallback onCallEmergency;
 
   const AlertOverlay({
     super.key,
     required this.currentMagnitude,
+    this.countdown = 0,
     required this.onResetAccident,
     required this.onCallEmergency,
   });
@@ -468,15 +470,28 @@ class AlertOverlay extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Sistem mendeteksi guncangan keras (${currentMagnitude.toStringAsFixed(1)} rad/s).\nSedang mengirim SOS ke kontak darurat...',
+                'Sistem mendeteksi guncangan keras (${currentMagnitude.toStringAsFixed(1)} m/s²).\nSOS akan dikirim dalam $countdown detik...',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(color: AppColors.textPrimary.withValues(alpha: 0.87), fontSize: 14, height: 1.5),
               ),
               SizedBox(height: 24),
-              CircularProgressIndicator(color: AppColors.primary),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 6),
+                  ),
+                  Text(
+                    '$countdown',
+                    style: GoogleFonts.plusJakartaSans(color: AppColors.primary, fontSize: 24, fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
               Text(
-                'Memproses rekaman video...',
+                countdown > 0 ? 'Menunggu respons Anda...' : 'Memproses rekaman video...',
                 style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary, fontSize: 12),
               ),
               const SizedBox(height: 32),
@@ -586,7 +601,7 @@ class Level2Overlay extends StatelessWidget {
   }
 }
 
-class Level3Overlay extends StatelessWidget {
+class Level3Overlay extends StatefulWidget {
   final bool canUnlock;
   final VoidCallback onResume;
 
@@ -597,7 +612,38 @@ class Level3Overlay extends StatelessWidget {
   });
 
   @override
+  State<Level3Overlay> createState() => _Level3OverlayState();
+}
+
+class _Level3OverlayState extends State<Level3Overlay> {
+  late int _remaining;
+  bool _timerExpired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _remaining = DetectionConfig.level3LockdownSeconds;
+    _startCountdown();
+  }
+
+  void _startCountdown() async {
+    while (_remaining > 0 && mounted) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (mounted) {
+        setState(() {
+          _remaining--;
+          if (_remaining <= 0) _timerExpired = true;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final total = DetectionConfig.level3LockdownSeconds;
+    final progress = 1.0 - (_remaining / total);
+    final canUnlockNow = _timerExpired && widget.canUnlock;
+
     return Container(
       color: Colors.red.shade900.withValues(alpha: 0.95),
       child: Center(
@@ -609,25 +655,87 @@ class Level3Overlay extends StatelessWidget {
             Text(
               'SISTEM TERKUNCI\n(Level 3 Microsleep)',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: AppColors.background, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1),
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.background,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
-              'Menunggu ${DetectionConfig.level3LockdownSeconds} detik...\nSistem mendeteksi Anda terlalu sering mengantuk.',
+              'Sistem mendeteksi Anda terlalu sering mengantuk.\nTepi dan istirahatlah sejenak.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: AppColors.textInverse.withValues(alpha: 0.7), fontSize: 14),
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.textInverse.withValues(alpha: 0.7),
+                fontSize: 14,
+              ),
             ),
-            const SizedBox(height: 48),
-            if (canUnlock)
+            const SizedBox(height: 32),
+            // Countdown progress indicator
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 6,
+                    color: _timerExpired ? Colors.greenAccent : AppColors.background,
+                    backgroundColor: AppColors.background.withValues(alpha: 0.2),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _timerExpired ? '✓' : '$_remaining',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: _timerExpired ? Colors.greenAccent : AppColors.background,
+                        fontSize: _timerExpired ? 36 : 28,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (!_timerExpired)
+                      Text(
+                        'detik',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppColors.background.withValues(alpha: 0.6),
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            if (canUnlockNow)
               HoldToConfirmButton(
-                onConfirm: onResume,
+                onConfirm: widget.onResume,
                 label: 'TAHAN UNTUK BUKA KUNCI',
                 duration: const Duration(milliseconds: 2000),
                 fillColor: AppColors.background,
                 textColor: Colors.red.shade900,
               )
+            else if (!_timerExpired)
+              Text(
+                'Kunci akan terbuka setelah countdown selesai\ndan kendaraan berhenti.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppColors.background.withValues(alpha: 0.5),
+                  fontSize: 12,
+                ),
+              )
             else
-              CircularProgressIndicator(color: AppColors.background),
+              Text(
+                'Kurangi kecepatan hingga < 1 km/h\nuntuk membuka kunci.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppColors.background.withValues(alpha: 0.5),
+                  fontSize: 12,
+                ),
+              ),
           ],
         ),
       ),

@@ -14,6 +14,7 @@ import 'package:eyeon/features/setup/views/setup_wizard_screen.dart';
 import 'package:eyeon/features/permission/views/permission_screen.dart';
 import 'package:eyeon/features/calibration/views/calibration_screen.dart';
 import 'package:eyeon/features/home/views/home_screen.dart';
+import 'package:eyeon/research/pipeline_verification/views/pipeline_test_page.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -63,6 +64,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.permission: (context) => const PermissionScreen(),
         AppRoutes.calibration: (context) => const CalibrationScreen(),
         AppRoutes.home: (context) => const HomeScreen(),
+        AppRoutes.pipelineTest: (context) => const PipelineTestPage(),
       },
     );
   }

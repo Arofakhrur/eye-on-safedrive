@@ -57,7 +57,7 @@ class TelegramService {
         '📍 <b>Area Terdekat:</b> $address\n'
         '🗺️ <b>Google Maps:</b> <a href="$mapsLink">Buka Peta</a>\n'
         '📌 <b>Koordinat:</b> <code>$lat, $lng</code>\n'
-        '💥 <b>Kekuatan guncangan:</b> ${magnitude.toStringAsFixed(1)} rad/s\n\n'
+        '💥 <b>Kekuatan guncangan:</b> ${magnitude.toStringAsFixed(1)} m/s²\n\n'
         '$riderName mungkin mengalami kecelakaan atau microsleep saat berkendara. '
         'Segera hubungi atau cek lokasinya!';
 

@@ -164,11 +164,7 @@ class CalibrationController extends ChangeNotifier {
 
         final avgEAR = (rightEAR + leftEAR) / 2.0;
 
-        // Expose points for UI
-        _eyePoints = [
-          ...rightEyeIndices.map((i) => Point<int>(faceMesh.points[i].x.toInt(), faceMesh.points[i].y.toInt())),
-          ...leftEyeIndices.map((i) => Point<int>(faceMesh.points[i].x.toInt(), faceMesh.points[i].y.toInt())),
-        ];
+        // eyePoints exposure removed — overlay is no longer rendered
 
         debugPrint('👁️ [Calibration] L=$leftEAR R=$rightEAR avg=$avgEAR samples=${_earSamples.length}');
 

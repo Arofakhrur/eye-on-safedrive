@@ -11,6 +11,9 @@ class AppRoutes {
   static const String permission = '/permission';
   static const String calibration = '/calibration';
   static const String home = '/home';
+
+  // Research / Developer Tools
+  static const String pipelineTest = '/pipeline-test';
 }
 
 /// Asset path constants.
@@ -123,6 +126,12 @@ class DetectionConfig {
   /// Default shock sensitivity (m/s²).
   static const double defaultShockSensitivity = 30.0;
 
+  /// Minimum adjustable shock sensitivity (m/s²) — most sensitive.
+  static const double minShockSensitivity = 5.0;
+
+  /// Maximum adjustable shock sensitivity (m/s²) — least sensitive.
+  static const double maxShockSensitivity = 60.0;
+
   /// Consecutive drowsy frames before alarm triggers (~1.5s at ~20fps).
   static const int drowsyFrameThreshold = 30;
 
@@ -160,8 +169,8 @@ class DetectionConfig {
 
   // ── Calibration ──
 
-  /// Target EAR samples for calibration (~5s at ~20fps).
-  static const int calibrationTargetSamples = 100;
+  /// Target EAR samples for calibration (~3-5s at effective ML Kit framerate).
+  static const int calibrationTargetSamples = 30;
 
   /// Frames without a face before showing warning.
   static const int noFaceTimeoutFrames = 60;
@@ -218,6 +227,7 @@ class SupabaseConfig {
   static const String tableIncidentLogs = 'incident_logs';
   static const String tableRideLogs = 'ride_logs';
   static const String tableProfiles = 'profiles';
+  static const String tableResearchEvents = 'research_events';
   static const String tableEvaluationMetrics = 'evaluation_metrics';
   static const String bucketIncidentVideos = 'incident_videos';
   static const String offlineDbName = 'eyeon_offline.db';

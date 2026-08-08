@@ -256,6 +256,18 @@ class SmoothTrendChart extends StatelessWidget {
       ),
       child: LineChart(
         LineChartData(
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((LineBarSpot touchedSpot) {
+                  return LineTooltipItem(
+                    '${touchedSpot.y.toStringAsFixed(0)} mnt',
+                    const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  );
+                }).toList();
+              },
+            ),
+          ),
           gridData: const FlGridData(show: false),
           titlesData: FlTitlesData(
             show: true,
@@ -330,103 +342,6 @@ class SmoothTrendChart extends StatelessWidget {
   }
 }
 
-class ModernAchievementCard extends StatelessWidget {
-  final int totalMicrosleep;
-  final VoidCallback onInfoTap;
-
-  const ModernAchievementCard({
-    super.key,
-    required this.totalMicrosleep,
-    required this.onInfoTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    double progress = 1.0;
-    if (totalMicrosleep > 0) {
-      progress = (10 - totalMicrosleep).clamp(0, 10) / 10.0;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Row(
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 60,
-                height: 60,
-                child: CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 6,
-                  backgroundColor: Colors.grey.shade200,
-                  color: AppColors.primary,
-                  strokeCap: StrokeCap.round,
-                ),
-              ),
-              Icon(Icons.stars_rounded, color: AppColors.textPrimary, size: 28),
-            ],
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Safe Rider Badge',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  totalMicrosleep == 0
-                      ? 'Sangat bagus! Tidak ada microsleep terdeteksi.'
-                      : 'Waspada! Terdeteksi $totalMicrosleep microsleep. Tingkatkan waktu istirahat.',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: onInfoTap,
-                  child: Row(
-                    children: [
-                      Text(
-                        'Selengkapnya',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 10,
-                        color: AppColors.textPrimary,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class MicrosleepInfoSheet extends StatelessWidget {
   const MicrosleepInfoSheet({super.key});

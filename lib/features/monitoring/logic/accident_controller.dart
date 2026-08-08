@@ -21,6 +21,10 @@ class AccidentController extends ChangeNotifier {
   // Ditingkatkan menjadi 0.5 agar lebih responsif terhadap kecelakaan nyata.
   final double _alpha = DetectionConfig.accelLpfAlpha; 
 
+  /// Callback saat Speed-Gate menolak trigger akselerometer (false alarm jalan rusak).
+  /// Parameter: (magnitude m/s², kecepatan km/h).
+  void Function(double magnitude, double speedKmH)? onSpeedGateRejected;
+
   int _sensorDetectionLatencyMs = 0;
   int get sensorDetectionLatencyMs => _sensorDetectionLatencyMs;
 
@@ -155,6 +159,7 @@ class AccidentController extends ChangeNotifier {
             _triggerAccidentResponse();
           } else {
             debugPrint('✅ FALSE ALARM: Motor masih melaju stabil. SOS dibatalkan.');
+            onSpeedGateRejected?.call(_peakMagnitude, speedKmH);
           }
         }
       } catch (e) {

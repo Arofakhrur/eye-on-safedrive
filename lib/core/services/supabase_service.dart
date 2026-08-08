@@ -8,6 +8,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
+import 'package:eyeon/research/realtime_logger/models/research_event_model.dart';
 
 class SupabaseService {
   static final SupabaseService _instance = SupabaseService._internal();
@@ -211,19 +212,43 @@ class SupabaseService {
         .eq('user_id', currentUser!.id);
   }
 
-  /// Legacy bulk save — kept for backward compatibility during initial setup.
+  /// Bulk save emergency contacts — deletes existing and inserts new ones.
+  /// Falls back to offline queue if Supabase is unreachable.
   Future<void> saveEmergencyContacts(List<EmergencyContact> contacts) async {
-    if (currentUser == null) return;
-    await client.from(SupabaseConfig.tableEmergencyContacts).delete().eq('user_id', currentUser!.id);
-    if (contacts.isNotEmpty) {
-      final data = contacts.map((c) => {
-        'user_id': currentUser!.id,
-        'name': c.name,
-        'phone': c.phone,
-        'telegram_chat_id': c.telegramChatId,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).toList();
-      await client.from(SupabaseConfig.tableEmergencyContacts).insert(data);
+    if (currentUser == null) throw Exception('Pengguna belum login.');
+
+    try {
+      await client
+          .from(SupabaseConfig.tableEmergencyContacts)
+          .delete()
+          .eq('user_id', currentUser!.id);
+
+      if (contacts.isNotEmpty) {
+        final now = DateTime.now().toIso8601String();
+        final data = contacts.map((c) => {
+          'user_id': currentUser!.id,
+          'name': c.name,
+          'phone': c.phone,
+          'telegram_chat_id': c.telegramChatId,
+          'created_at': now,
+          'updated_at': now,
+        }).toList();
+        await client.from(SupabaseConfig.tableEmergencyContacts).insert(data);
+      }
+    } catch (e) {
+      debugPrint('⚠️ saveEmergencyContacts failed: $e');
+      // Queue each contact individually for later sync
+      for (final c in contacts) {
+        await _saveToOfflineQueue(SupabaseConfig.tableEmergencyContacts, {
+          'user_id': currentUser!.id,
+          'name': c.name,
+          'phone': c.phone,
+          'telegram_chat_id': c.telegramChatId,
+          'created_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+      }
+      throw Exception('Gagal menyimpan kontak: ${e.toString().replaceAll('Exception: ', '')}');
     }
   }
 
@@ -413,6 +438,104 @@ class SupabaseService {
   /// Legacy metadata update — kept for backward compatibility.
   Future<void> updateUserMetadata(Map<String, dynamic> metadata) async {
     await client.auth.updateUser(UserAttributes(data: metadata));
+  }
+
+  // ── Research Logger ──────────────────────────────────────────────────────
+
+  /// Simpan semua research events untuk satu ride ke Supabase.
+  Future<void> saveResearchEvents(
+      String rideId, List<ResearchEventModel> events) async {
+    if (currentUser == null || events.isEmpty) return;
+    try {
+      final rows = events
+          .map((e) => {
+                ...e.toJson(),
+                'user_id': currentUser!.id,
+              })
+          .toList();
+      // Upsert agar tidak duplikat jika dipanggil lebih dari sekali
+      await client
+          .from(SupabaseConfig.tableResearchEvents)
+          .upsert(rows, onConflict: 'id');
+      debugPrint(
+          '✅ [SupabaseService] Saved ${events.length} research events for ride $rideId');
+    } catch (e) {
+      debugPrint('🔴 [SupabaseService] saveResearchEvents failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Simpan metrik evaluasi (TP/FP/TN/FN + precision/recall/F1/accuracy).
+  Future<void> saveEvaluationMetrics({
+    required String rideId,
+    required int tp,
+    required int fp,
+    required int tn,
+    required int fn,
+    required double precision,
+    required double recall,
+    required double f1Score,
+    required double accuracy,
+  }) async {
+    if (currentUser == null) return;
+    try {
+      await client.from(SupabaseConfig.tableEvaluationMetrics).upsert({
+        'ride_id': rideId,
+        'user_id': currentUser!.id,
+        'tp': tp,
+        'fp': fp,
+        'tn': tn,
+        'fn': fn,
+        'precision_val': precision,
+        'recall_val': recall,
+        'f1_score': f1Score,
+        'accuracy': accuracy,
+        'created_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'ride_id');
+      debugPrint('✅ [SupabaseService] Saved evaluation metrics for ride $rideId');
+    } catch (e) {
+      debugPrint('🔴 [SupabaseService] saveEvaluationMetrics failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Ambil semua research events untuk satu ride.
+  Future<List<ResearchEventModel>> getResearchEventsForRide(
+      String rideId) async {
+    if (currentUser == null) return [];
+    try {
+      final response = await client
+          .from(SupabaseConfig.tableResearchEvents)
+          .select()
+          .eq('ride_id', rideId)
+          .eq('user_id', currentUser!.id)
+          .order('video_timestamp_ms');
+      return (response as List)
+          .map((json) =>
+              ResearchEventModel.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+    } catch (e) {
+      debugPrint('🔴 [SupabaseService] getResearchEventsForRide failed: $e');
+      return [];
+    }
+  }
+
+  /// Ambil metrik evaluasi untuk satu ride.
+  Future<Map<String, dynamic>?> getEvaluationMetricsForRide(
+      String rideId) async {
+    if (currentUser == null) return null;
+    try {
+      final response = await client
+          .from(SupabaseConfig.tableEvaluationMetrics)
+          .select()
+          .eq('ride_id', rideId)
+          .eq('user_id', currentUser!.id)
+          .maybeSingle();
+      return response != null ? Map<String, dynamic>.from(response) : null;
+    } catch (e) {
+      debugPrint('🔴 [SupabaseService] getEvaluationMetricsForRide failed: $e');
+      return null;
+    }
   }
 
   Future<String?> uploadIncidentVideo(String filePath, [String? rideId]) async {

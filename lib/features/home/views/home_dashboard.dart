@@ -38,11 +38,11 @@ class _HomeDashboardState extends State<HomeDashboard> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               EyeOnHeader(),
               ListenableBuilder(
                 listenable: _controller,
@@ -50,21 +50,21 @@ class _HomeDashboardState extends State<HomeDashboard> {
                   return _buildGreetingHeader();
                 }
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 16),
               SafetyScoreCard(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               _buildSectionHeader('Menu Cepat'),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               SOSButton(onTap: () => SOSService().showEmergencyContactSheet(context)),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               _buildSectionHeader('Kontak Darurat'),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               _buildEmergencyContacts(),
-              const SizedBox(height: 24),
-              _buildSectionHeader('Riwayat Perjalanan'),
               const SizedBox(height: 16),
+              _buildSectionHeader('Riwayat Perjalanan'),
+              const SizedBox(height: 8),
               _buildDynamicRecentActivityCard(),
-              const SizedBox(height: 100),
+              const SizedBox(height: 80),
             ],
           ),
         ),

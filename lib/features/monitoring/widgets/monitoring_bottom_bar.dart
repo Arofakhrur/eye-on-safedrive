@@ -50,7 +50,7 @@ class MonitoringBottomBar extends StatelessWidget {
           ),
           _buildMetric(
             Icons.sensors_rounded, 
-            'G: ${currentGForce.toStringAsFixed(1)}',
+            '${currentGForce.toStringAsFixed(1)} m/s²',
             isAccident ? Colors.redAccent : AppColors.primary,
           ),
         ],

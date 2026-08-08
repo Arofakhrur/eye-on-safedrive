@@ -87,13 +87,8 @@ class CalibrationViewfinder extends StatelessWidget {
                             fit: StackFit.expand,
                             children: [
                               CameraPreview(controller.cameraController!),
-                              if (controller.isCalibrating && controller.eyePoints.isNotEmpty)
-                                CustomPaint(
-                                  painter: EyeLandmarkPainter(
-                                    eyePoints: controller.eyePoints,
-                                    isFrontCamera: true, // Assuming front camera for calibration
-                                  ),
-                                ),
+                              // Eye landmark scanner removed — was rendering
+                              // outside the circle and causing visual noise
                             ],
                           ),
                         ),
@@ -108,26 +103,7 @@ class CalibrationViewfinder extends StatelessWidget {
                       ),
               ),
             ),
-            // Glowing Scanning Line
-            if (controller.isCalibrating)
-              Positioned(
-                top: 145 + (135 * pulseAnimation.value) - 2, // 135 to stay within inner circle
-                left: 10,
-                right: 10,
-                child: Container(
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.8),
-                        blurRadius: 16,
-                        spreadRadius: 4,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            // Scanning line removed — was rendering outside the oval frame
             SizedBox(
               width: 290,
               height: 290,
@@ -156,6 +132,26 @@ class CalibrationViewfinder extends StatelessWidget {
                   ],
                 ),
                 child: Icon(Icons.check_rounded, color: AppColors.textPrimary, size: 40),
+              ),
+            // Teks status scanning — tampil di bagian bawah viewfinder saat kalibrasi aktif
+            if (controller.isCalibrating && !controller.isCalibrationDone)
+              Positioned(
+                bottom: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    _getScanningText(controller.progress),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
           ],
         );

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/core/services/telegram_service.dart';
+import 'package:eyeon/core/services/preference_service.dart';
 import 'package:gal/gal.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -83,18 +84,33 @@ class SOSService {
       try {
         if (videoPath != null) {
           debugPrint('📹 Video Path: $videoPath');
-          // Save to gallery (primary local action)
+          // Save to gallery (only if user has enabled the setting)
           try {
             final startGallery = stopwatch.elapsedMilliseconds;
-            final hasAccess = await Gal.hasAccess();
-            if (!hasAccess) await Gal.requestAccess();
-            await Gal.putVideo(videoPath);
-            gallerySaved = true;
-            gallerySaveMs = stopwatch.elapsedMilliseconds - startGallery;
-            debugPrint('📁 Berhasil: Video tersimpan ke galeri');
+            final shouldSaveToGallery = PreferenceService().saveToGallery;
+            if (shouldSaveToGallery) {
+              // Request access if needed
+              final hasAccess = await Gal.hasAccess();
+              if (!hasAccess) {
+                await Gal.requestAccess();
+              }
+              // Check again after request
+              final accessGranted = await Gal.hasAccess();
+              if (accessGranted) {
+                await Gal.putVideo(videoPath);
+                gallerySaved = true;
+                gallerySaveMs = stopwatch.elapsedMilliseconds - startGallery;
+                debugPrint('📁 Berhasil: Video tersimpan ke galeri (${gallerySaveMs}ms)');
+              } else {
+                galleryError = 'Izin akses galeri ditolak';
+                debugPrint('❌ Gagal: Izin galeri tidak diberikan — $galleryError');
+              }
+            } else {
+              debugPrint('📁 Skip gallery save: Fitur "Simpan ke Galeri" dinonaktifkan oleh pengguna.');
+            }
           } catch (galError) {
             galleryError = galError.toString();
-            debugPrint('❌ Gagal: Video gagal tersimpan, Error: $galError');
+            debugPrint('❌ Gagal: Video gagal tersimpan ke galeri — $galError');
           }
 
           // Upload to Supabase Storage, then send URL via Edge Function

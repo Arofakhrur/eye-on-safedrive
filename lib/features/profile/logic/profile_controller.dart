@@ -25,11 +25,13 @@ class ProfileController extends ChangeNotifier {
   double _shockSensitivity = PreferenceService().shockSensitivity;
   String _alarmSound = PreferenceService().alarmSound;
   bool _saveToGallery = PreferenceService().saveToGallery;
+  bool _showFaceMesh = PreferenceService().showFaceMesh;
 
   double get earThreshold => _earThreshold;
   double get shockSensitivity => _shockSensitivity;
   String get alarmSound => _alarmSound;
   bool get saveToGallery => _saveToGallery;
+  bool get showFaceMesh => _showFaceMesh;
 
   ProfileController() {
     loadUserProfile();
@@ -161,6 +163,12 @@ class ProfileController extends ChangeNotifier {
     _shockSensitivity = shockSensitivity;
     _alarmSound = alarmSound;
     _saveToGallery = saveToGallery;
+    notifyListeners();
+  }
+
+  Future<void> updateShowFaceMesh(bool value) async {
+    await PreferenceService().setShowFaceMesh(value);
+    _showFaceMesh = value;
     notifyListeners();
   }
 

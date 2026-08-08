@@ -11,13 +11,15 @@ class SafetyScoreCard extends StatelessWidget {
   Color _getScoreColor(int score) {
     if (score == 0) return Colors.grey.shade400;
     if (score >= 80) return const Color(0xFF00FF00); // Bright Green
-    return const Color(0xFFFF4040); // Red/Orange for 1-79
+    if (score >= 60) return Colors.orangeAccent; // Orange
+    return const Color(0xFFFF4040); // Red
   }
 
   String _getScoreLabel(int score) {
     if (score == 0) return '-';
     if (score >= 80) return 'SANGAT AMAN';
-    return 'AMAN';
+    if (score >= 60) return 'WASPADA';
+    return 'BAHAYA';
   }
 
   @override
@@ -36,7 +38,7 @@ class SafetyScoreCard extends StatelessWidget {
 
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: AppColors.background,
             borderRadius: BorderRadius.circular(28),
@@ -64,8 +66,8 @@ class SafetyScoreCard extends StatelessWidget {
                           alignment: Alignment.bottomCenter,
                           children: [
                             SizedBox(
-                              width: 200,
-                              height: 200,
+                              width: 160,
+                              height: 160,
                               child: CustomPaint(
                                 painter: _ScoreArcPainter(
                                   progress: value / 100.0,
@@ -78,7 +80,7 @@ class SafetyScoreCard extends StatelessWidget {
                                       Text(
                                         score == 0 ? '-' : '$animatedScore',
                                         style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 64,
+                                          fontSize: 52,
                                           fontWeight: FontWeight.w800,
                                           color: AppColors.textPrimary,
                                           height: 1.0,
@@ -123,7 +125,7 @@ class SafetyScoreCard extends StatelessWidget {
                         );
                       },
                     ),
-                    SizedBox(height: 40),
+                    SizedBox(height: 24),
 
                     // Breakdown
                     Row(

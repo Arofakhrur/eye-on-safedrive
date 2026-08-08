@@ -8,7 +8,8 @@
 --   2. emergency_contacts — Kontak darurat (maks 3 per user)
 --   3. ride_logs          — Log setiap sesi berkendara
 --   4. incident_logs      — Log insiden kecelakaan per sesi
---   5. evaluation_metrics — Metrik performa SOS (debug/skripsi)
+--   5. evaluation_metrics — Metrik performa SOS + confusion matrix
+--   6. research_events    — Log event penelitian per-kejadian (TP/FP/TN/FN)
 -- ============================================================
 
 
@@ -345,25 +346,91 @@ CREATE POLICY "incident_logs: service role full access"
 
 -- ════════════════════════════════════════════════════════════
 -- 5. TABEL: evaluation_metrics
---    Metrik waktu respons SOS untuk evaluasi skripsi (Bab 4)
+--    Metrik waktu respons SOS + evaluasi confusion matrix (TP/FP/TN/FN)
 --    INSERT-only oleh user terautentikasi, baca oleh service_role
 -- ════════════════════════════════════════════════════════════
 CREATE TABLE IF NOT EXISTS public.evaluation_metrics (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    -- Skenario pengujian
-    test_scenario       TEXT NOT NULL,
+    -- Skenario pengujian (legacy: SOS latency test)
+    test_scenario       TEXT DEFAULT 'research_evaluation',
 
-    -- Komponen waktu respons (dalam milidetik)
+    -- Komponen waktu respons (dalam milidetik) — legacy SOS metrics
     sensor_detection_ms INTEGER NOT NULL DEFAULT 0 CHECK (sensor_detection_ms >= 0),
     video_extraction_ms INTEGER NOT NULL DEFAULT 0 CHECK (video_extraction_ms >= 0),
     gallery_save_ms     INTEGER NOT NULL DEFAULT 0 CHECK (gallery_save_ms >= 0),
     telegram_api_ms     INTEGER NOT NULL DEFAULT 0 CHECK (telegram_api_ms >= 0),
     total_mitigation_ms INTEGER NOT NULL DEFAULT 0 CHECK (total_mitigation_ms >= 0),
 
+    -- Relasi ke ride & user (untuk research evaluation)
+    ride_id             UUID REFERENCES public.ride_logs(id) ON DELETE CASCADE,
+    user_id             UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+
+    -- Confusion matrix counters
+    tp                  INTEGER DEFAULT 0,
+    fp                  INTEGER DEFAULT 0,
+    tn                  INTEGER DEFAULT 0,
+    fn                  INTEGER DEFAULT 0,
+
+    -- Computed metrics
+    precision_val       DOUBLE PRECISION DEFAULT 0,
+    recall_val          DOUBLE PRECISION DEFAULT 0,
+    f1_score            DOUBLE PRECISION DEFAULT 0,
+    accuracy            DOUBLE PRECISION DEFAULT 0,
+
     -- Timestamps
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Safe migration: tambah kolom baru jika tabel sudah ada
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='evaluation_metrics' AND column_name='ride_id') THEN
+        ALTER TABLE public.evaluation_metrics ADD COLUMN ride_id UUID REFERENCES public.ride_logs(id) ON DELETE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='evaluation_metrics' AND column_name='user_id') THEN
+        ALTER TABLE public.evaluation_metrics ADD COLUMN user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='evaluation_metrics' AND column_name='tp') THEN
+        ALTER TABLE public.evaluation_metrics ADD COLUMN tp INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='evaluation_metrics' AND column_name='fp') THEN
+        ALTER TABLE public.evaluation_metrics ADD COLUMN fp INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='evaluation_metrics' AND column_name='tn') THEN
+        ALTER TABLE public.evaluation_metrics ADD COLUMN tn INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='evaluation_metrics' AND column_name='fn') THEN
+        ALTER TABLE public.evaluation_metrics ADD COLUMN fn INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='evaluation_metrics' AND column_name='precision_val') THEN
+        ALTER TABLE public.evaluation_metrics ADD COLUMN precision_val DOUBLE PRECISION DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='evaluation_metrics' AND column_name='recall_val') THEN
+        ALTER TABLE public.evaluation_metrics ADD COLUMN recall_val DOUBLE PRECISION DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='evaluation_metrics' AND column_name='f1_score') THEN
+        ALTER TABLE public.evaluation_metrics ADD COLUMN f1_score DOUBLE PRECISION DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='evaluation_metrics' AND column_name='accuracy') THEN
+        ALTER TABLE public.evaluation_metrics ADD COLUMN accuracy DOUBLE PRECISION DEFAULT 0;
+    END IF;
+END $$;
+
+-- Make test_scenario nullable (was NOT NULL in original schema)
+ALTER TABLE public.evaluation_metrics ALTER COLUMN test_scenario DROP NOT NULL;
+ALTER TABLE public.evaluation_metrics ALTER COLUMN test_scenario SET DEFAULT 'research_evaluation';
+
+-- Unique constraint: satu evaluation per ride
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_evaluation_metrics_ride_id') THEN
+        ALTER TABLE public.evaluation_metrics
+            ADD CONSTRAINT uq_evaluation_metrics_ride_id UNIQUE (ride_id);
+    END IF;
+END $$;
+
+-- Index
+CREATE INDEX IF NOT EXISTS idx_evaluation_metrics_ride_id
+    ON public.evaluation_metrics(ride_id);
 
 -- RLS: evaluation_metrics
 ALTER TABLE public.evaluation_metrics ENABLE ROW LEVEL SECURITY;
@@ -374,6 +441,19 @@ CREATE POLICY "evaluation_metrics: authenticated can insert"
     ON public.evaluation_metrics FOR INSERT
     TO authenticated
     WITH CHECK (true);
+
+-- User bisa baca metrik miliknya sendiri
+DROP POLICY IF EXISTS "evaluation_metrics: user can select own" ON public.evaluation_metrics;
+CREATE POLICY "evaluation_metrics: user can select own"
+    ON public.evaluation_metrics FOR SELECT
+    USING (auth.uid() = user_id);
+
+-- User bisa update metrik miliknya sendiri (untuk upsert)
+DROP POLICY IF EXISTS "evaluation_metrics: user can update own" ON public.evaluation_metrics;
+CREATE POLICY "evaluation_metrics: user can update own"
+    ON public.evaluation_metrics FOR UPDATE
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 
 -- Service role bisa baca untuk analisis
 DROP POLICY IF EXISTS "evaluation_metrics: service role full access" ON public.evaluation_metrics;
@@ -489,6 +569,71 @@ CREATE POLICY "Public can view incident videos if they have URL" ON storage.obje
 
 
 -- ════════════════════════════════════════════════════════════
+-- 10. TABEL: research_events
+--     Log event penelitian per-kejadian untuk confusion matrix
+--     Satu baris = satu event (alarm, blink, eye close, speed-gate)
+-- ════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.research_events (
+    -- ID unik (dibuat di client: timestamp-hash)
+    id              TEXT PRIMARY KEY,
+
+    -- Relasi ke ride & user
+    ride_id         UUID NOT NULL REFERENCES public.ride_logs(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+
+    -- Waktu absolut event terjadi
+    timestamp       TIMESTAMPTZ NOT NULL,
+
+    -- Waktu relatif dari ride start (ms)
+    video_timestamp_ms INTEGER NOT NULL DEFAULT 0,
+
+    -- Jenis event: alarm_triggered, alarm_stopped, eye_close_start,
+    --              eye_open, normal_blink, speed_gate_rejected
+    event_type      TEXT NOT NULL,
+
+    -- Klasifikasi: TP, FP, TN, FN, pending, -
+    classified_as   TEXT DEFAULT '-',
+
+    -- Latency alarm sejak eye_close_start (ms)
+    alarm_latency_ms INTEGER,
+
+    -- Catatan tambahan (durasi blink, magnitude, dsb.)
+    note            TEXT,
+
+    -- Timestamps
+    created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_research_events_ride_id
+    ON public.research_events(ride_id);
+CREATE INDEX IF NOT EXISTS idx_research_events_user_id
+    ON public.research_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_research_events_timestamp
+    ON public.research_events(ride_id, video_timestamp_ms);
+
+-- RLS: research_events
+ALTER TABLE public.research_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "research_events: user can insert own" ON public.research_events;
+CREATE POLICY "research_events: user can insert own"
+    ON public.research_events FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "research_events: user can select own" ON public.research_events;
+CREATE POLICY "research_events: user can select own"
+    ON public.research_events FOR SELECT
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "research_events: service role full access" ON public.research_events;
+CREATE POLICY "research_events: service role full access"
+    ON public.research_events FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+
+-- ════════════════════════════════════════════════════════════
 -- VERIFIKASI HASIL — Cek semua policy & tabel
 -- ════════════════════════════════════════════════════════════
 SELECT
@@ -500,6 +645,6 @@ SELECT
 FROM pg_tables t
 LEFT JOIN pg_policies p ON t.tablename = p.tablename
 WHERE t.schemaname = 'public'
-  AND t.tablename IN ('profiles','emergency_contacts','ride_logs','incident_logs','evaluation_metrics')
+  AND t.tablename IN ('profiles','emergency_contacts','ride_logs','incident_logs','evaluation_metrics','research_events')
 ORDER BY t.tablename, p.cmd;
 

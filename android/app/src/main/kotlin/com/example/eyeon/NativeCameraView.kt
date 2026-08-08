@@ -67,6 +67,9 @@ class NativeCameraView(
     private var isCameraStarted = false
     private var cameraProvider: ProcessCameraProvider? = null
 
+    // Face mesh toggle
+    private var shouldSendFacePoints = false
+
     // For Coroutines
     private val scope = CoroutineScope(Dispatchers.Main + Job())
 
@@ -124,6 +127,12 @@ class NativeCameraView(
                 }
                 "setDrowsyState" -> {
                     // Accept drowsy state from Flutter (for future use if needed)
+                    result.success(true)
+                }
+                "setSendFacePoints" -> {
+                    val send = call.argument<Boolean>("send") ?: false
+                    shouldSendFacePoints = send
+                    Log.d(TAG, "setSendFacePoints: \$shouldSendFacePoints")
                     result.success(true)
                 }
                 else -> result.notImplemented()
@@ -193,21 +202,28 @@ class NativeCameraView(
                                     val leftEAR = calculateEyeEAR(allPoints, intArrayOf(362, 385, 387, 263, 373, 380))
                                     val avgEAR = (rightEAR + leftEAR) / 2.0
 
-                                    // Serialize points to FloatArray for Flutter
-                                    val pointsArray = FloatArray(allPoints.size * 2)
-                                    for (i in allPoints.indices) {
-                                        pointsArray[i * 2] = allPoints[i].position.x
-                                        pointsArray[i * 2 + 1] = allPoints[i].position.y
+                                    // Serialize points to FloatArray for Flutter ONLY if requested
+                                    var pointsArray: FloatArray? = null
+                                    if (shouldSendFacePoints) {
+                                        pointsArray = FloatArray(allPoints.size * 2)
+                                        for (i in allPoints.indices) {
+                                            pointsArray[i * 2] = allPoints[i].position.x
+                                            pointsArray[i * 2 + 1] = allPoints[i].position.y
+                                        }
                                     }
 
-                                    sendEvent(mapOf(
+                                    val eventMap = mutableMapOf<String, Any>(
                                         "type" to "ear", 
                                         "value" to avgEAR,
-                                        "points" to pointsArray,
                                         "imageWidth" to mediaImage.width,
                                         "imageHeight" to mediaImage.height,
                                         "rotation" to imageProxy.imageInfo.rotationDegrees
-                                    ))
+                                    )
+                                    if (pointsArray != null) {
+                                        eventMap["points"] = pointsArray
+                                    }
+                                    
+                                    sendEvent(eventMap)
                                 } else {
                                     // No face detected — let Flutter know
                                     sendEvent(mapOf("type" to "no_face"))

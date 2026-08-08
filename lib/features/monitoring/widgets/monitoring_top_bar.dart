@@ -8,6 +8,10 @@ class MonitoringTopBar extends StatelessWidget {
   final double currentSpeed;
   final String formattedDuration;
   final double totalDistance;
+  final bool showFaceMesh;
+  final VoidCallback onToggleFaceMesh;
+  final bool isFullScreen;
+  final VoidCallback onToggleFullScreen;
 
   const MonitoringTopBar({
     super.key,
@@ -16,6 +20,10 @@ class MonitoringTopBar extends StatelessWidget {
     required this.currentSpeed,
     required this.formattedDuration,
     required this.totalDistance,
+    required this.showFaceMesh,
+    required this.onToggleFaceMesh,
+    required this.isFullScreen,
+    required this.onToggleFullScreen,
   });
 
   @override
@@ -38,7 +46,7 @@ class MonitoringTopBar extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E), // Dark background capsule
         borderRadius: BorderRadius.circular(30),
@@ -53,41 +61,78 @@ class MonitoringTopBar extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Status indicator
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: statusColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: statusColor.withValues(alpha: 0.5),
-                  blurRadius: 6,
+          // 1. Toggle Face Mesh
+          GestureDetector(
+            onTap: onToggleFaceMesh,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.background.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                showFaceMesh ? Icons.face_retouching_natural_rounded : Icons.face_unlock_rounded,
+                color: showFaceMesh ? AppColors.primary : AppColors.textInverse.withValues(alpha: 0.5),
+                size: 20,
+              ),
+            ),
+          ),
+          
+          const SizedBox(width: 12),
+          
+          // 2. Information
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: statusColor.withValues(alpha: 0.5),
+                      blurRadius: 6,
+                    ),
+                  ],
                 ),
-              ],
+              ),
+              SizedBox(width: 6),
+              Text(
+                statusText,
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppColors.background,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(width: 16),
+              _buildCompactMetric(Icons.access_time_rounded, formattedDuration),
+              const SizedBox(width: 12),
+              _buildCompactMetric(Icons.route_rounded, '${totalDistance.toStringAsFixed(1)} km'),
+            ],
+          ),
+          
+          const SizedBox(width: 12),
+
+          // 3. Toggle Fullscreen
+          GestureDetector(
+            onTap: onToggleFullScreen,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.background.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isFullScreen ? Icons.close_fullscreen_rounded : Icons.open_in_full_rounded,
+                color: AppColors.background,
+                size: 20,
+              ),
             ),
           ),
-          SizedBox(width: 8),
-          Text(
-            statusText,
-            style: GoogleFonts.plusJakartaSans(
-              color: AppColors.background,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.0,
-            ),
-          ),
-          
-          const SizedBox(width: 24),
-          
-          // Timer
-          _buildCompactMetric(Icons.access_time_rounded, formattedDuration),
-          
-          const SizedBox(width: 16),
-          
-          // Distance
-          _buildCompactMetric(Icons.route_rounded, '${totalDistance.toStringAsFixed(1)} km'),
         ],
       ),
     );

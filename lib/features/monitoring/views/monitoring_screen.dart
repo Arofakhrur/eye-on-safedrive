@@ -8,6 +8,7 @@ import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/utils/notification_helper.dart';
 import 'package:eyeon/core/services/sos_service.dart';
+import 'package:eyeon/core/services/preference_service.dart';
 
 import 'package:eyeon/features/monitoring/logic/monitoring_controller.dart';
 import 'package:eyeon/features/monitoring/widgets/live_map_widget.dart';
@@ -47,7 +48,10 @@ class _MonitoringScreenState extends State<MonitoringScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    Gal.requestAccess();
+    // Only request gallery access if user has enabled the save-to-gallery setting
+    if (PreferenceService().saveToGallery) {
+      Gal.requestAccess();
+    }
 
     _controller.onNotification = (context, message, type) {
       if (mounted) {
@@ -229,6 +233,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                             height: size.width * (4.0 / 3.0),
                             child: CustomPaint(
                               foregroundPainter:
+                                  _controller.showFaceMesh &&
                                   _controller.facePoints != null &&
                                       _controller.facePoints!.isNotEmpty
                                   ? NativeFaceMeshPainter(
@@ -266,22 +271,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
             ),
           ),
 
-          // Toggle Fullscreen Camera
-          if (_controller.isRideStarted && !_showRevealOverlay)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 16,
-              right: 16,
-              child: ScreenToggleButton(
-                isFull: _currentMode == ScreenMode.fullCamera,
-                onTap: () {
-                  setState(() {
-                    _currentMode = _currentMode == ScreenMode.fullCamera
-                        ? ScreenMode.split
-                        : ScreenMode.fullCamera;
-                  });
-                },
-              ),
-            ),
+
 
           // Map Panel
           AnimatedPositioned(
@@ -311,41 +301,47 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                     ),
                   ),
 
-                  // Toggle Fullscreen Map
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: ScreenToggleButton(
-                      isFull: _currentMode == ScreenMode.fullMap,
-                      onTap: () {
-                        setState(() {
-                          _currentMode = _currentMode == ScreenMode.fullMap
-                              ? ScreenMode.split
-                              : ScreenMode.fullMap;
-                        });
-                      },
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
 
           // Top Bar
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: MonitoringTopBar(
-                isDrowsy: _controller.microsleepController.isDrowsy,
-                isAccident: _controller.accidentController.isAccidentDetected,
-                currentSpeed: _controller.currentSpeed,
-                formattedDuration: _formatDuration(_controller.rideDuration),
-                totalDistance: _controller.totalDistance,
+          if (_controller.isRideStarted && !_showRevealOverlay)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: MonitoringTopBar(
+                  isDrowsy: _controller.microsleepController.isDrowsy,
+                  isAccident: _controller.accidentController.isAccidentDetected,
+                  currentSpeed: _controller.currentSpeed,
+                  formattedDuration: _formatDuration(_controller.rideDuration),
+                  totalDistance: _controller.totalDistance,
+                  showFaceMesh: _controller.showFaceMesh,
+                  onToggleFaceMesh: () {
+                    if (_currentMode != ScreenMode.fullMap) {
+                      _controller.toggleFaceMesh();
+                    }
+                  },
+                  isFullScreen: _currentMode != ScreenMode.split,
+                  onToggleFullScreen: () {
+                    setState(() {
+                      if (_currentMode == ScreenMode.split) {
+                        _currentMode = ScreenMode.fullMap;
+                      } else if (_currentMode == ScreenMode.fullMap) {
+                        _currentMode = ScreenMode.fullCamera;
+                      } else {
+                        _currentMode = ScreenMode.split;
+                      }
+                      _controller.updateNativeFacePointsState(
+                          _currentMode != ScreenMode.fullMap && _controller.showFaceMesh);
+                    });
+                  },
+                ),
               ),
             ),
-          ),
 
           // Bottom Bar
           Positioned(
@@ -387,6 +383,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
               child: const NoFaceWarningOverlay(),
             ),
 
+
           // Circular Reveal Overlay
           if (_showRevealOverlay) _buildCircularRevealOverlay(),
         ],
@@ -398,8 +395,8 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     if (_controller.accidentController.isAccidentDetected) {
       return AlertOverlay(
         currentMagnitude: _controller.accidentController.currentMagnitude,
-        onResetAccident: () =>
-            _controller.accidentController.resetAccidentState(),
+        countdown: _controller.isEmergencySOSPending ? _controller.emergencyCountdown : 0,
+        onResetAccident: () => _controller.cancelEmergencySOS(),
         onCallEmergency: () => SOSService().showEmergencyContactSheet(context),
       );
     }

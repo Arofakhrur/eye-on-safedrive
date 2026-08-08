@@ -63,8 +63,8 @@ class SetupWizardController extends ChangeNotifier {
       final profileData = {
         'address': address,
         'blood_type': selectedBloodType,
-        'username': username,
-        'medical_notes': medicalNotes,
+        'full_name': username,
+        'emergency_medical_notes': medicalNotes,
       };
       await SupabaseService().updateProfile(profileData);
       await SupabaseService().updateUserMetadata(profileData);

@@ -16,6 +16,7 @@ class PreferenceService {
   static const String _keyIsAlarmEnabled = 'is_alarm_enabled';
   static const String _keyAlarmSound = 'alarm_sound';
   static const String _keySaveToGallery = 'save_to_gallery';
+  static const String _keyShowFaceMesh = 'show_face_mesh';
 
   late SharedPreferences _prefs;
 
@@ -49,9 +50,12 @@ class PreferenceService {
   Future<void> setEarThreshold(double value) =>
       _prefs.setDouble(_keyEarThreshold, value);
 
-  double get shockSensitivity => _prefs.getDouble(_keyShockSensitivity) ?? DetectionConfig.defaultShockSensitivity;
+  double get shockSensitivity {
+    final val = _prefs.getDouble(_keyShockSensitivity) ?? DetectionConfig.defaultShockSensitivity;
+    return val.clamp(DetectionConfig.minShockSensitivity, DetectionConfig.maxShockSensitivity);
+  }
   Future<void> setShockSensitivity(double value) =>
-      _prefs.setDouble(_keyShockSensitivity, value);
+      _prefs.setDouble(_keyShockSensitivity, value.clamp(DetectionConfig.minShockSensitivity, DetectionConfig.maxShockSensitivity));
 
   // Alarm Settings
   bool get isAlarmEnabled => _prefs.getBool(_keyIsAlarmEnabled) ?? true;
@@ -66,6 +70,11 @@ class PreferenceService {
   bool get saveToGallery => _prefs.getBool(_keySaveToGallery) ?? false;
   Future<void> setSaveToGallery(bool value) =>
       _prefs.setBool(_keySaveToGallery, value);
+
+  // Performance / Developer
+  bool get showFaceMesh => _prefs.getBool(_keyShowFaceMesh) ?? false;
+  Future<void> setShowFaceMesh(bool value) =>
+      _prefs.setBool(_keyShowFaceMesh, value);
 
   // Reset all (for logout or testing)
   Future<void> clearAll() async {

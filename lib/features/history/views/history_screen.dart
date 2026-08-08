@@ -17,6 +17,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final HistoryController _controller = HistoryController();
+  bool _showAll = false;
 
   @override
   void dispose() {
@@ -31,28 +32,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: SafeArea(
         child: Column(
         children: [
-          const SizedBox(height: 24),
-          EyeOnHeader(),
           const SizedBox(height: 16),
+          EyeOnHeader(),
+          const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               'Riwayat Perjalanan',
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 28,
+                fontSize: 24,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           
           ListenableBuilder(
             listenable: _controller,
             builder: (context, _) {
               return CategoryFilter(
                 selectedCategory: _controller.selectedCategory,
-                onCategorySelected: _controller.setSelectedCategory,
+                onCategorySelected: (cat) {
+                  _controller.setSelectedCategory(cat);
+                  setState(() { _showAll = false; });
+                },
               );
             },
           ),
@@ -93,8 +97,33 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     child: ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.all(24),
-                      itemCount: filteredLogs.length,
+                      itemCount: _showAll ? filteredLogs.length : (filteredLogs.length > 5 ? 6 : filteredLogs.length),
                       itemBuilder: (context, index) {
+                        if (!_showAll && filteredLogs.length > 5 && index == 5) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
+                            child: OutlinedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _showAll = true;
+                                });
+                              },
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: AppColors.primary),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                              child: Text(
+                                'Tampilkan Semua',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        
                         return HistoryCard(
                           log: filteredLogs[index],
                           loadIncidents: _controller.loadIncidentsForRide,

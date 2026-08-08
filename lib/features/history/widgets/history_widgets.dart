@@ -1,4 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
+
+import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:eyeon/core/services/supabase_service.dart';
+import 'package:eyeon/research/realtime_logger/services/research_export_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,6 +15,7 @@ import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/constants/app_data.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/widgets/video_player_dialog.dart';
+import 'package:eyeon/research/realtime_logger/services/research_export_service.dart';
 
 class CategoryFilter extends StatelessWidget {
   final String selectedCategory;
@@ -96,6 +105,9 @@ class _HistoryCardState extends State<HistoryCard> {
   List<Map<String, dynamic>>? _incidents;
   bool _isLoadingIncidents = false;
   String? _incidentVideoUrl; // video dari incident_logs
+  bool _isExporting = false;
+  Map<String, dynamic>? _researchMetrics;
+  int? _blinkCount;
 
   Future<void> _handleLoadIncidents() async {
     final rideId = widget.log['id']?.toString();
@@ -104,6 +116,11 @@ class _HistoryCardState extends State<HistoryCard> {
     setState(() => _isLoadingIncidents = true);
     try {
       final incidents = await widget.loadIncidents(rideId);
+      final metrics = await SupabaseService().getEvaluationMetricsForRide(rideId);
+      final events = await SupabaseService().getResearchEventsForRide(rideId);
+      
+      final blinks = events.where((e) => e.eventType == 'blink').length;
+
       if (mounted) {
         // Ambil video_url dari incident pertama yang ada videonya
         final videoIncident = incidents?.firstWhere(
@@ -114,6 +131,8 @@ class _HistoryCardState extends State<HistoryCard> {
           _incidents = incidents;
           _isLoadingIncidents = false;
           _incidentVideoUrl = videoIncident?['video_url']?.toString();
+          _researchMetrics = metrics;
+          _blinkCount = blinks;
         });
       }
     } catch (e) {
@@ -286,7 +305,7 @@ class _HistoryCardState extends State<HistoryCard> {
                                   ),
                                 ),
                                 Text(
-                                  'G-Force: ${(incident['magnitude'] ?? 0.0).toStringAsFixed(1)} rad/s',
+                                  'Guncangan: ${(incident['magnitude'] ?? 0.0).toStringAsFixed(1)} m/s²',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 10,
                                     color: AppColors.textPrimary.withValues(alpha: 0.45),
@@ -413,6 +432,8 @@ class _HistoryCardState extends State<HistoryCard> {
                     ],
                   ),
                 ],
+                // Download Research Log
+                _buildResearchDownloadSection(log),
               ],
             ),
             crossFadeState: _isExpanded
@@ -451,6 +472,149 @@ class _HistoryCardState extends State<HistoryCard> {
         ],
       ),
     );
+  }
+
+  /// Bagian download penelitian — muncul di dalam expanded card.
+  Widget _buildResearchDownloadSection(Map<String, dynamic> log) {
+    final rideId = log['id']?.toString();
+    if (rideId == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        const Divider(height: 1),
+        const SizedBox(height: 16),
+        Text(
+          'Unduh Data Penelitian',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Log TP/FP/TN/FN + metrik evaluasi deteksi microsleep',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            color: AppColors.textPrimary.withValues(alpha: 0.45),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _buildExportButton(
+                icon: Icons.table_chart_rounded,
+                label: 'CSV',
+                color: const Color(0xFF1E88E5),
+                isLoading: _isExporting,
+                onTap: () => _exportCsv(rideId, log),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildExportButton(
+                icon: Icons.picture_as_pdf_rounded,
+                label: 'PDF',
+                color: const Color(0xFFE53935),
+                isLoading: _isExporting,
+                onTap: () => _exportPdf(rideId, log),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExportButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool isLoading,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: isLoading ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isLoading)
+              SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: color,
+                ),
+              )
+            else
+              Icon(icon, color: color, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                color: color,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportCsv(String rideId, Map<String, dynamic> log) async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+    try {
+      await ResearchExportService().exportCsvForRide(
+        rideId: rideId,
+        rideInfo: log,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal export CSV: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _exportPdf(String rideId, Map<String, dynamic> log) async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+    try {
+      await ResearchExportService().exportPdfForRide(
+        rideId: rideId,
+        rideInfo: log,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal export PDF: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
   }
 
   String _formatDuration(dynamic start, dynamic end) {
@@ -513,6 +677,34 @@ class _HistoryCardState extends State<HistoryCard> {
           '${log['accident_alerts'] ?? 0} Event',
           Icons.warning_amber_rounded,
         ),
+        if (_blinkCount != null)
+          _buildDetailItem(
+            'Kedipan',
+            '$_blinkCount Kali',
+            Icons.remove_red_eye_rounded,
+          ),
+        if (_researchMetrics != null) ...[
+          _buildDetailItem(
+            'True Pos (TP)',
+            '${_researchMetrics!['tp']} Alert',
+            Icons.check_circle_outline_rounded,
+          ),
+          _buildDetailItem(
+            'False Pos (FP)',
+            '${_researchMetrics!['fp']} Alert',
+            Icons.error_outline_rounded,
+          ),
+          _buildDetailItem(
+            'True Neg (TN)',
+            '${_researchMetrics!['tn']} Aman',
+            Icons.thumb_up_outlined,
+          ),
+          _buildDetailItem(
+            'False Neg (FN)',
+            '${_researchMetrics!['fn']} Missed',
+            Icons.warning_amber_rounded,
+          ),
+        ],
       ],
     );
   }

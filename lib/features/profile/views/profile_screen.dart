@@ -39,29 +39,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: ListenableBuilder(
             listenable: _controller,
             builder: (context, _) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
                   EyeOnHeader(),
                   Text(
                     'Profil & Pengaturan',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 28,
+                      fontSize: 24,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
                   UserProfileCard(
                     userName: _controller.userName,
                     email: _controller.email,
                     avatarUrl: _controller.avatarUrl,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
                   ProfileSectionHeader(
                     title: 'INFORMASI PRIBADI',
@@ -74,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     medicalNotes: _controller.medicalNotes,
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   const ProfileSectionTitle(title: 'KEAMANAN & DETEKSI'),
                   ProfileMenuItem(
                     icon: Icons.camera_front_rounded,
@@ -111,8 +111,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
 
-                  const SizedBox(height: 24),
-                  const ProfileSectionTitle(title: 'PENYIMPANAN & DATA'),
+                  const SizedBox(height: 16),
+                  const ProfileSectionTitle(title: 'PENYIMPANAN & PERFORMA'),
+                  ProfileToggleItem(
+                    icon: Icons.face_retouching_natural_rounded,
+                    title: 'Tampilkan Titik Wajah (Face Mesh)',
+                    subtitle: 'Show tracking dots on camera (may cause lag)',
+                    value: _controller.showFaceMesh,
+                    onChanged: (val) {
+                      _controller.updateShowFaceMesh(val);
+                    },
+                  ),
                   ProfileToggleItem(
                     icon: Icons.sd_storage_rounded,
                     title: 'Simpan Salinan ke Galeri',
@@ -154,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   const ProfileSectionTitle(title: 'OPSI DEVELOPER'),
                   ProfileMenuItem(
                     icon: Icons.bug_report_rounded,
@@ -164,12 +173,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       showModalBottomSheet(
                         context: context,
                         backgroundColor: AppColors.background,
+                        isScrollControlled: true,
                         shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                         ),
                         builder: (ctx) {
                           return SafeArea(
-                            child: Padding(
+                            child: SingleChildScrollView(
                               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
@@ -287,7 +297,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
 
-                  const SizedBox(height: 24),
+                  // ── Research: Pipeline Verification (tidak mempengaruhi fitur produksi) ──
+                  ProfileMenuItem(
+                    icon: Icons.biotech_rounded,
+                    title: 'Pipeline Verification',
+                    subtitle: 'Verifikasi EAR pipeline vs. dataset DDD',
+                    onTap: () => Navigator.of(context).pushNamed(AppRoutes.pipelineTest),
+                  ),
+
+                  const SizedBox(height: 16),
                   const ProfileSectionTitle(title: 'AKUN'),
                   ProfileMenuItem(
                     icon: Icons.logout_rounded,
@@ -305,7 +323,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
 
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 40),
                 ],
               );
             },

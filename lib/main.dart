@@ -4,8 +4,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:eyeon/app.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 
+import 'package:intl/date_symbol_data_local.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize locale data for date formatting (id_ID/id)
+  await initializeDateFormatting('id', null);
 
   // Load environment variables from .env safely
   try {
