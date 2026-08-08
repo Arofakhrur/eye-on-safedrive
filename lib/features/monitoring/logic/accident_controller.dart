@@ -17,8 +17,7 @@ class AccidentController extends ChangeNotifier {
   double _filteredMagnitude = 0.0;
   double _peakMagnitude = 0.0; // Menyimpan nilai puncak tertinggi saat crash
   
-  // LPF (Low-Pass Filter) factor. 
-  // Ditingkatkan menjadi 0.5 agar lebih responsif terhadap kecelakaan nyata.
+  // Faktor Low-Pass Filter (LPF). Diset 0.5 agar responsif terhadap kecelakaan.
   final double _alpha = DetectionConfig.accelLpfAlpha; 
 
   /// Callback saat Speed-Gate menolak trigger akselerometer (false alarm jalan rusak).
@@ -43,19 +42,8 @@ class AccidentController extends ChangeNotifier {
 
       final rawMagnitude = sqrt(pow(event.x, 2) + pow(event.y, 2) + pow(event.z, 2));
       
-      // =====================================================================
-      // DOKUMENTASI UNTUK SIDANG: ALGORITMA LOW-PASS FILTER (LPF)
-      // =====================================================================
-      // LPF digunakan untuk memfilter "noise" atau getaran frekuensi tinggi 
-      // yang terjadi terus-menerus (misal: getaran mesin, jalan bebatuan/rusak).
-      // 
-      // Rumus: Filtered = (alpha * Raw) + ((1 - alpha) * Previous_Filtered)
-      // 
-      // Dengan alpha = 0.5, sistem mengambil 50% kekuatan guncangan asli saat ini,
-      // dan mempertahankan 50% dari guncangan sebelumnya. Hal ini mencegah sensor 
-      // melonjak tiba-tiba ke angka tinggi hanya karena satu lubang kecil, 
-      // namun tetap responsif jika terjadi benturan kecelakaan yang berkelanjutan.
-      // =====================================================================
+      // Menerapkan Low-Pass Filter (LPF) untuk meredam noise getaran jalan/mesin.
+      // Rumus: (alpha * Guncangan_Baru) + ((1 - alpha) * Guncangan_Sebelumnya)
       _filteredMagnitude = (_alpha * rawMagnitude) + ((1.0 - _alpha) * _filteredMagnitude);
       _currentMagnitude = _filteredMagnitude;
       
@@ -91,18 +79,8 @@ class AccidentController extends ChangeNotifier {
     final stopwatch = Stopwatch()..start();
     bool tiltTriggered = false;
 
-    // =====================================================================
-    // DOKUMENTASI UNTUK SIDANG: KOMPENSASI TILT (KEMIRINGAN)
-    // =====================================================================
-    // Selama 4 detik Speed-Gate berjalan, sistem juga memantau kemiringan
-    // motor menggunakan accelerometerEventStream (mengandung gravitasi).
-    //
-    // Rumus Tilt: acos(gz / sqrt(gx² + gy² + gz²)) × (180/π)
-    //
-    // Jika tilt > 60°, artinya motor sudah rebah/terbalik (tidak mungkin
-    // terjadi saat berkendara normal). Dalam kasus ini, syarat kecepatan
-    // diabaikan dan SOS langsung dikirim.
-    // =====================================================================
+    // Memantau kemiringan (tilt) motor selama Speed-Gate berjalan.
+    // Jika kemiringan > 60 derajat (motor rebah), abaikan Speed-Gate dan langsung kirim SOS.
     StreamSubscription<AccelerometerEvent>? tiltSubscription;
     tiltSubscription = accelerometerEventStream().listen((AccelerometerEvent event) {
       if (tiltTriggered) return;
@@ -139,20 +117,9 @@ class AccidentController extends ChangeNotifier {
           final speedKmH = position.speed * 3.6;
           debugPrint('🏍️ SPEED CHECK: ${speedKmH.toStringAsFixed(2)} km/h');
 
-          // =====================================================================
-          // DOKUMENTASI UNTUK SIDANG: LOGIKA SPEED-GATE (ANTI FALSE-ALARM)
-          // =====================================================================
-          // Jalanan yang rusak berat (misal: Gunung Salak / KKA) bisa menghasilkan
-          // guncangan keras yang menembus batas LPF. Untuk mencegah Alarm Palsu,
-          // sistem melakukan verifikasi cerdas berbasis GPS:
-          //
-          // Sistem di-delay 4 detik setelah guncangan keras terjadi. Setelah itu:
-          // 1. Jika Kecepatan < 2.0 km/jam: Artinya motor membentur sesuatu dan 
-          //    berhenti total (jatuh). Ini adalah KECELAKAAN NYATA -> Kirim SOS.
-          // 2. Jika Kecepatan >= 2.0 km/jam: Artinya motor masih melaju normal. 
-          //    Guncangan tadi hanyalah murni karena melindas lubang jalanan. 
-          //    Ini adalah FALSE ALARM -> Batalkan SOS.
-          // =====================================================================
+          // Logika Speed-Gate (Anti False-Alarm):
+          // Jika kecepatan < 2 km/h (motor berhenti) -> Kecelakaan nyata (Kirim SOS).
+          // Jika kecepatan >= 2 km/h (motor melaju) -> Guncangan jalan rusak (Batal SOS).
           if (speedKmH < DetectionConfig.speedGateThresholdKmH) {
             _sensorDetectionLatencyMs = stopwatch.elapsedMilliseconds;
             _isAccidentDetected = true;

@@ -22,7 +22,7 @@ class MicrosleepController extends ChangeNotifier {
   int get drowsyCount => _drowsyCount;
   bool get isPaused => _isPaused;
   
-  // For compatibility with any UI still checking meshes
+  // Untuk kompatibilitas dengan UI yang masih mengecek mesh
   dynamic get currentMeshes => [];
 
   void resumeMonitoring() {
@@ -53,7 +53,7 @@ class MicrosleepController extends ChangeNotifier {
   int _consecutiveDrowsyFrames = 0;
 
   void updateEAR(double ear) {
-    // Cooldown setelah resume untuk mencegah spam
+    // Cooldown setelah resume untuk mencegah spam alarm
     if (_lastWarningTime != null &&
         DateTime.now().difference(_lastWarningTime!).inSeconds < DetectionConfig.resumeCooldownSeconds) {
       _currentEAR = ear;
@@ -93,14 +93,14 @@ class MicrosleepController extends ChangeNotifier {
       if (!_isAlarmPlaying) {
         _isAlarmPlaying = true;
 
-        // Set volume based on drowsyCount (Level 1: 0.7, Level 2+: 1.0)
+        // Set volume berdasarkan tingkat kantuk (Level 1: 0.7, Level 2+: 1.0)
         double volume = _drowsyCount > 1 ? DetectionConfig.alarmVolumeMax : DetectionConfig.alarmVolumeLevel1;
         await _audioPlayer.setVolume(volume);
 
-        // Loop the alarm until eyes open
+        // Loop alarm sampai mata terbuka kembali
         await _audioPlayer.setReleaseMode(ReleaseMode.loop);
 
-        // Resolve the correct sound file from user preference
+        // Ambil file suara alarm sesuai preferensi user
         final preferredSound = PreferenceService().alarmSound;
         final soundFile = _alarmSoundFiles[preferredSound] ?? _alarmSoundFiles['Sound 1']!;
 

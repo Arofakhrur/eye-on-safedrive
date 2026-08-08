@@ -2,13 +2,7 @@ import 'dart:math';
 import 'package:google_mlkit_face_mesh_detection/google_mlkit_face_mesh_detection.dart';
 import 'package:eyeon/core/utils/math_utils.dart';
 
-/// Shared EAR (Eye Aspect Ratio) calculator for the pipeline verification research module.
-///
-/// Uses the **exact same** landmark indices and [MathUtils.calculateEAR] formula
-/// as [CalibrationController], ensuring the verification measures the identical
-/// pipeline as the live monitoring system.
-///
-/// EAR formula: (||p2−p6|| + ||p3−p5||) / (2 × ||p1−p4||)
+/// Rumus EAR: (||p2−p6|| + ||p3−p5||) / (2 × ||p1−p4||)
 class EarCalculator {
   EarCalculator._();
 
@@ -59,16 +53,17 @@ class EarCalculator {
       allPoints[indices[5]].y.toInt(),
     );
 
-    // Delegates directly to the same MathUtils.calculateEAR used in production.
     return MathUtils.calculateEAR(
-      p1: p1, p2: p2, p3: p3,
-      p4: p4, p5: p5, p6: p6,
+      p1: p1,
+      p2: p2,
+      p3: p3,
+      p4: p4,
+      p5: p5,
+      p6: p6,
     );
   }
 
   /// Calculates the average EAR across both eyes from all 478 face mesh points.
-  ///
-  /// Returns `null` if [allPoints] is empty or has too few entries.
   static double? calculateAvgEar(List<FaceMeshPoint> allPoints) {
     if (allPoints.length < minPoints) return null;
 

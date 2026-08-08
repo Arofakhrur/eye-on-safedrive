@@ -65,8 +65,7 @@ class SupabaseService {
     debugPrint('📦 Saved to offline queue: $tableName');
   }
 
-  /// Sync all offline queued data to Supabase.
-  /// Returns the number of successfully synced records.
+  /// Sinkronisasi data offline ke Supabase.
   Future<int> syncOfflineData() async {
     final db = await _getDb();
     final rows = await db.query('offline_queue', orderBy: 'id ASC');
@@ -103,7 +102,7 @@ class SupabaseService {
     await client.auth.signOut();
   }
 
-  /// Manual Email/Password Registration
+  /// Registrasi via Email
   Future<AuthResponse> signUpWithEmail({
     required String email,
     required String password,
@@ -116,7 +115,7 @@ class SupabaseService {
     );
   }
 
-  /// Manual Email/Password Login
+  /// Login via Email
   Future<AuthResponse> signInWithEmail({
     required String email,
     required String password,
@@ -158,7 +157,7 @@ class SupabaseService {
     }
   }
 
-  /// Add a single emergency contact. Enforces max 5 per user.
+  /// Tambah kontak darurat (Maks 5).
   Future<void> addEmergencyContact(EmergencyContact contact) async {
     if (currentUser == null) return;
 
@@ -179,7 +178,7 @@ class SupabaseService {
     await client.from(SupabaseConfig.tableEmergencyContacts).insert(contact.toJson());
   }
 
-  /// Update an existing emergency contact by its ID.
+  /// Update data kontak darurat.
   Future<void> updateEmergencyContact(
     String contactId, {
     String? name,
@@ -202,7 +201,7 @@ class SupabaseService {
         .eq('user_id', currentUser!.id);
   }
 
-  /// Delete a single emergency contact by its ID.
+  /// Hapus kontak darurat.
   Future<void> deleteEmergencyContact(String contactId) async {
     if (currentUser == null) return;
     await client
@@ -212,8 +211,7 @@ class SupabaseService {
         .eq('user_id', currentUser!.id);
   }
 
-  /// Bulk save emergency contacts — deletes existing and inserts new ones.
-  /// Falls back to offline queue if Supabase is unreachable.
+  /// Simpan banyak kontak sekaligus (timpa yang lama). Tersimpan offline jika gagal.
   Future<void> saveEmergencyContacts(List<EmergencyContact> contacts) async {
     if (currentUser == null) throw Exception('Pengguna belum login.');
 
@@ -283,7 +281,7 @@ class SupabaseService {
     }
   }
 
-  /// Get incidents associated with a specific ride.
+  /// Ambil daftar insiden pada sesi perjalanan.
   Future<List<Map<String, dynamic>>> getIncidentsForRide(String rideId) async {
     if (currentUser == null) return [];
     final response = await client
@@ -294,7 +292,7 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Log a ride and return its UUID for incident linking.
+  /// Catat sesi perjalanan baru dan kembalikan ID-nya.
   Future<String?> logRide({
     required DateTime startTime,
     required DateTime endTime,
@@ -322,7 +320,7 @@ class SupabaseService {
     }
   }
 
-  /// Update an existing ride record with final data when ride ends.
+  /// Perbarui data akhir sesi perjalanan (saat stop).
   Future<void> updateRide({
     required String rideId,
     required DateTime endTime,
@@ -389,7 +387,7 @@ class SupabaseService {
     }
   }
 
-  /// Real-time stream of ride history
+  /// Stream riwayat perjalanan secara real-time.
   Stream<List<Map<String, dynamic>>> streamRideHistory() {
     if (currentUser == null) return const Stream.empty();
     
@@ -408,7 +406,7 @@ class SupabaseService {
     });
   }
 
-  /// Get the current user's public profile.
+  /// Ambil profil user saat ini.
   Future<Map<String, dynamic>?> getProfile() async {
     if (currentUser == null) return null;
     try {
@@ -424,7 +422,7 @@ class SupabaseService {
     }
   }
 
-  /// Create or update the user's profile in the profiles table.
+  /// Buat atau perbarui profil user di database.
   Future<void> updateProfile(Map<String, dynamic> data) async {
     if (currentUser == null) return;
     // Note: errors are intentionally rethrown so callers can show feedback to user
@@ -435,7 +433,7 @@ class SupabaseService {
     });
   }
 
-  /// Legacy metadata update — kept for backward compatibility.
+  /// Update metadata autentikasi (Legacy).
   Future<void> updateUserMetadata(Map<String, dynamic> metadata) async {
     await client.auth.updateUser(UserAttributes(data: metadata));
   }

@@ -4,34 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:eyeon/research/realtime_logger/models/research_event_model.dart';
 import 'package:eyeon/core/services/supabase_service.dart';
 
-/// Durasi maksimal EAR di bawah threshold yang masih dianggap kedipan normal.
-/// Di atas ini dianggap mata tertutup (drowsy candidate).
-const int _kBlinkMaxMs = 500; // 500ms ≈ kedipan biasa
+/// Batas maksimal durasi kedipan normal. Lebih dari ini = terindikasi kantuk.
+const int _kBlinkMaxMs = 500;
 
-/// Service yang **sepenuhnya otomatis** mencatat klasifikasi TP/FP/TN/FN
-/// berdasarkan data EAR real-time dari [MicrosleepController].
-///
-/// ## Logika Klasifikasi Otomatis
-///
-/// ```
-/// EAR < threshold mulai:
-///   → catat waktu mulai tutup
-///
-/// EAR > threshold lagi (mata buka):
-///   → hitung durasi tutup
-///   → durasi < [_kBlinkMaxMs] → BLINK NORMAL
-///       → jika tidak ada alarm → TN
-///       → jika ada alarm dalam window → FP (sistem salah deteksi kedipan)
-///   → durasi >= [_kBlinkMaxMs] → SUSTAINED CLOSE (ground truth drowsy)
-///       → jika alarm berbunyi → TP
-///       → jika tidak ada alarm → FN
-///
-/// Alarm berbunyi (dari sistem):
-///   → cek apakah sedang dalam sustained close → TP
-///   → jika tidak → FP
-/// ```
-///
-/// TIDAK ada interaksi manual dari pengemudi.
+/// Service pencatat evaluasi klasifikasi (TP/FP/TN/FN) secara otomatis (tanpa input manual).
 class ResearchLoggerService extends ChangeNotifier {
   /// Window korelasi alarm ↔ sustained EAR close (ms).
   static const int _windowMs = 5000;
@@ -102,9 +78,7 @@ class ResearchLoggerService extends ChangeNotifier {
 
   // ── Update EAR (dipanggil setiap frame dari MicrosleepController) ──────────
 
-  /// Dipanggil setiap kali ada nilai EAR baru dari kamera.
-  ///
-  /// Method ini sepenuhnya otomatis — tidak memerlukan interaksi pengemudi.
+  /// Terima update nilai EAR dari kamera.
   void updateEAR(double ear) {
     if (_currentRideId == null || _rideStartTime == null) return;
 
@@ -184,14 +158,14 @@ class ResearchLoggerService extends ChangeNotifier {
     final eventId = '${now.millisecondsSinceEpoch}-alrm';
 
     if (_isSustainedClose && _eyeCloseStartTime != null) {
-      // Alarm terjadi saat ada sustained EAR close → TP
+      // Alarm + Kantuk (TP)
       outcome = OutcomeClass.tp;
       latencyMs = now.difference(_eyeCloseStartTime!).inMilliseconds;
       _tp++;
       debugPrint('🔬 [ResearchLogger] TP: alarm during sustained close (${latencyMs}ms)');
     } else if (_isEarBelowThreshold && _eyeCloseStartTime != null) {
-      // Alarm terjadi saat EAR turun tapi belum sustained (masih dalam blink window)
-      // Tandai pending — akan di-resolve setelah window berlalu
+      // Alarm saat mata mulai tertutup tapi belum melampaui window time (Pending)
+      // Status akhir diputuskan sesaat lagi.
       outcome = OutcomeClass.pending;
       latencyMs = now.difference(_eyeCloseStartTime!).inMilliseconds;
       debugPrint('🔬 [ResearchLogger] Alarm during blink window (${latencyMs}ms) — pending');
@@ -209,7 +183,7 @@ class ResearchLoggerService extends ChangeNotifier {
         notifyListeners();
       });
     } else {
-      // Alarm terjadi tanpa ada EAR close yang aktif → FP (sistem false alarm)
+      // Alarm salah sasaran, mata tidak sedang tertutup (FP)
       outcome = OutcomeClass.fp;
       _fp++;
       debugPrint('🔬 [ResearchLogger] FP: alarm without sustained close');
