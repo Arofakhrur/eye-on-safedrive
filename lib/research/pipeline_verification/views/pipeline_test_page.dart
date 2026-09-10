@@ -40,6 +40,10 @@ class _PipelineTestPageState extends State<PipelineTestPage>
   int _failedFace = 0;
   int _failedLandmark = 0;
   String? _currentFile;
+  String? _currentPhase;
+  String? _currentSubject;
+  int _calibratedSubjects = 0;
+  int _skippedSubjects = 0;
 
   // Animation
   late AnimationController _pulseController;
@@ -66,6 +70,10 @@ class _PipelineTestPageState extends State<PipelineTestPage>
         _failedFace = progress.failedFace;
         _failedLandmark = progress.failedLandmark;
         _currentFile = progress.currentFile;
+        _currentPhase = progress.phase;
+        _currentSubject = progress.currentSubject;
+        _calibratedSubjects = progress.calibratedSubjects;
+        _skippedSubjects = progress.skippedSubjects;
         if (progress.isDone && _isProcessing) {
           _isProcessing = false;
           _isDone = true;
@@ -196,17 +204,33 @@ class _PipelineTestPageState extends State<PipelineTestPage>
     }
   }
 
-  Future<void> _startVerification() async {
+  Future<void> _startVerification({bool sampleMode = false}) async {
     if (_selectedFolderPath == null || _isProcessing) return;
+
+    // For full dataset mode, check for existing checkpoint
+    if (!sampleMode) {
+      final hasCheckpoint = await _service.hasCheckpoint();
+      if (hasCheckpoint && mounted) {
+        final shouldResume = await _showResumeDialog();
+        if (shouldResume == null) return; // User dismissed
+        if (!shouldResume) {
+          await _service.clearCheckpoint();
+        }
+      }
+    }
 
     setState(() {
       _isProcessing = true;
       _isDone = false;
       _exportError = null;
+      _currentPhase = null;
+      _currentSubject = null;
+      _calibratedSubjects = 0;
+      _skippedSubjects = 0;
     });
     _pulseController.repeat(reverse: true);
 
-    await _service.runVerification(_selectedFolderPath!);
+    await _service.runVerification(_selectedFolderPath!, sampleMode: sampleMode);
 
     if (mounted && _service.errorMessage != null) {
       setState(() {
@@ -215,6 +239,67 @@ class _PipelineTestPageState extends State<PipelineTestPage>
       });
       _showError(_service.errorMessage!);
     }
+  }
+
+  /// Shows a dialog asking whether to resume a previous incomplete run.
+  Future<bool?> _showResumeDialog() {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1D24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.restore_rounded, color: AppColors.primary, size: 24),
+            const SizedBox(width: 10),
+            Text(
+              'Lanjutkan Proses?',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Ditemukan checkpoint dari proses sebelumnya yang belum selesai.\n\n'
+          'Pilih "Lanjutkan" untuk melanjutkan dari posisi terakhir, '
+          'atau "Mulai Ulang" untuk memproses dari awal.',
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white70,
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Mulai Ulang',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.black87,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Lanjutkan',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _exportCsv() async {
@@ -270,6 +355,10 @@ class _PipelineTestPageState extends State<PipelineTestPage>
               ],
               if (_isDone && _service.results.isNotEmpty) ...[
                 const SizedBox(height: 20),
+                if (_service.runSummary != null)
+                  _buildSummaryCard(_service.runSummary!),
+                if (_service.runSummary != null)
+                  const SizedBox(height: 16),
                 _buildExportButton(),
                 if (_exportError != null) ...[
                   const SizedBox(height: 8),
@@ -542,31 +631,78 @@ class _PipelineTestPageState extends State<PipelineTestPage>
       );
     }
 
-    // ── Idle: single run button ──
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: canRun ? _startVerification : null,
-        icon: const Icon(Icons.play_arrow_rounded, size: 22),
-        label: Text(
-          _isDone ? 'Jalankan Ulang' : 'Mulai Verifikasi',
+    // ── Idle: dual run buttons (Sample vs Full Dataset) ──
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: canRun ? () => _startVerification(sampleMode: true) : null,
+            icon: const Icon(Icons.science_rounded, size: 22),
+            label: Text(
+              'Jalankan Sampel Kecil (~30 Foto)',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: canRun ? AppColors.primary : Colors.white12,
+              foregroundColor: Colors.black87,
+              disabledBackgroundColor: Colors.white10,
+              disabledForegroundColor: Colors.white38,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: canRun ? 4 : 0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '↑ Sampel campuran: 15 non_drowsy + 15 drowsy dari 1 subject',
           style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w800,
-            fontSize: 15,
+            color: Colors.white30,
+            fontSize: 10,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: canRun ? () => _startVerification(sampleMode: false) : null,
+            icon: const Icon(Icons.rocket_launch_rounded, size: 22),
+            label: Column(
+              children: [
+                Text(
+                  'Jalankan Full Dataset',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  'Auto-chain: Non Drowsy → Drowsy (semua subject)',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: BorderSide(color: canRun ? AppColors.primary : Colors.white12),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
           ),
         ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: canRun ? AppColors.primary : Colors.white12,
-          foregroundColor: Colors.black87,
-          disabledBackgroundColor: Colors.white10,
-          disabledForegroundColor: Colors.white38,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          elevation: canRun ? 4 : 0,
-        ),
-      ),
+      ],
     );
   }
 
@@ -610,11 +746,27 @@ class _PipelineTestPageState extends State<PipelineTestPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '$_processed / $_total gambar',
-                style: GoogleFonts.plusJakartaSans(
-                  color: Colors.white54,
-                  fontSize: 11,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$_processed / $_total gambar',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white54,
+                        fontSize: 11,
+                      ),
+                    ),
+                    if (_currentPhase != null)
+                      Text(
+                        _currentPhase!,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppColors.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
                 ),
               ),
               Text(
@@ -664,12 +816,36 @@ class _PipelineTestPageState extends State<PipelineTestPage>
               ),
             ],
           ),
+          if (_calibratedSubjects > 0 || _skippedSubjects > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _StatChip(
+                  label: 'Terkalibrasi',
+                  value: '$_calibratedSubjects',
+                  color: Colors.cyanAccent.shade400,
+                  icon: Icons.tune_rounded,
+                ),
+                const SizedBox(width: 8),
+                _StatChip(
+                  label: 'Dilewati',
+                  value: '$_skippedSubjects',
+                  color: Colors.white38,
+                  icon: Icons.skip_next_rounded,
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildCurrentFileIndicator() {
+    final displayText = _currentSubject != null
+        ? 'Memproses: $_currentSubject / $_currentFile'
+        : 'Memproses: $_currentFile';
+
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
@@ -697,12 +873,111 @@ class _PipelineTestPageState extends State<PipelineTestPage>
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Memproses: $_currentFile',
+              displayText,
               style: GoogleFonts.sourceCodePro(
                 color: Colors.white38,
                 fontSize: 11,
               ),
               overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(PipelineRunSummary summary) {
+    return _ResearchCard(
+      title: 'Ringkasan Proses',
+      icon: Icons.assessment_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (summary.wasResumed)
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.restore_rounded, color: Colors.blueAccent, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Dilanjutkan dari checkpoint sebelumnya',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.blueAccent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Stats rows
+          _summaryRow(Icons.image_rounded, 'Total gambar diproses',
+              '${summary.totalImages}', Colors.white70),
+          _summaryRow(Icons.check_circle_rounded, 'Deteksi berhasil',
+              '${summary.successfulDetections}', Colors.greenAccent.shade400),
+          _summaryRow(Icons.face_retouching_off_rounded, 'Gagal deteksi wajah',
+              '${summary.failedFace}', Colors.redAccent.shade200),
+          _summaryRow(Icons.visibility_off_rounded, 'Gagal landmark',
+              '${summary.failedLandmark}', Colors.orangeAccent.shade200),
+          const Divider(color: Colors.white12, height: 20),
+          _summaryRow(Icons.people_rounded, 'Total subject',
+              '${summary.totalSubjects}', Colors.white70),
+          _summaryRow(Icons.tune_rounded, 'Subject terkalibrasi',
+              '${summary.calibratedSubjects}', Colors.greenAccent.shade400),
+          if (summary.skippedSubjects.isNotEmpty) ...[
+            _summaryRow(Icons.warning_amber_rounded, 'Subject dilewati (tanpa kalibrasi)',
+                '${summary.skippedSubjects.length}', Colors.orangeAccent.shade200),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orangeAccent.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Dilewati: ${summary.skippedSubjects.join(", ")}',
+                style: GoogleFonts.sourceCodePro(
+                  color: Colors.orangeAccent.shade200,
+                  fontSize: 10,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(IconData icon, String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white54,
+                fontSize: 11,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -817,7 +1092,7 @@ class _PipelineTestPageState extends State<PipelineTestPage>
                               ? r.ear.toStringAsFixed(3)
                               : '—',
                           relEar: r.faceDetected && r.landmarkFound
-                              ? r.relativeEar.toStringAsFixed(2)
+                              ? (r.relativeEar?.toStringAsFixed(2) ?? '—')
                               : '—',
                           earVal: r.ear,
                           isHeader: false,

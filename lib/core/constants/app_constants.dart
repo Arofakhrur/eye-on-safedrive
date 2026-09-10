@@ -58,8 +58,7 @@ class AppUrls {
   AppUrls._();
 
   // Nominatim Geocoding API
-  static const String nominatimBase =
-      'https://nominatim.openstreetmap.org';
+  static const String nominatimBase = 'https://nominatim.openstreetmap.org';
 
   static const String nominatimSearch = '$nominatimBase/search';
 
@@ -79,8 +78,7 @@ class AppUrls {
   static const String telegramBotUsername = 'EyeonEmergency_bot';
   static const String telegramBotDeepLink =
       'tg://resolve?domain=$telegramBotUsername&start=start';
-  static const String telegramBotHttpsUrl =
-      'https://t.me/$telegramBotUsername';
+  static const String telegramBotHttpsUrl = 'https://t.me/$telegramBotUsername';
 
   // Google Maps
   static const String googleMapsSearch =
@@ -91,8 +89,7 @@ class AppUrls {
       '$googleMapsSearch&query=$lat,$lng';
 
   /// WhatsApp deep-link URL for a given E.164 phone number (digits only).
-  static String whatsAppUrl(String cleanPhone) =>
-      'https://wa.me/$cleanPhone';
+  static String whatsAppUrl(String cleanPhone) => 'https://wa.me/$cleanPhone';
 
   /// Pesan undangan Telegram yang dikirim ke kontak darurat.
   static const String telegramInviteMessage =
@@ -175,8 +172,8 @@ class DetectionConfig {
   /// Frames without a face before showing warning.
   static const int noFaceTimeoutFrames = 60;
 
-  /// Multiplier applied to baseline average → personal threshold (75%).
-  static const double earThresholdMultiplier = 0.75;
+  /// Multiplier applied to baseline average → personal threshold (74%).
+  static const double earThresholdMultiplier = 0.74;
 
   /// Lower clamp for calibrated EAR threshold.
   static const double earThresholdMin = 0.12;

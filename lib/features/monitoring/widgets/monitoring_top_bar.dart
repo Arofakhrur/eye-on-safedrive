@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
+import 'package:eyeon/features/monitoring/logic/monitoring_controller.dart';
 
 class MonitoringTopBar extends StatelessWidget {
   final bool isDrowsy;
@@ -8,7 +9,7 @@ class MonitoringTopBar extends StatelessWidget {
   final double currentSpeed;
   final String formattedDuration;
   final double totalDistance;
-  final bool showFaceMesh;
+  final LandmarkMode landmarkMode;
   final VoidCallback onToggleFaceMesh;
   final bool isFullScreen;
   final VoidCallback onToggleFullScreen;
@@ -20,7 +21,7 @@ class MonitoringTopBar extends StatelessWidget {
     required this.currentSpeed,
     required this.formattedDuration,
     required this.totalDistance,
-    required this.showFaceMesh,
+    required this.landmarkMode,
     required this.onToggleFaceMesh,
     required this.isFullScreen,
     required this.onToggleFullScreen,
@@ -61,18 +62,19 @@ class MonitoringTopBar extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. Toggle Face Mesh
+          // 1. Toggle Landmark Mode (3 States: Face Only -> Face + Eyes -> Off)
           GestureDetector(
             onTap: onToggleFaceMesh,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.background.withValues(alpha: 0.15),
+                color: _getLandmarkBgColor(),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                showFaceMesh ? Icons.face_retouching_natural_rounded : Icons.face_unlock_rounded,
-                color: showFaceMesh ? AppColors.primary : AppColors.textInverse.withValues(alpha: 0.5),
+                _getLandmarkIcon(),
+                color: _getLandmarkColor(),
                 size: 20,
               ),
             ),
@@ -154,5 +156,38 @@ class MonitoringTopBar extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  IconData _getLandmarkIcon() {
+    switch (landmarkMode) {
+      case LandmarkMode.off:
+        return Icons.face_unlock_rounded;
+      case LandmarkMode.faceOnly:
+        return Icons.face_retouching_natural_rounded;
+      case LandmarkMode.all:
+        return Icons.remove_red_eye_rounded;
+    }
+  }
+
+  Color _getLandmarkColor() {
+    switch (landmarkMode) {
+      case LandmarkMode.off:
+        return AppColors.textInverse.withValues(alpha: 0.5);
+      case LandmarkMode.faceOnly:
+        return AppColors.primary; // Neon green
+      case LandmarkMode.all:
+        return const Color(0xFF00E5FF); // Bright cyan (matches eye landmark highlight)
+    }
+  }
+
+  Color _getLandmarkBgColor() {
+    switch (landmarkMode) {
+      case LandmarkMode.off:
+        return AppColors.background.withValues(alpha: 0.15);
+      case LandmarkMode.faceOnly:
+        return AppColors.primary.withValues(alpha: 0.2);
+      case LandmarkMode.all:
+        return const Color(0xFF00E5FF).withValues(alpha: 0.2);
+    }
   }
 }

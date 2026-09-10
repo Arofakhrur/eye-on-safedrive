@@ -2,6 +2,28 @@ import 'dart:math';
 import 'package:google_mlkit_face_mesh_detection/google_mlkit_face_mesh_detection.dart';
 import 'package:eyeon/core/utils/math_utils.dart';
 
+class EarResult {
+  final double ear;
+  final List<Point<int>> points;
+  const EarResult(this.ear, this.points);
+}
+
+class DetailedEarResult {
+  final double leftEar;
+  final double rightEar;
+  final double avgEar;
+  final List<Point<int>> leftPoints;
+  final List<Point<int>> rightPoints;
+
+  const DetailedEarResult({
+    required this.leftEar,
+    required this.rightEar,
+    required this.avgEar,
+    required this.leftPoints,
+    required this.rightPoints,
+  });
+}
+
 /// Rumus EAR: (||p2−p6|| + ||p3−p5||) / (2 × ||p1−p4||)
 class EarCalculator {
   EarCalculator._();
@@ -19,14 +41,12 @@ class EarCalculator {
 
   /// Calculates EAR for one eye given all 478 face mesh points and 6 landmark indices.
   ///
-  /// Returns 0.0 if:
-  /// - [allPoints] has fewer than [minPoints] entries
-  /// - The horizontal distance between corner points is zero
-  static double calculateForEye(
+  /// Returns EarResult with 0.0 if invalid.
+  static EarResult calculateForEye(
     List<FaceMeshPoint> allPoints,
     List<int> indices,
   ) {
-    if (allPoints.length < minPoints) return 0.0;
+    if (allPoints.length < minPoints) return const EarResult(0.0, []);
 
     final p1 = Point<int>(
       allPoints[indices[0]].x.toInt(),
@@ -53,7 +73,7 @@ class EarCalculator {
       allPoints[indices[5]].y.toInt(),
     );
 
-    return MathUtils.calculateEAR(
+    final ear = MathUtils.calculateEAR(
       p1: p1,
       p2: p2,
       p3: p3,
@@ -61,18 +81,26 @@ class EarCalculator {
       p5: p5,
       p6: p6,
     );
+    
+    return EarResult(ear, [p1, p2, p3, p4, p5, p6]);
   }
 
-  /// Calculates the average EAR across both eyes from all 478 face mesh points.
-  static double? calculateAvgEar(List<FaceMeshPoint> allPoints) {
+  /// Calculates the detailed EAR across both eyes from all face mesh points.
+  static DetailedEarResult? calculateDetailedEar(List<FaceMeshPoint> allPoints) {
     if (allPoints.length < minPoints) return null;
 
     final right = calculateForEye(allPoints, rightEyeIndices);
     final left = calculateForEye(allPoints, leftEyeIndices);
 
     // Return null if both are zero (likely bad detection)
-    if (right == 0.0 && left == 0.0) return null;
+    if (right.ear == 0.0 && left.ear == 0.0) return null;
 
-    return (right + left) / 2.0;
+    return DetailedEarResult(
+      leftEar: left.ear,
+      rightEar: right.ear,
+      avgEar: (right.ear + left.ear) / 2.0,
+      leftPoints: left.points,
+      rightPoints: right.points,
+    );
   }
 }

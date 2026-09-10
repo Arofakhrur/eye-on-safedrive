@@ -234,7 +234,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                             child: CustomPaint(
                               foregroundPainter:
                                   _controller.showFaceMesh &&
-                                  _controller.facePoints != null &&
+                                      _controller.facePoints != null &&
                                       _controller.facePoints!.isNotEmpty
                                   ? NativeFaceMeshPainter(
                                       _controller.facePoints!,
@@ -244,6 +244,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                                       ),
                                       _controller.imageRotation,
                                       _controller.microsleepController.isDrowsy,
+                                      showEyeLandmarks: _controller.showEyeLandmarks,
                                     )
                                   : null,
                               child: AndroidView(
@@ -270,8 +271,6 @@ class _MonitoringScreenState extends State<MonitoringScreen>
               ),
             ),
           ),
-
-
 
           // Map Panel
           AnimatedPositioned(
@@ -300,7 +299,6 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                       destination: widget.destination,
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -319,10 +317,22 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                   currentSpeed: _controller.currentSpeed,
                   formattedDuration: _formatDuration(_controller.rideDuration),
                   totalDistance: _controller.totalDistance,
-                  showFaceMesh: _controller.showFaceMesh,
+                  landmarkMode: _controller.landmarkMode,
                   onToggleFaceMesh: () {
                     if (_currentMode != ScreenMode.fullMap) {
                       _controller.toggleFaceMesh();
+                      final mode = _controller.landmarkMode;
+                      final String msg = mode == LandmarkMode.faceOnly
+                          ? 'Face Mesh Aktif (Mata Off)'
+                          : mode == LandmarkMode.all
+                              ? 'Landmark Mata (EAR) & Wajah Aktif'
+                              : 'Semua Landmark Dinonaktifkan';
+                      NotificationHelper.showTop(
+                        context,
+                        message: msg,
+                        type: NotificationType.info,
+                        duration: const Duration(milliseconds: 1500),
+                      );
                     }
                   },
                   isFullScreen: _currentMode != ScreenMode.split,
@@ -336,7 +346,9 @@ class _MonitoringScreenState extends State<MonitoringScreen>
                         _currentMode = ScreenMode.split;
                       }
                       _controller.updateNativeFacePointsState(
-                          _currentMode != ScreenMode.fullMap && _controller.showFaceMesh);
+                        _currentMode != ScreenMode.fullMap &&
+                            _controller.showFaceMesh,
+                      );
                     });
                   },
                 ),
@@ -353,6 +365,7 @@ class _MonitoringScreenState extends State<MonitoringScreen>
               currentEAR: _controller.microsleepController.currentEAR,
               currentGForce: _controller.accidentController.currentMagnitude,
               isAccident: _controller.accidentController.isAccidentDetected,
+              totalBlinks: _controller.researchLogger.totalBlinks,
             ),
           ),
 
@@ -383,7 +396,6 @@ class _MonitoringScreenState extends State<MonitoringScreen>
               child: const NoFaceWarningOverlay(),
             ),
 
-
           // Circular Reveal Overlay
           if (_showRevealOverlay) _buildCircularRevealOverlay(),
         ],
@@ -395,7 +407,9 @@ class _MonitoringScreenState extends State<MonitoringScreen>
     if (_controller.accidentController.isAccidentDetected) {
       return AlertOverlay(
         currentMagnitude: _controller.accidentController.currentMagnitude,
-        countdown: _controller.isEmergencySOSPending ? _controller.emergencyCountdown : 0,
+        countdown: _controller.isEmergencySOSPending
+            ? _controller.emergencyCountdown
+            : 0,
         onResetAccident: () => _controller.cancelEmergencySOS(),
         onCallEmergency: () => SOSService().showEmergencyContactSheet(context),
       );

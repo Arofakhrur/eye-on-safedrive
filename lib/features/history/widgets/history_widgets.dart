@@ -4,18 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
-import 'package:eyeon/core/theme/app_theme.dart';
-import 'package:eyeon/core/services/supabase_service.dart';
-import 'package:eyeon/research/realtime_logger/services/research_export_service.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:video_player/video_player.dart';
 import 'package:eyeon/core/constants/app_constants.dart';
 import 'package:eyeon/core/constants/app_data.dart';
 import 'package:eyeon/core/theme/app_theme.dart';
 import 'package:eyeon/core/widgets/video_player_dialog.dart';
+import 'package:eyeon/core/services/supabase_service.dart';
 import 'package:eyeon/research/realtime_logger/services/research_export_service.dart';
+import 'package:eyeon/research/realtime_logger/models/research_event_model.dart';
 
 class CategoryFilter extends StatelessWidget {
   final String selectedCategory;
@@ -47,7 +42,9 @@ class CategoryFilter extends StatelessWidget {
               labelStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                color: isSelected
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -116,10 +113,12 @@ class _HistoryCardState extends State<HistoryCard> {
     setState(() => _isLoadingIncidents = true);
     try {
       final incidents = await widget.loadIncidents(rideId);
-      final metrics = await SupabaseService().getEvaluationMetricsForRide(rideId);
+      final metrics = await SupabaseService().getEvaluationMetricsForRide(
+        rideId,
+      );
       final events = await SupabaseService().getResearchEventsForRide(rideId);
-      
-      final blinks = events.where((e) => e.eventType == 'blink').length;
+
+      final blinks = events.where((e) => e.eventType == ResearchEventType.normalBlink).length;
 
       if (mounted) {
         // Ambil video_url dari incident pertama yang ada videonya
@@ -175,21 +174,21 @@ class _HistoryCardState extends State<HistoryCard> {
                   color: isAccident
                       ? Colors.red.shade50
                       : isMicrosleep
-                          ? Colors.orange.shade50
-                          : Colors.green.shade50,
+                      ? Colors.orange.shade50
+                      : Colors.green.shade50,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   isAccident
                       ? Icons.warning_rounded
                       : isMicrosleep
-                          ? Icons.visibility_rounded
-                          : Icons.check_circle_rounded,
+                      ? Icons.visibility_rounded
+                      : Icons.check_circle_rounded,
                   color: isAccident
                       ? Colors.red
                       : isMicrosleep
-                          ? Colors.orange
-                          : Colors.green,
+                      ? Colors.orange
+                      : Colors.green,
                   size: 20,
                 ),
               ),
@@ -202,8 +201,8 @@ class _HistoryCardState extends State<HistoryCard> {
                       isAccident
                           ? 'Kecelakaan Terdeteksi'
                           : isMicrosleep
-                              ? 'Peringatan Microsleep'
-                              : 'Sesi Berkendara Aman',
+                          ? 'Peringatan Microsleep'
+                          : 'Sesi Berkendara Aman',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w800,
                         fontSize: 15,
@@ -257,7 +256,8 @@ class _HistoryCardState extends State<HistoryCard> {
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(
                       child: SizedBox(
-                        width: 20, height: 20,
+                        width: 20,
+                        height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: AppColors.primary,
@@ -278,7 +278,8 @@ class _HistoryCardState extends State<HistoryCard> {
                   ...List.generate(_incidents!.length, (i) {
                     final incident = _incidents![i];
                     final time = DateTime.tryParse(
-                        incident['timestamp']?.toString() ?? '');
+                      incident['timestamp']?.toString() ?? '',
+                    );
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
@@ -288,8 +289,11 @@ class _HistoryCardState extends State<HistoryCard> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.location_on_rounded,
-                              size: 16, color: Colors.red.shade400),
+                          Icon(
+                            Icons.location_on_rounded,
+                            size: 16,
+                            color: Colors.red.shade400,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Column(
@@ -308,7 +312,9 @@ class _HistoryCardState extends State<HistoryCard> {
                                   'Guncangan: ${(incident['magnitude'] ?? 0.0).toStringAsFixed(1)} m/s²',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 10,
-                                    color: AppColors.textPrimary.withValues(alpha: 0.45),
+                                    color: AppColors.textPrimary.withValues(
+                                      alpha: 0.45,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -319,8 +325,13 @@ class _HistoryCardState extends State<HistoryCard> {
                               incident['latitude'] ?? 0.0,
                               incident['longitude'] ?? 0.0,
                             ),
-                            child: Icon(Icons.map_rounded,
-                                size: 18, color: AppColors.textPrimary.withValues(alpha: 0.45)),
+                            child: Icon(
+                              Icons.map_rounded,
+                              size: 18,
+                              color: AppColors.textPrimary.withValues(
+                                alpha: 0.45,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -358,14 +369,18 @@ class _HistoryCardState extends State<HistoryCard> {
                                   _VideoThumbnail(videoUrl: _incidentVideoUrl!),
                                   Container(
                                     decoration: BoxDecoration(
-                                      color: AppColors.textPrimary.withValues(alpha: 0.35),
+                                      color: AppColors.textPrimary.withValues(
+                                        alpha: 0.35,
+                                      ),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                   ),
                                   Container(
                                     padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
-                                      color: AppColors.background.withValues(alpha: 0.24),
+                                      color: AppColors.background.withValues(
+                                        alpha: 0.24,
+                                      ),
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
@@ -382,7 +397,9 @@ class _HistoryCardState extends State<HistoryCard> {
                                   children: [
                                     Icon(
                                       Icons.videocam_off_rounded,
-                                      color: AppColors.background.withValues(alpha: 0.3),
+                                      color: AppColors.background.withValues(
+                                        alpha: 0.3,
+                                      ),
                                       size: 40,
                                     ),
                                     SizedBox(height: 8),
@@ -391,7 +408,9 @@ class _HistoryCardState extends State<HistoryCard> {
                                           ? 'Memuat video…'
                                           : 'Video Tidak Tersedia',
                                       style: GoogleFonts.plusJakartaSans(
-                                        color: AppColors.background.withValues(alpha: 0.30),
+                                        color: AppColors.background.withValues(
+                                          alpha: 0.30,
+                                        ),
                                         fontSize: 12,
                                       ),
                                     ),
@@ -464,7 +483,9 @@ class _HistoryCardState extends State<HistoryCard> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: _isExpanded ? AppColors.background : AppColors.textPrimary,
+                  color: _isExpanded
+                      ? AppColors.background
+                      : AppColors.textPrimary,
                 ),
               ),
             ),
@@ -474,7 +495,6 @@ class _HistoryCardState extends State<HistoryCard> {
     );
   }
 
-  /// Bagian download penelitian — muncul di dalam expanded card.
   Widget _buildResearchDownloadSection(Map<String, dynamic> log) {
     final rideId = log['id']?.toString();
     if (rideId == null) return const SizedBox.shrink();
@@ -551,10 +571,7 @@ class _HistoryCardState extends State<HistoryCard> {
               SizedBox(
                 width: 14,
                 height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: color,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2, color: color),
               )
             else
               Icon(icon, color: color, size: 16),
@@ -624,7 +641,8 @@ class _HistoryCardState extends State<HistoryCard> {
       final endTime = DateTime.parse(end.toString());
       final diff = endTime.difference(startTime);
       if (diff.inHours > 0) return '${diff.inHours}j ${diff.inMinutes % 60}m';
-      if (diff.inMinutes > 0) return '${diff.inMinutes}m ${diff.inSeconds % 60}s';
+      if (diff.inMinutes > 0)
+        return '${diff.inMinutes}m ${diff.inSeconds % 60}s';
       return '${diff.inSeconds}s';
     } catch (e) {
       return '0s';
@@ -634,7 +652,11 @@ class _HistoryCardState extends State<HistoryCard> {
   Widget _buildCompactStat(IconData icon, String value) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: AppColors.textPrimary.withValues(alpha: 0.45)),
+        Icon(
+          icon,
+          size: 14,
+          color: AppColors.textPrimary.withValues(alpha: 0.45),
+        ),
         SizedBox(width: 4),
         Text(
           value,
@@ -718,7 +740,11 @@ class _HistoryCardState extends State<HistoryCard> {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.textPrimary.withValues(alpha: 0.45)),
+          Icon(
+            icon,
+            size: 16,
+            color: AppColors.textPrimary.withValues(alpha: 0.45),
+          ),
           SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -763,7 +789,9 @@ class _HistoryCardState extends State<HistoryCard> {
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: enabled ? AppColors.textPrimary : Colors.grey.shade300,
-        foregroundColor: enabled ? AppColors.background : AppColors.textPrimary.withValues(alpha: 0.38),
+        foregroundColor: enabled
+            ? AppColors.background
+            : AppColors.textPrimary.withValues(alpha: 0.38),
         disabledBackgroundColor: Colors.grey.shade300,
         disabledForegroundColor: AppColors.textPrimary.withValues(alpha: 0.38),
         elevation: 0,
@@ -807,9 +835,7 @@ class _VideoThumbnailState extends State<_VideoThumbnail> {
 
   Future<void> _init() async {
     try {
-      final ctrl = VideoPlayerController.networkUrl(
-        Uri.parse(widget.videoUrl),
-      );
+      final ctrl = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
       await ctrl.initialize();
       // Seek ke frame pertama dan pause langsung
       await ctrl.seekTo(Duration.zero);

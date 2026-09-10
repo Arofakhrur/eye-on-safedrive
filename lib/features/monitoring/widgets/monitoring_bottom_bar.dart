@@ -8,6 +8,7 @@ class MonitoringBottomBar extends StatelessWidget {
   final double currentEAR;
   final double currentGForce;
   final bool isAccident;
+  final int totalBlinks;
 
   const MonitoringBottomBar({
     super.key,
@@ -15,6 +16,7 @@ class MonitoringBottomBar extends StatelessWidget {
     required this.currentEAR,
     required this.currentGForce,
     required this.isAccident,
+    required this.totalBlinks,
   });
 
   @override
@@ -41,6 +43,11 @@ class MonitoringBottomBar extends StatelessWidget {
           _buildMetric(
             Icons.speed_rounded, 
             '${currentSpeed.toStringAsFixed(0)} km/h',
+            AppColors.background,
+          ),
+          _buildMetric(
+            Icons.remove_red_eye_rounded,
+            '$totalBlinks',
             AppColors.background,
           ),
           _buildMetric(

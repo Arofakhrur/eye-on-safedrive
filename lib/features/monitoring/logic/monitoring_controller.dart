@@ -11,6 +11,12 @@ import 'package:eyeon/core/utils/notification_helper.dart';
 import 'package:eyeon/core/services/preference_service.dart';
 import 'package:eyeon/research/realtime_logger/services/research_logger_service.dart';
 
+enum LandmarkMode {
+  off,       // 0: Off semua
+  faceOnly,  // 1: Face mesh wajah aktif (titik umum), bagian mata off
+  all,       // 2: Face mesh aktif + detail titik & teks koordinat mata (EAR) aktif
+}
+
 class MonitoringController extends ChangeNotifier {
   final MicrosleepController microsleepController = MicrosleepController();
   final AccidentController accidentController = AccidentController();
@@ -36,8 +42,17 @@ class MonitoringController extends ChangeNotifier {
   bool _isRideStarted = false;
   bool get isRideStarted => _isRideStarted;
 
-  bool _showFaceMesh = PreferenceService().showFaceMesh;
-  bool get showFaceMesh => _showFaceMesh;
+  LandmarkMode _landmarkMode = () {
+    final idx = PreferenceService().landmarkModeIndex;
+    if (idx >= 0 && idx < LandmarkMode.values.length) {
+      return LandmarkMode.values[idx];
+    }
+    return PreferenceService().showFaceMesh ? LandmarkMode.faceOnly : LandmarkMode.off;
+  }();
+
+  LandmarkMode get landmarkMode => _landmarkMode;
+  bool get showFaceMesh => _landmarkMode != LandmarkMode.off;
+  bool get showEyeLandmarks => _landmarkMode == LandmarkMode.all;
 
   bool _wasDrowsy = false;
   bool _wasAccident = false;
@@ -80,6 +95,11 @@ class MonitoringController extends ChangeNotifier {
     microsleepController.addListener(_onUpdate);
     accidentController.addListener(_onUpdate);
     accidentController.onSpeedGateRejected = _onSpeedGateRejected;
+    researchLogger.addListener(_onResearchUpdate);
+  }
+
+  void _onResearchUpdate() {
+    notifyListeners();
   }
 
   void startRide() {
@@ -146,9 +166,20 @@ class MonitoringController extends ChangeNotifier {
   }
 
   void toggleFaceMesh() {
-    _showFaceMesh = !_showFaceMesh;
-    PreferenceService().setShowFaceMesh(_showFaceMesh);
-    updateNativeFacePointsState(_showFaceMesh);
+    switch (_landmarkMode) {
+      case LandmarkMode.off:
+        _landmarkMode = LandmarkMode.faceOnly;
+        break;
+      case LandmarkMode.faceOnly:
+        _landmarkMode = LandmarkMode.all;
+        break;
+      case LandmarkMode.all:
+        _landmarkMode = LandmarkMode.off;
+        break;
+    }
+    PreferenceService().setShowFaceMesh(_landmarkMode != LandmarkMode.off);
+    PreferenceService().setLandmarkModeIndex(_landmarkMode.index);
+    updateNativeFacePointsState(_landmarkMode != LandmarkMode.off);
     notifyListeners();
   }
 
@@ -337,7 +368,7 @@ class MonitoringController extends ChangeNotifier {
     try {
       await _cameraChannel.invokeMethod('startCamera');
       // Set initial state for face points streaming based on preference
-      await updateNativeFacePointsState(_showFaceMesh);
+      await updateNativeFacePointsState(showFaceMesh);
     } catch (e) {
       debugPrint('Failed to start native camera: $e');
     }

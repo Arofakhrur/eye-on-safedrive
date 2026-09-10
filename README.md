@@ -1,85 +1,94 @@
-# 👁️ EYE-ON! - Safe Driving Assistant
+# EYE-ON! 🏍️👁️
 
-**EYE-ON!** is a Flutter-based mobile application designed to enhance rider safety through real-time microsleep detection, accident monitoring, and automatic emergency response.
+Sistem keselamatan pengendara sepeda motor secara *real-time* berbasis mobile yang mengintegrasikan deteksi *microsleep* (*facial landmark* & EAR) dan respon darurat otomatis (*emergency response*).
 
----
-
-## 🚀 Key Features
-
-### 1. Microsleep Detection (Computer Vision)
-- Real-time face tracking using **Google ML Kit Face Mesh Detection**.
-- Calculates **Eye Aspect Ratio (EAR)** to detect drowsiness.
-- Personalized threshold calibration.
-- Automatic high-pitched audio alarm if eyes are closed for a prolonged duration.
-
-### 2. Accident Detection (Inertial Sensors)
-- Monitors **Gyroscope** and **Accelerometer** data to track extreme changes in motion.
-- Detects high-magnitude rotation events indicative of a crash or sudden fall.
-- Smart accident verification using GPS speed gating to prevent false positives when the vehicle is stationary.
-
-### 3. Rolling Video Buffer (Blackbox Evidence)
-- Maintains a **rolling buffer** of the front camera during the ride.
-- Automatically saves and extracts the video buffer into an `.mp4` file upon accident detection using **FFmpeg**.
-
-### 4. Smart SOS Response via Telegram
-- **Automatic Telegram Alerts**: Sends SOS messages with live GPS location and crash video evidence to emergency contacts via Supabase Edge Functions & Telegram Bot API.
-- Replaces WhatsApp integration for faster, more reliable bot interactions.
-
-### 5. Comprehensive Safety Tracking
-- **Safety Score**: Calculates ride safety based on driving behavior and detected incidents.
-- **Incident Logs**: Detailed history of all microsleep events, alarms, and accidents, synchronized to the cloud.
+Aplikasi ini dikembangkan untuk keperluan penelitian skripsi.
 
 ---
 
-## 🛠️ Tech Stack
+## 📌 Fitur Utama
+
+### 1. Deteksi Microsleep (Real-time Computer Vision)
+- Pelacakan wajah lokal (*on-device*) menggunakan **Google ML Kit Face Mesh Detection**.
+- Ekstraksi 6 titik kontur per mata untuk menghitung rasio **Eye Aspect Ratio (EAR)**.
+- Filter sinyal menggunakan **Exponential Low-Pass Filter (LPF)** ($\alpha = 0.4, \beta = 0.6$).
+- **Kalibrasi Personal**: Penyesuaian ambang batas adaptif per pengendara dengan eliminasi *outlier* IQR 1.5 dan koefisien pengali `0.74`.
+- Alarm audio bertingkat otomatis jika mata terpejam $\ge 30$ frame kontinu ($\approx 1.5$ detik).
+
+### 2. Deteksi Insiden & Kecelakaan (Sensor Inersial)
+- Memantau lonjakan percepatan via akselerometer ponsel.
+- Verifikasi kecepatan **Speed-Gate** via GPS untuk menyaring getaran jalan/polisi tidur.
+- Mendukung *bypass* sudut kemiringan sepeda motor saat jatuh.
+
+### 3. Kotak Hitam Video (*Rolling Buffer*)
+- Merekam video kamera depan secara berulang (*buffer* 5 detik) di sisi *native* Android.
+- Otomatis mengunci dan menyimpan rekaman MP4 saat benturan terdeteksi sebagai bukti insiden.
+
+### 4. Respon Darurat Cepat (SOS Telegram & GPS)
+- Jeda pembatalan darurat (*countdown*) 10 detik untuk menghindari alarm palsu.
+- Mengirim pesan darurat otomatis ke bot Telegram kontak darurat berisi titik lokasi GPS Google Maps dan tautan video insiden.
+
+### 5. Monitoring & Metrik Perjalanan
+- Tampilan antarmuka *split screen* (kamera depan + peta rute OpenStreetMap).
+- Pencatatan log perjalanan, skor keselamatan (*safety score*), serta riwayat insiden.
+
+---
+
+## 🛠️ Tumpukan Teknologi (Tech Stack)
+
 - **Framework**: Flutter (Dart)
-- **Backend & Auth**: Supabase (Auth, PostgreSQL, Storage, Edge Functions)
-- **CV Engine**: Google ML Kit (Face Mesh)
-- **Media Processing**: FFmpeg Kit
-- **State Management**: Provider  ChangeNotifi/er
-- **Maps & Geocoding**: OpenStreetMap / Nominatim (flutter_map)
-- **Local Storage**: SharedPreferences, Sqflite
+- **Native Android**: Kotlin (CameraX `ImageAnalysis` & `VideoCapture`)
+- **Model Machine Learning**: Google ML Kit Face Mesh Detection (On-Device)
+- **Backend & Database**: Supabase (PostgreSQL, Auth, Storage, Edge Functions)
+- **Peta & Geocoding**: Flutter Map, OpenStreetMap (OSM), Nominatim API
+- **Penyimpanan Lokal**: SharedPreferences, Sqflite
 
 ---
 
-## 🛠️ Setup Instructions
+## ⚙️ Panduan Menjalankan Aplikasi
 
-### 1. Prerequisites
-- Flutter SDK (Latest Stable, ^3.10.0)
-- Supabase Project
-- Telegram Bot Token
+### 1. Prasyarat
+- Flutter SDK (versi ^3.10.0 atau lebih baru)
+- Android Studio / VS Code dengan Android SDK (Min SDK: 24, Target SDK: 34)
+- Akun dan project Supabase aktif
+- Bot Telegram (via @BotFather)
 
-### 2. Environment Variables
-Create a `.env` file in the root directory and add your credentials:
+### 2. Konfigurasi Lingkungan (.env)
+Buat file bernama `.env` di direktori utama (*root*) project:
+
 ```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_URL=isi_dengan_url_supabase_anda
+SUPABASE_ANON_KEY=isi_dengan_anon_key_supabase_anda
 ```
 
-### 3. Database Setup
-Execute the SQL scripts in your Supabase SQL Editor to create the necessary tables (`users`, `emergency_contacts`, `incident_logs`, `activities`) and their respective RLS policies.
+### 3. Inisialisasi Dependensi & Jalankan
+Buka terminal di root project, jalankan:
 
-### 4. Edge Functions (Telegram SOS)
-Deploy the Edge Function for automatic background messaging to Telegram:
 ```bash
-supabase functions deploy send-telegram-sos
+flutter pub get
+flutter run
 ```
-*Note: Ensure your Telegram Bot Token is configured in Supabase Secrets for this edge function to work.*
 
 ---
 
-## ⚠️ Important Notes
+## 🧹 Panduan Sebelum Upload ke Google Drive / GitHub
 
-> [!IMPORTANT]
-> **Privacy & Permissions**: This app requires access to Camera, Location, Contacts, and Physical Activity sensors. Data is processed locally for detection, but incident videos and logs are uploaded to your private Supabase storage.
+Agar ukuran folder tidak membengkak (bisa mencapai 2-4 GB jika cache build masih ada) dan aman dari kebocoran kredensial:
 
-> [!WARNING]
-> **Sensitive Files**: Do **NOT** commit your `.env` file to public repositories. This is excluded by the current `.gitignore`.
+1. **Bersihkan File Build (Wajib)**:
+   ```bash
+   flutter clean
+   ```
+   *Perintah ini akan menghapus folder `build/` dan `.dart_tool/` sehingga ukuran folder turun drastis menjadi hanya ~30-50 MB.*
 
-> [!NOTE]
-> **Device Placement**: For optimal microsleep detection, the smartphone must be mounted on the motorcycle/vehicle with a clear, stable view of the rider's face.
+2. **Hapus File Sensitif**:
+   - Pastikan file `.env` tidak diunggah ke repositori publik GitHub (sudah terdaftar di `.gitignore`).
+   - File `google-services.json` dan keystore Android tidak boleh dibagikan sembarangan.
+
+3. **Hapus File Sampah / Log**:
+   - Hapus file log crash JVM seperti `hs_err_*.log` atau `replay_*.log` di direktori utama.
 
 ---
 
-## 📜 License
-This project is developed for **Skripsi** purposes. All rights reserved.
+## 📄 Lisensi & Hak Cipta
+Hak Cipta © 2026. Dikembangkan khusus untuk penelitian skripsi.

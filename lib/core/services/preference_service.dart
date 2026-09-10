@@ -17,6 +17,7 @@ class PreferenceService {
   static const String _keyAlarmSound = 'alarm_sound';
   static const String _keySaveToGallery = 'save_to_gallery';
   static const String _keyShowFaceMesh = 'show_face_mesh';
+  static const String _keyLandmarkMode = 'landmark_mode';
 
   late SharedPreferences _prefs;
 
@@ -75,6 +76,10 @@ class PreferenceService {
   bool get showFaceMesh => _prefs.getBool(_keyShowFaceMesh) ?? false;
   Future<void> setShowFaceMesh(bool value) =>
       _prefs.setBool(_keyShowFaceMesh, value);
+
+  int get landmarkModeIndex => _prefs.getInt(_keyLandmarkMode) ?? (showFaceMesh ? 1 : 0);
+  Future<void> setLandmarkModeIndex(int value) =>
+      _prefs.setInt(_keyLandmarkMode, value);
 
   // Reset all (for logout or testing)
   Future<void> clearAll() async {

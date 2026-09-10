@@ -63,3 +63,6 @@ antigravity/
 backups/
 *.sql
 *.dump
+
+# Documentation / Skripsi (Local only)
+docs/
