@@ -87,10 +87,15 @@ class PipelineResultModel {
         // Calculate TP/TN/FP/FN
         final int groundTruth = label == 'drowsy' ? 1 : 0;
         
-        if (groundTruth == 1 && pred == 1) cls = 'TP';
-        else if (groundTruth == 1 && pred == 0) cls = 'FN';
-        else if (groundTruth == 0 && pred == 1) cls = 'FP';
-        else if (groundTruth == 0 && pred == 0) cls = 'TN';
+        if (groundTruth == 1 && pred == 1) {
+          cls = 'TP';
+        } else if (groundTruth == 1 && pred == 0) {
+          cls = 'FN';
+        } else if (groundTruth == 0 && pred == 1) {
+          cls = 'FP';
+        } else if (groundTruth == 0 && pred == 0) {
+          cls = 'TN';
+        }
       }
     }
 

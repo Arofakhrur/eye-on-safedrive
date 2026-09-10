@@ -9,9 +9,6 @@ const int _kBlinkMaxMs = 500;
 
 /// Service pencatat evaluasi klasifikasi (TP/FP/TN/FN) secara otomatis (tanpa input manual).
 class ResearchLoggerService extends ChangeNotifier {
-  /// Window korelasi alarm ↔ sustained EAR close (ms).
-  static const int _windowMs = 5000;
-
   String? _currentRideId;
   DateTime? _rideStartTime;
 
@@ -28,6 +25,7 @@ class ResearchLoggerService extends ChangeNotifier {
 
   // Alarm sedang aktif atau tidak
   bool _alarmActive = false;
+  bool get isAlarmActive => _alarmActive;
 
   // Hitungan klasifikasi
   int _tp = 0;

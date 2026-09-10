@@ -43,8 +43,9 @@ class AccidentController extends ChangeNotifier {
     _accelSubscription = userAccelerometerEventStream().listen((
       UserAccelerometerEvent event,
     ) {
-      if (_isAccidentDetected)
+      if (_isAccidentDetected) {
         return; // Hanya berhenti membaca jika SOS sudah fix dikirim
+      }
 
       final rawMagnitude = sqrt(
         pow(event.x, 2) + pow(event.y, 2) + pow(event.z, 2),
@@ -125,8 +126,9 @@ class AccidentController extends ChangeNotifier {
       () async {
         tiltSubscription?.cancel(); // Bersihkan stream tilt setelah timer habis
 
-        if (tiltTriggered)
+        if (tiltTriggered) {
           return; // Sudah di-trigger oleh tilt, skip speed check
+        }
 
         try {
           final position = await LocationService.getCurrentLocation();

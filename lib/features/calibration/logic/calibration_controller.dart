@@ -42,7 +42,7 @@ class CalibrationController extends ChangeNotifier {
   double _currentEAR = 0.0;
   double get currentEAR => _currentEAR;
 
-  List<Point<int>> _eyePoints = [];
+  final List<Point<int>> _eyePoints = [];
   List<Point<int>> get eyePoints => _eyePoints;
 
   double _calibratedThreshold = 0.0;

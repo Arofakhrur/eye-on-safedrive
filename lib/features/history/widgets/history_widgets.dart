@@ -640,9 +640,12 @@ class _HistoryCardState extends State<HistoryCard> {
       final startTime = DateTime.parse(start.toString());
       final endTime = DateTime.parse(end.toString());
       final diff = endTime.difference(startTime);
-      if (diff.inHours > 0) return '${diff.inHours}j ${diff.inMinutes % 60}m';
-      if (diff.inMinutes > 0)
+      if (diff.inHours > 0) {
+        return '${diff.inHours}j ${diff.inMinutes % 60}m';
+      }
+      if (diff.inMinutes > 0) {
         return '${diff.inMinutes}m ${diff.inSeconds % 60}s';
+      }
       return '${diff.inSeconds}s';
     } catch (e) {
       return '0s';
